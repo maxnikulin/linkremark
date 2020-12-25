@@ -61,6 +61,9 @@ similar.
 This extension is in its alpha stage, so it has not published to
 browsers' add-on catalogues.
 
+Signed Firefox extension could be found in releases section
+on github: https://github.com/maxnikulin/linkremark/releases
+
 In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
 and load it as unpacked extension.
 
