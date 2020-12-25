@@ -1,0 +1,113 @@
+
+#+TITLE: LinkRemark — notes for web pages augmented by metadata
+
+* Introduction
+
+LinkRemark is a browser extension that allows to save some context
+while capturing notes using GNU Emacs [[https://orgmode.org][Org mode]].
+The add-on attempts to extract some metadata of the current web page:
+author, time when the text was written.
+Actually it just generates (almost) text notes using a few elements
+of Org mode markup.
+
+The idea is that the note for a link should not be just a *bookmark*
+to the link target. It should reflect connection of the page
+where it is found and the site it points to.
+A site that brought you to the current page (referrer) could later
+help find more information related to the topic.
+
+This extension *is experimental so do not be too surprised
+if something does not work*.
+
+* Example of link capture
+
+#+begin_example org
+Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
+  :PROPERTIES:
+  :DATE_ADDED: [2020-12-25 18:06]
+  :END:
+
+- Link URL :: [[https://karl-voit.at/2014/08/10/bookmarks-with-orgmode/]]
+- Link text :: Karl Voit: UOMF: Managing web bookmarks with Org Mode
+
+On the page
+
+- URL :: [[https://alphapapa.github.io/org-almanac/]]
+- title :: org-almanac
+- author :: Adam Porter
+- referrer :: [[https://www.google.com/]]
+#+end_example
+
+* Alternatives
+
+There are some projects that allows to capture URL + page title +
+selection text or URL + text link. I would like to save to my notes
+who and when wrote the text at least for sites that have such fields
+in page metadata.
+
+If you do not need metadata you could find more useful other project:
+- [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension: A Chrome and firefox extension facilitating org-capture in emacs]]
+- [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html: Capture HTML from the browser selection into Emacs as org-mode content]]
+- [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp: A reliable org-capture browser extension for Chrome/Firefox]]
+
+Unlike
+[[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref: Extract bibtex info from captured websites]]
+project, this extension does not have handlers for particular
+websites and do not use BibTeX format. However the goal is quite
+similar.
+
+* Install
+
+This extension is in its alpha stage, so it has not published to
+browsers' add-on catalogues.
+
+In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
+and load it as unpacked extension.
+
+* Usage
+
+Optionally select some text and choose an option from the context menu (right click).
+
+By default the extension just shows preview for the note
+and offers to copt it to clipboard,
+so it can be just yanked to the text editor.
+[[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
+or [[info:org#Capture]] is the next step.
+You could start with a very simple template
+#+begin_example
+"* %?%(org-get-x-clipboard 'CLIPBOARD)
+"
+#+end_example
+
+Later would likely decide to setup external protocol handler
+for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]]
+or to create a native messaging backend.
+In the latter case have a look at [[file:examples/backend-python/lr_example.py]]
+for inspiration.
+
+If you are not familiar with Org Mode capture feature,
+you could find description of workflow in blogs, e.g.
+[[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
+by Sacha Chua.
+
+* Troubleshooting
+
+1. Try to open Debug Info (Preview) extension page through context menu for
+   the extension button in tool bar (extension browser action)
+   end expand debug info section there.
+2. Look for errors in console pane in browser developer tools for the extension.
+   It could be opened using "Inspect" link from the [[about:debugging#/runtime/this-firefox]]
+   page for Firefox. In Chrome menu choose "More tools", "Extensions" and click on the link
+   followed "Inspect views" on the add-on card.
+
+For native messaging backend problems see the related section in Mozilla
+[[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#Troubleshooting][developer guide]]
+and Chrome [[https://developer.chrome.com/docs/apps/nativeMessaging/#native-messaging-debugging][debugging native messaging]]
+docs. It is worth checking errors reported to the browser console
+(=Ctrl+Shift+J= in Firefox). To read messages from Chrome on Linux, start it from a terminal or maybe
+just try =journalctl --user --follow=.
+
+* License
+
+LinkRemark is published under [[https://www.gnu.org/licenses/gpl-3.0.html][the GNU GPLv3 license]] or any later
+version. See the [[file:LICENSE.txt]] file in this directory.

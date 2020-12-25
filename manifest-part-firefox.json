@@ -1,0 +1,8 @@
+{
+	"applications": {
+		"gecko": {
+			"id": "linkremark@maxnikulin.github.io",
+			"strict_min_version": "71.0"
+		}
+	}
+}

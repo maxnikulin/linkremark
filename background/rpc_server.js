@@ -1,0 +1,80 @@
+/*
+   Copyright (C) 2020 Max Nikulin
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+"use strict";
+
+class LrRpcError extends Error {
+	get name() { return this.__proto__.constructor.name; };
+}
+
+// FIXME remove sync attribute
+class LrRpcServer {
+	constructor() {
+		this.methods = new Map();
+		this.listener = this.process.bind(this);
+	};
+	register(name, callback, properties = null) {
+		if (!callback.call) {
+			throw new Error(`LrRpcServer.register(${name}, ${callback && callback.name}): callback is not a function`);
+		}
+		const override = properties && properties.override != null ? properties.override : false;
+		if (!override && this.methods.has(name)) {
+			throw new Error(`LrRpcServer: ${name} already registered, you could force override`);
+		}
+		this.methods.set(name, { sync: true, callback });
+	};
+	async process(request, port) {
+		const id = request && request.id;
+		try {
+			return { id, result: await this.do_process(request, port) };
+		} catch (error) {
+			console.error("LrRpcServer: %o when processing %o %o", error, request, port);
+			return { id, error: "" + error }
+		}
+	};
+
+	async do_process(request, port) {
+		if (!request) {
+			throw new Error("LrRpcServer: bad request");
+		}
+		let method, params, id;
+		const unknown = [];
+		for (let [property, value] of Object.entries(request)) {
+			switch (property) {
+				case "method":
+					method = value;
+					break;
+				case "params":
+					params = value;
+					break;
+				case "id":
+					id = value;
+					break;
+				default:
+					unknown.push([property, value]);
+			}
+		}
+		if (unknown.length > 0) {
+			throw new LrRpcError(`Unknown request fields: ${unknown}`);
+		}
+		const callback = this.methods.get(method);
+		if (!callback) {
+			throw new LrRpcError(`Unknown method: ${method}`);
+		}
+		return callback.callback(params, port);
+	};
+}

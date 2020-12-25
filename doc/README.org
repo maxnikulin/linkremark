@@ -1,0 +1,96 @@
+
+#+begin_comment
+This file should be opened with +ie6+ GNU Emacs for the best representation.
+#+end_comment
+
+* Underscores instead of spaces in Emacs
+  :PROPERTIES:
+  :CUSTOM_ID: underscore
+  :END:
+
+Actually they are not underscores but characters like =&nbsp;=.
+I do not see a real reason to replace them with regular spaces
+even though regular select and copy-paste from browser does so.
+At least some of non-breaking spaces are added with a noble goal
+to improve text formatting.
+
+More precisely they are underlined spaces due to text decoration added by Emacs,
+not underscore symbols. See [[info:emacs#Text Display][=info emacs "Text Display"=]] or
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Text-Display.html]["Text Display" in the on-line Emacs manual]]
+for details. You could set
+[[help:nobreak-char-display][~nobreak-char-display~ variable]]
+accordingly to you preferences or could customize
+=nobreak-space= and =escape-glyph= faces.
+Almost certainly you would prefer to keep special characters easily recognizable
+at least in the source code.
+
+* Referrer is not captured on some pages
+  :PROPERTIES:
+  :CUSTOM_ID: referrer
+  :END:
+
+Often sending of the =Referer= header is intentionally suppressed e.g.
+for privacy or for security reasons.
+
+Open console in browser web developer tools and inspect values of
+~document.referrer~ and ~window.opener~ properties. If they are empty,
+there is no easy way to add information were the link to the current
+page was found.
+
+The page with the link that was followed could control if =Referer=
+header is sent in the request.
+
+For the whole page ~<meta name="referrer" content="...">~ could be set
+to several options described e.g. in
+[[https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name][MDN reference for =meta= =name= attribute]].
+Server could send
+[[https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy][=Referrer-Policy= header (MDN)]] for the same purpose.
+Currently Google is using
+#+BEGIN_SRC html
+<meta content="origin" name="referrer">
+#+END_SRC
+though some time ago some sites highlighted words from query due to
+more permissive policy.
+
+For a particular link, =rel= attribute
+([[https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#rel][MDN reference for ~<a rel="...">~]])
+could be set to
+[[https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/noreferrer][=noreferrer=]]
+[[https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types/noopener][=noopener=]]
+(see [[https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types][Link types at MDN]] for the list)
+suppressing access to link source. The latter is especially important
+to prevent access to original page elements through JS API.
+So just accept that often enough you have to add origin URL yourself.
+
+Notice that referrer is not set by default if insecure link
+(with =http://= scheme) is activated on a page securely loaded using TLS
+(earlier known as SSL, =https://= scheme) due to
+=no-referrer-when-downgrade= referrer policy (as stated e.g.
+in [[https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy][=Referrer-Policy= reference]]).
+Browser policy could evolve in time as it happens with
+[[https://blog.mozilla.org/security/2018/01/31/preventing-data-leaks-by-stripping-path-information-in-http-referrers/][private browsing mode in Firefox 59]]
+when stripping of path and query URL parts was applied.
+
+Some sites could make referrer much less useful for note taking
+by implementing of
+[[https://geekthis.net/post/hide-http-referer-headers/#exit-page-redirect][exit page technique]].
+Obfuscating of referrer could add additional level of protection
+by hiding private internal URLs irrespective of browser behavior.
+
+Referrer could be blocked by some extension, e.g.
+[[https://github.com/gorhill/uMatrix/wiki/Per-scope-switches#spoof-referer-header][uMatrix could spoof =Referer= header]].
+
+Browser has some global preferences that controls behavior related
+to the =Referer= header. For Firefox see
+[[https://wiki.mozilla.org/Security/Referrer][Referrer page in Security section]]
+of Mozilla wiki. Besides editing through =about:config= interface,
+such values might be changed by =user.js= preset bundles.
+
+There is [[https://developer.mozilla.org/en-US/Add-ons/WebExtensions/API/webNavigation][~webNavigation~ WebExtensions API]] that could be used to record
+more details on transitions between pages but it is a feature for
+another extension. The one very sensitive in respect to privacy issues.
+Currently those who run browsers business could gather a lot of information
+on your visits keeping interfaces for you quite restrictive and inconvenient.
+
+So if you get meaningful referrer, you are lucky.
+Do not expect that it will happen every time.

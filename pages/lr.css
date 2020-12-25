@@ -1,0 +1,23 @@
+
+textarea.result {
+	max-width: 90%;
+}
+.error {
+	background-color: #ffa0a0;
+}
+pre {
+	white-space: pre-wrap;
+}
+.success {
+	background-color: #a0ffa0;
+}
+
+li {
+	margin-top: 0.5ex;
+	margin-bottom: 0.5ex;
+	padding: 0.5ex;
+}
+
+ul {
+	list-style: none;
+}

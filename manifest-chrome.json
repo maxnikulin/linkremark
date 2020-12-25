@@ -1,0 +1,82 @@
+{
+	"manifest_version": 2,
+	"name": "__MSG_extName__",
+	"short_name": "__MSG_extShortName__",
+	"description": "__MSG_extDescription__",
+	"version": "0.1",
+	"author": "__MSG_extAuthor__",
+	"homepage_url": "https://github.com/maxnikulin/linkremark",
+	"default_locale": "en",
+	"icons": {
+		"16": "icons/lr-16.png",
+		"48": "icons/lr-48.png",
+		"96": "icons/lr-96.png"
+	},
+	"browser_action": {
+		"default_title": "__MSG_cmdPageRemark__",
+		"browser_style": true,
+		"default_icon": {
+			"16": "icons/lr-16.png"
+		},
+		"theme_icons": [
+			{
+				"dark": "icons/lr-16.png",
+				"light": "icons/lr-light-16.png",
+				"size": 16
+			},
+			{
+				"dark": "icons/lr-32.png",
+				"light": "icons/lr-light-32.png",
+				"size": 32
+			}
+		]
+	},
+	"commands": {
+		"_execute_browser_action": {
+			"description": "__MSG_cmdPageRemark__",
+			"suggested_key": {
+				"default": "Ctrl+Shift+L",
+				"mac": "Command+Shift+L"
+			}
+		}
+	},
+	"options_ui": {
+		"page": "pages/settings.html",
+		"browser_style": true
+	},
+	"permissions": [
+		"storage",
+		"activeTab",
+		"menus",
+		"contextMenus",
+		"webNavigation",
+		"<all_urls>",
+		"clipboardWrite",
+		"nativeMessaging"
+	],
+	"background": {
+		"scripts": [
+			"background/init.js",
+			"common/bapi.js",
+			"background/lr_util.js",
+			"background/lr_format_org.js",
+			"background/meta.js",
+			"background/native.js",
+			"common/org_protocol.js",
+			"background/result_cache.js",
+			"background/rpc_server.js",
+			"background/lr_settings.js",
+			"background/async_script.js",
+			"background/lr_export.js",
+			"background/lr_clipboard.js",
+			"background/lr_native_messaging.js",
+			"background/lr_tabframe.js",
+			"background/lr_action.js",
+			"background/main.js"
+		],
+		"persistent": false
+	},
+	"minimum_chrome_version": "78.0",
+	"update_url": "http://localhost/update.xml",
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAppqCVaSILjGICFxDHisZnNm09KRN1jigkQ0DBvRYNjWbVCZR4MLI/USfKsghtRqdy64gVCTEicy01aDkv8z+h8hp3F66MDiXE8bw1y7GoUvYtbbBjPkFl6XH8ZLPpSYstExbzes1wPOR3muHSijVbwqt8tobTpqb2U7oJjJNagJq3tkRsI+DeGG4vsZXu53J57UTuo9Usr0b0pibjBVH+i5u3Tm1QTecif+WQRUAtuJRw0QP//H3Hd3ehgcykyDnMvtPo7BoYZiRXpdxarRpAB8IEdtzx2BMWDv3UuxZ4RgBrCE72g3JtExdGb7jve5YlzT5NFS7wrCeyeE219AGyQIDAQAB"
+}

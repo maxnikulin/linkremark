@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>LinkRemark Capture Preview</title>
+    <link rel="stylesheet" href="lr.css" type="text/css">
+  </head>
+  <body>
+    <h1>LinkRemark Capture Preview</h1>
+    <div>
+      <button id="copyClose" autofocus="true">Copy and Close</button>
+      <button id="copy">Copy</button>
+    </div>
+    <ul id="actionResult">
+    </ul>
+    <textarea class="result" id="result" cols="80" rows="25"></textarea>
+    <pre class="error" id="error"></pre>
+    <div>Visit <a href="settings.html">settings</a> page.</div>
+    <details id="debugInfo">
+      <summary>Debug Info</summary>
+    <pre id="dump"></pre>
+    </details>
+    <script type="text/javascript" src="/common/bapi.js"></script>
+    <script type="text/javascript" src="/common/org_protocol.js"></script>
+    <script type="text/javascript" src="/pages/preview.js"></script>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+{
+	"name": "lr_example",
+	"description": "LinkRemark Example",
+	"path": "/home/ubuntu/linkremark/examples/backend-python/lr_example.py",
+	"type": "stdio",
+	"allowed_origins": [ "chrome-extension://mgmcoaemjnaehlliifkgljdnbpedihoe/" ]
+}

@@ -1,0 +1,22 @@
+{
+	"extName": {
+		"message": "LinkRemark - page or link notes with context",
+		"description": "Extension name (longer variant)"
+	},
+	"extShortName": {
+		"message": "LinkRemark",
+		"description": "Extension name (short variant)"
+	},
+	"extDescription": {
+		"message": "Prepare a note for a page or a link augmented with metadata of the current page and the selected text. Intended for usage with capture feature of GNU Emacs Org mode.",
+		"description": "Extension description"
+	},
+	"extAuthor": {
+		"message": "Max Nikulin",
+		"description": "Author of the extension"
+	},
+	"cmdPageRemark": {
+		"message": "Remark for this page",
+		"description": "browserAction and command name to prepare a note for current tab"
+	}
+}
