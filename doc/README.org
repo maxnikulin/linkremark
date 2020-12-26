@@ -3,6 +3,21 @@
 This file should be opened with +ie6+ GNU Emacs for the best representation.
 #+end_comment
 
+* Metadata for the site X are incomplete
+
+Maybe it is a bug, look into the page sources
+and compare to details on the debug info extension page.
+
+Likely the site just does not provide metadata appeared on the page
+as ordinary text.  I am not going to blow up the code with recipes for
+particular sites. However I realize that some special cases still
+should be handled. I am not ready to adapt user script model used by
+Greasemonkey/Violentmonkey/Tampermonkey, though scripts for such
+extensions could be used to generate appropriate =<meta>= elements
+to make desired data available for LinkRemark.
+It should alleviate cases when some site with insane metadata is
+important for particular user.
+
 * Underscores instead of spaces in Emacs
   :PROPERTIES:
   :CUSTOM_ID: underscore
