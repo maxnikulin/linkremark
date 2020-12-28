@@ -132,20 +132,26 @@ var lr_action = function() {
 		}
 	};
 
-	this.browserActionListener = async function(tab, onClickData) {
+	this.browserActionListenerAsync = async function(tab, onClickData) {
 		/* onClickData is a firefox-72 feature that should be handy
 		 * to support additional actions with Shift or Ctrl
 		 * but it is unsupported by other browsers
 		 * https://bugzilla.mozilla.org/show_bug.cgi?id=1405031
-		 * Support additional click events for browserAction and pageAction"
+		 * "Support additional click events for browserAction and pageAction"
 		 */
-		try {
-			return await captureTabFocusedFrame(tab, null);
-		} catch (ex) {
-			console.error("LR: browserActionListener error", tab && tab.url, tab, onClickData);
-			throw ex;
-		}
+		return /* await */ captureTabFocusedFrame(tab, null);
 	};
+
+	this.browserActionListener = function(tab, onClickData) {
+		/* Call async function through a wrapper to get error in extension
+		 * dev tools in Firefox that otherwise reported to browser console.
+		 * Absence of `console.error` allows to avoid duplicated error in Chrome.
+		 * Workaround for:
+		 * https://bugzilla.mozilla.org/1398672
+		 * "1398672 - Add test for better logging of exceptions/rejections from async event"
+		 */
+		captureTabFocusedFrame(tab, null);
+	}
 
 	this.openPreview = async function(tab, {action} = {}) {
 		const url = new URL(bapi.runtime.getURL("pages/preview.html"));

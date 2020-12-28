@@ -23,6 +23,9 @@
 
 console.debug("LR: loading...");
 try {
+	/* It catches only errors in synchronous code run on add-on startup.
+	 * Errors from event listeners such as `browserAction.onClicked`
+	 * are invisible for this handler. */
 	window.addEventListener("error", function(...args) {
 		console.error('LR window.onerror', ...args);
 	});
