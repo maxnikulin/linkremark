@@ -109,3 +109,68 @@ on your visits keeping interfaces for you quite restrictive and inconvenient.
 
 So if you get meaningful referrer, you are lucky.
 Do not expect that it will happen every time.
+* Selection (mostly implementation details)
+  :PROPERTIES:
+  :CUSTOM_ID: selection
+  :END:
+
+Firefox (unlike Chrome) allows to select several fragments
+(src_javascript{Range} objects) by pressing =[Ctrl]= before starting
+selection of a next piece of text.
+
+For multiple selection ranges the src_javascript{Selection.toString()}
+function could produce words from adjacent fragments glued together
+without any space at all.
+
+The problem is that src_javascript{Selection.toString()} behaves like
+=HTMLElement.innerText= and usually collapses repeating white spaces,
+skips elements that are not displayed, ignores scripts, etc.
+Surprisingly src_javascript{Range.toString()} is similar to
+=Node.textContent= attribute that concatenates content of text nodes verbatim
+so if formatting contains a lot of nested tags formatted
+that each tag stars a new line in HTML file then src_javacript{Range.toScript()}
+return value is unacceptable due to excessive count of newlines.
+For details on text treatment see
+[[https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent#Differences_from_innerText][Differences from innerText]]
+in MDN reference for =Node.textContent=, detailed blog post
+[[http://perfectionkills.com/the-poor-misunderstood-innerText/][The poor, misunderstood innerText]] by Juriy "kangax" Zaytsev (2015),
+[[https://html.spec.whatwg.org/multipage/dom.html#the-innertext-idl-attribute][=innerText= specification]]
+in the DOM section of HTML standard,
+[[https://dom.spec.whatwg.org/#dom-node-textcontent][=textContent=]] in DOM standard.
+
+If some HTML element has src_css{user-select: none} property,
+Firefox (84) skips it and generates separate selection ranges
+for elements before and after non-selectable element.
+Chrome (87) exposes single range that includes text of the element
+that should not be selected accordingly to CSS.
+
+I do not think that for (selection is shown in bold) "*some* other *words*"
+you would like to get "somewords" or even
+
+#+BEGIN_EXAMPLE
+                                                  some
+
+
+
+
+
+
+     words
+#+END_EXAMPLE
+
+Directly =innerText= could not be used since selection could contain
+just a part of text node. =Range.cloneContents()= with adding nodes to
+a temporary element could distort result unless full hierarchy of parent
+elements is reproduced as well, otherwise some CSS rules affecting result
+could be ignored. For a while I prefer to avoid reimplementation
+of src_javascript{Selection.toString()} since I could miss some
+subtle issues.
+
+It is hack, but it looks like the easiest way: temporary alternate
+selection to include each range and later restore selection in its original form.
+
+Notice that spurious line breaks could appear in text representation
+of selection for elements that visually aligned into single line
+if they are actually floating or absolutely positioned elements.
+Such tricks are wide spread e.g. to achieve vertical alignment
+while allowing line breaks on narrow screens.

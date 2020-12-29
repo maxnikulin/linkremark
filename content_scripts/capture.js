@@ -38,19 +38,49 @@
 	}
 
 	/**
-	 * Could introduce extra newlines and miss any spaces between `<li>` elements
+	 * See ../doc/README.org#selection for explanation why the hack
+	 * with alternating selection is necessary.
 	 */
 	function getSelectionByRanges(selection) {
 		const result = [];
+		const rangeArray = [];
 		for (let i = 0; i < selection.rangeCount; ++i) {
-			const range = selection.getRangeAt(i);
+			rangeArray.push(selection.getRangeAt(i));
+		}
+
+		let oldEnd = null;
+		let oldEndOffset = null;
+		for (const range of rangeArray) {
 			// Selection property is "isCollapsed" but Range one is just "collapsed"
-			if (!range.collapsed) {
-				const text = range.toString().trim();
-				if (text) {
-					result.push(text);
+			if (range.collapsed) {
+				continue;
+			}
+			selection.removeAllRanges();
+			selection.addRange(range);
+			const text = selection.toString().trim();
+			if (!text) {
+				continue;
+			}
+
+			if (oldEnd != null) {
+				const between = range.cloneRange();
+				between.collapse(/* toStart = */ true);
+				between.setStart(oldEnd, oldEndOffset);
+				selection.removeAllRanges();
+				selection.addRange(between);
+				const separator = selection.toString();
+				if (separator && separator.indexOf("\n") >= 0) {
+					result.push("");
 				}
 			}
+
+			result.push(text);
+			oldEnd = range.endContainer;
+			oldEndOffset = range.endOffet;
+		}
+		selection.removeAllRanges();
+		for (const range of rangeArray) {
+			selection.addRange(range);
 		}
 		return result.length > 0 ? result : null;
 	}
@@ -66,7 +96,11 @@
 
 	function getSelectionWholeOrByRanges(selection) {
 		if (selection.rangeCount > 1) {
-			return getSelectionByRanges(selection);
+			try {
+				return getSelectionByRanges(selection);
+			} catch (ex) {
+				console.error("LR: getSelectionByRanges %s %o", ex, ex);
+			}
 		}
 		return getSelectionWhole(selection);
 	}

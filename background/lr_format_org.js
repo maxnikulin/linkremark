@@ -102,6 +102,36 @@ function lrOrgCollectProperties(result, frame) {
 	return result;
 }
 
+function lr_format_selection_body(selection) {
+	if (selection == null || selection === "") {
+		return [];
+	} else if (Array.isArray(selection)) {
+		return selection.reduce(function(result, element) {
+			if (result.array.length > 0) {
+				if (element === "") {
+					result.array.push("\n...\n");
+					result.afterSeparator = true;
+				} else {
+					if (!result.afterSeparator) {
+						const last = result.array.length - 1;
+						result.array[last] += " … " + element;
+					} else {
+						result.afterSeparator = false;
+						result.array.push(element);
+					}
+				}
+			} else {
+				if (!element) {
+					console.warn("lr_format_selection_body: empty element in the beginning")
+				}
+				result.array.push(element);
+			}
+			return result;
+		}, { array: [], afterSeparator: false }).array;
+	}
+	return [ "" + selection ];
+}
+
 function lr_format_org_selection(frame) {
 	const selection = frame.get("selection", "window.getSelection") ||
 		frame.get("selection", "clickData.selectionText");
@@ -110,7 +140,7 @@ function lr_format_org_selection(frame) {
 	}
 	const out = [];
 	out.push('\n#+begin_quote');
-	out.push(selection.join("\n\n...\n\n"));
+	out.push(...lr_format_selection_body(selection));
 	out.push('#+end_quote');
 	return out;
 }
