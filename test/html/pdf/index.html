@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Outer Page for PDF iframe</title>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html" target="_top">Up</a>
+    </nav>
+    <h1>LinkRemark Test: Outer page for PDF iframe</h1>
+    <ul>
+      <li><a href="pdfiframe.html">Replace this page or iframe by the inner iframe</a></li>
+      <li><a href="lrpdf.pdf">Replace this page or iframe by the PDF file</a></li>
+    </ul>
+    <iframe src="pdfiframe.html" width="100%" height="800px"></iframe>
+    <ul>
+      <li>It should be possible to capture selection text or link in PDF file
+        despite browsers considers it as privileged content</li>
+      <li>In Firefox PDF viewer has a button to get a link for the current view
+        (however e.g. rotation is ignored)</li>
+      <li>Chrome unlike Firefox exposes title from PDF metadata</li>
+      <li>Captured frame chain depends on currently active frame</li>
+    </ul>
+  </body>
+<html>

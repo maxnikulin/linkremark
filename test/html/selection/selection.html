@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Selection</title>
+<style type="text/css">
+div { margin-left: 1ex; } 
+.disabled-selection {
+  user-select: none;
+  background-color: #c0c0c0;
+  padding: 0.5ex;
+}
+.nested {
+  border: 2px solid #a0a0a0;
+  padding: 0.3ex;
+  margin: 0.2ex;
+}
+div.test-container div.drop { display: none; }
+.test-container .code {
+  white-space: pre-wrap;
+  background: #e0e0ff;
+  margin: 1ex;
+}
+.test-container .hidden {
+  visibility: hidden;
+}
+.fake-cell {
+  display: table-cell;
+  border: 2px solid black;
+  padding: 0.5ex;
+  margin: 0.5ex;
+}
+</style>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+    </nav>
+    <h1>LinkRemark Test: Selection</h1>
+    <h2>Input field values are not selectable in Firefox</h2>
+    <form>
+      <p>
+      <label>Some label: <input value="Value of text input"></label>
+      </p>
+      <p>
+      <label>Select:
+        <select>
+          <option>Variant</option>
+          <option>Option</option>
+          <option>Alternative</option>
+        </select>
+      </label>
+      </p>
+      <p><label><input type="checkbox"> Check it</label></p>
+      <p>
+      <textarea cols="80" rows="12">Fill it with text</textarea>
+      </p>
+      <p>
+      <button>Button Text</button>
+      </p>
+    </form>
+    <h2>Nested elements</h2>
+    <p>Newlines in raw HTML markup are ignored
+    (<code>innerText</code> vs. <code>textContent</code> and
+    <code>Selection.toString()</code> vs. <code>Range.toString()</code> issues)
+    </p>
+    <p>Nested
+    <span>
+      <span class="nested">
+        spans
+      </span>
+      <span class="nested">
+        <span class="nested">
+          <span class="nested">
+            with
+            <span class="nested">
+              a lot of
+              <span class="nested">
+                newlines
+              </span class="nested">
+              <span class="nested">in the HTML</span>
+              file
+            </span>
+            should be captured
+            <span class="nested">
+              <span class="nested">as a single line</span>
+            </span>
+          </span>
+        </span>
+      </span>
+    </span>
+    In Firefox try to select separated regions using <kbd>Ctrl</kbd>.
+    </p>
+    <p>Nested div elements</p>
+    <div class="disabled-selection">
+      Disabled selection to implicitly force separate ranges in Firefox
+    </div>
+    <div class="nested">
+      <div class="nested">
+        Just deeply nested divs. First line
+        <div class="nested">
+          Some
+          lines
+          <div class="nested">
+            <div class="nested">
+              Nested
+              div
+            </div class="nested">
+          </div class="nested">
+          continue
+          outer div
+        </div>
+      </div>
+    </div>
+
+    <h2>Formatting affected by outer elements</h2>
+    <div class="test-container nested">
+      <p>This is a container which class is used to change style of some
+      inner elements. Selection capture should respect this style<p>
+
+      <p>Code formatted with <code>&lt;div&gt;</code> instead of <code>&lt;pre&gt;</code>
+      <p>
+      <div class="code">
+        function something()
+        {
+            var a = 0;
+            for (let i = 0; i &lt; 10; ++i)
+            {
+                a += i;
+            }
+         }
+      </div>
+      <div class="disabled-selection">
+        Disabled selection to force separate ranges in Firefox
+      </div>
+      <div>Next div has <code>display: none</code> property,
+      so it is not shown and should be absent in selection</div>
+      <div class="drop">This should not be displayed</div>
+      <div>Hidden span <span class="hidden">not shown</span> before this
+      should not appear in selection</div>
+    </div>
+    <div>Next div contains a couple of div having <code>display: table-cell</code>
+      CSS rule. It is used sometimes even outside of table
+    </div>
+    <div>
+      <div class="fake-cell">
+        <div class="nested">
+          <div class="nested">Nested divs</div>
+        </div>
+        in fake table cell
+      </div>
+      <div class="fake-cell">
+        Another fake table cell
+      </div>
+    </div>
+  </body>
+</html>
