@@ -51,6 +51,11 @@ class LrRpcServer {
 	};
 
 	async do_process(request, port) {
+		// Likely redundant check since `runtime.onExternalMessage` listener
+		// should be explicitly added to receive messages from other extensions.
+		if (port.id !== bapi.runtime.id) {
+			throw new LrRpcError(`Foreign message from ${port && port.id} rejected`);
+		}
 		if (!request) {
 			throw new Error("LrRpcServer: bad request");
 		}
