@@ -38,19 +38,19 @@ function lrMainSync() {
 	lr_clipboard.initSync();
 	lrAddListeners();
 	lrInstallMenu();
+	gLrRpcServer = new LrRpcServer();
+	bapi.runtime.onMessage.addListener(gLrRpcServer.listener);
 }
 
 async function lrMainAsync() {
 	await lr_settings.initAsync();
 	await lr_export.initAsync();
-	gLrRpcServer = new LrRpcServer();
 	gLrRpcServer.register("cache.getLast", gLrResultCache.handleLast);
 	gLrRpcServer.register("cache.getLastResult", gLrResultCache.handleLastResult);
 	gLrRpcServer.register("cache.getTargetElement", gLrResultCache.handleTargetElement);
 	gLrAsyncScript = new LrAsyncScript();
 	gLrAsyncScript.register(gLrRpcServer);
 	lr_settings.register(gLrRpcServer);
-	bapi.runtime.onMessage.addListener(gLrRpcServer.listener);
 	console.debug("LR: async init completed");
 }
 
