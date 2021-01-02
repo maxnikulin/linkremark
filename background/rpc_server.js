@@ -21,10 +21,11 @@ class LrRpcError extends Error {
 	get name() { return this.__proto__.constructor.name; };
 }
 
-// FIXME remove sync attribute
 class LrRpcServer {
 	constructor() {
 		this.methods = new Map();
+		// `this.process` is an async function, so other `onMessage` handlers
+		// could be ignored. It is intentional.
 		this.listener = this.process.bind(this);
 	};
 	register(name, callback, properties = null) {
@@ -35,11 +36,13 @@ class LrRpcServer {
 		if (!override && this.methods.has(name)) {
 			throw new Error(`LrRpcServer: ${name} already registered, you could force override`);
 		}
-		this.methods.set(name, { sync: true, callback });
+		this.methods.set(name, { callback });
 	};
 	async process(request, port) {
 		const id = request && request.id;
 		try {
+			// Unconditional async-await could add some overhead,
+			// hope, it is negligible, so does not deserve more complicated code.
 			return { id, result: await this.do_process(request, port) };
 		} catch (error) {
 			console.error("LrRpcServer: %o when processing %o %o", error, request, port);
