@@ -33,6 +33,7 @@
  *		parent: window.parent.location
  *		focus: document.hasFocus()
  *		focusedElements: node names of ":focus" elements
+ *		lastModified: document.lastModified
  *     } }
  *
  * `SecurityError` exceptions while trying to get top or parent location
@@ -148,6 +149,10 @@
 			if (focus && focus.length > 0) {
 				result.focusedElements = [...focus].map(x => x.nodeName);
 			}
+		});
+
+		lrIgnore(function lrLastModified() {
+			result.lastModified = document.lastModified;
 		});
 
 		response.result = result;

@@ -219,6 +219,7 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 	lr_meta.copyProperty(relations.opener, meta, 'referrer', 'window.opener');
 	lr_meta.copyProperty(relations.parent, meta, 'referrer', 'window.parent');
 	lr_meta.copyProperty(relations.top, meta, 'referrer', 'window.top');
+	lr_meta.copyProperty(relations.lastModified, meta, 'lastModified', 'document.lastModified');
 };
 
 lr_meta.mergeLink = function(frameInfo, meta) {

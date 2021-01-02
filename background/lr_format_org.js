@@ -92,12 +92,17 @@ function lr_format_org_properties(properties, out) {
 }
 
 function lrOrgCollectProperties(result, frame) {
-	const variants = lr_property_variants(frame, 'image');
-	if (!variants || !(variants.length > 0)) {
-		return result;
+	const imageVariants = lr_property_variants(frame, 'image');
+	if (imageVariants && imageVariants.length > 0) {
+		for (let img of imageVariants) {
+			result.push(["URL_IMAGE", img.value]);
+		}
 	}
-	for (let img of variants) {
-		result.push(["URL_IMAGE", img.value]);
+	const modifiedVariants = lr_property_variants(frame, 'lastModified');
+	if (modifiedVariants && modifiedVariants.length > 0) {
+		for (let time of modifiedVariants) {
+			result.push(["LAST_MODIFIED", time.value]);
+		}
 	}
 	return result;
 }
