@@ -1,4 +1,6 @@
 
+#+TITLE: Notes on LinkRemark behavior in some cases
+
 #+begin_comment
 This file should be opened with +ie6+ GNU Emacs for the best representation.
 #+end_comment
@@ -7,6 +9,10 @@ This file should be opened with +ie6+ GNU Emacs for the best representation.
 
 Maybe it is a bug, look into the page sources
 and compare to details on the debug info extension page.
+
+Actually the extension has not got support of =itemscope= and =itemprop=
+attributes related to [[https://schema.org/docs/gs.html][schema.org]] markup. I am unsure if RDF metadata
+support is necessary.
 
 Likely the site just does not provide metadata appeared on the page
 as ordinary text.  I am not going to blow up the code with recipes for
