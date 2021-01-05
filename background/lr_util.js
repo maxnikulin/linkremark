@@ -37,6 +37,10 @@ var lr_util = function() {
 		}
 	};
 
+	this.isGeneratorFunction = function(func) {
+		return Object.prototype.toString.call(func) === '[object GeneratorFunction]';
+	};
+
 	this.errorToObject = function(obj) {
 		var error = {};
 		if (obj.message != null) {

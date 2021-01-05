@@ -17,6 +17,103 @@
 
 "use strict";
 
+var lr_org = lr_util.namespace("lr_org", lr_org, function() {
+	/**
+	 * Force percent-encoding for characters considered safe by `encodeURIComponent`
+	 *
+	 * Warning: only single-byte characters are supported.
+	 */
+	this.encodeByte = function(codeStr) {
+		return '%' + codeStr.codePointAt(0).toString(16).toUpperCase().padStart(2, '0')
+	};
+	/**
+	 * Collected URLs are already in percent encoding.
+	 *
+	 * Formally accordingly to info '(org)Link format'
+	 * https://orgmode.org/manual/Link-Format.html
+	 * only brackets and backslash before brackets should be escaped with
+	 * backslash. Really there is at least the following issue
+	 * https://lists.gnu.org/archive/html/emacs-orgmode/2020-12/msg00706.html
+	 * "Bug: Tildes in URL impact visible link text"
+	 * 
+	 * The problem is that parameter names and values could contain pre or post
+	 * characters from org-emphasis-regexp-components.
+	 * I hope, excessive percent encoding is less harm.
+	 *
+	 * Dashes in http://t-e.st/dash-path#dash-anchor should be preserved,
+	 * but they should be escaped in http://te.st/dir?b-=&a=- to avoid
+	 * spurious unveiling of verbatim-like part.
+	 */
+	this.safeUrlComponent = function(url) {
+		/*
+		 * :;,? could not appear in pathname, search or fragment
+		 * _ (underline) is likely used too often and unlike ~= does not cause problem.
+		 */
+		return url.replace(/[\\\]\[(){}!]/g, this.encodeByte)
+			.replace(/([*=~+])([-.])/g, (match, p1, p2) => p1 + this.encodeByte(p2))
+			.replace(/(-)([*=~+])/g, (match, p1, p2) => this.encodeByte(p1) + p2);
+	};
+
+	/**
+	 * Square brackets however could be a part of IPv6 address http://[::1]/
+	 * that org 9.1 could not handle.
+	 */
+	this.safeUrlHost = function(hostname) {
+		return hostname.replace(/\\(?:[\[\]]|$)/g, "\\$&").replace(/[\[\]]/g, "\\$&");
+	};
+
+	this.safeUrl = function(url) {
+		url = new URL(url);
+		// pathname could be replaced by the value with additional percent encoding,
+		// but backslashes could not be added to hostname.
+		return [
+			url.protocol,
+			url.hostname || url.protocol === "file:" ? "//" : "",
+			this.safeUrlComponent(url.username),
+			url.password ? ":" : "",
+			this.safeUrlComponent(url.password),
+			url.username || url.password ? "@" : "",
+			this.safeUrlHost(url.hostname),
+			url.port ? ":" : "",
+			url.port,
+			this.safeUrlComponent(url.pathname),
+			this.safeUrlComponent(url.search),
+			this.safeUrlComponent(url.hash),
+		].join("");
+	};
+
+	/**
+	 * Avoid percent encoding for Unicode characters.
+	 * Remove newlines and repeating spaces.
+	 *
+	 * TODO punycode.js for hostname
+	 */
+	this.readableUrl = function(url) {
+		if (!url) {
+			return url;
+		}
+		let result = "" + url;
+		try {
+			result = decodeURI(url);
+		} catch (ex) {
+			console.warn("lr_org.readableUrl %o %o", url, ex);
+		}
+		return this.safeLinkDescription(result);
+	};
+
+	/**
+	 * Org mode 9.1 does not allow brackets in link text.
+	 * 9.3 just suggests to add zero width space between "]]".
+	 */
+	this.safeLinkDescription = function(description) {
+		if (!description) {
+			return description;
+		}
+		return ("" + description).replace(/\s+/g, " ").replace(/(])(]|$)/g, "$1\u200B$2");
+	};
+	return this;
+});
+
 var lr_url_src_weight = new Map([
 	['link.canonical', 1000],
 	['meta.property.og:url', 100],
@@ -153,7 +250,12 @@ function lr_format_org_selection(frame) {
 function lr_format_org_frame(frame, options = {}) {
 	const out = [];
 	for (let url of lr_sorted_url(frame) || []) {
-		out.push(`- URL :: [[${url}]]`);
+		try {
+			out.push(`- URL :: ${orgLink(url)}`);
+		} catch (ex) {
+			// FIXME report to preview page
+			console.error("lr_format_org_frame: invalid URL %s: %o", url, ex);
+		}
 	}
 	const title = lr_preferred_title(frame);
 	if (title) {
@@ -185,7 +287,7 @@ function lr_format_org_referrer(frame, separate = false) {
 	const referrerVariants = lr_property_variants(frame, 'referrer');
 	const result = separate ? [""] : [];
 	for (let entry of referrerVariants || []) {
-		result.push(`- referrer :: [[${entry.value}]]`);
+		result.push(`- referrer :: ${orgLink(entry.value)}`);
 	}
 	return result;
 }
@@ -257,14 +359,14 @@ function lr_format_org(frameChain, target, platformInfo) {
 				linkTitleComponents.push(linkText0);
 			}
 			if (!(linkText0 && linkText0.length > 20)) {
-				linkTitleComponents.push(`[[${linkUrlVariants[0].value}]]`);
+				linkTitleComponents.push(orgLink(linkUrlVariants[0].value));
 			}
 			title = linkTitleComponents.join(" ");
 			for (const variant of linkUrlVariants) {
 				if (url == null) {
 					url = variant.value;
 				}
-				out.push(`- Link URL :: [[${variant.value}]]`);
+				out.push(`- Link URL :: ${orgLink(variant.value)}`);
 			}
 			for (const variant of (linkTextVariants || [])) {
 				out.push(`- Link text :: ${variant.value}`);
@@ -313,10 +415,14 @@ var orgFormatDate = function(d) {
 
 function orgLink(url, title) {
 	if (url) {
+		// FIXME handle exception in the case of invalid URL
+		const safeUrl = lr_org.safeUrl(url);
 		if (title) {
-			return `[[${url}][${title}]]`;
+			const description = lr_org.safeLinkDescription(title);
+			return `[[${safeUrl}][${description}]]`;
 		} else {
-			return `[[${url}]]`;
+			const readableUrl = lr_org.readableUrl(url);
+			return safeUrl === readableUrl ? `[[${safeUrl}]]` : `[[${safeUrl}][${readableUrl}]]`;
 		}
 	} else {
 		if (title) {
