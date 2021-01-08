@@ -134,6 +134,21 @@ var lr_test = lr_util.namespace("lr_test", lr_test, function(){
 		}
 	};
 
+	this.assertTrue = function(value, ...params) {
+		if (lr_util.isFunction(value)) {
+			const result = value();
+			if (!result) {
+				const msg = `Assert "${result}" is not true: ${value} ${params}`;
+				throw new LrAssertionError(msg);
+			}
+		} else {
+			if (!value) {
+				const msg = `Assert ${value} is not true: ${params}`;
+				throw new LrAssertionError(msg);
+			}
+		}
+	};
+
 	this.suites = [];
 	return this;
 });
