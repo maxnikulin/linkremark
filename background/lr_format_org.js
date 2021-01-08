@@ -409,8 +409,10 @@ var orgFormatDate = function(d) {
 	function z2(num) {
 		return ("" + num).padStart(2, "0");
 	}
+	const weekday = d.toLocaleString(navigator.language, {weekday: "short"})
+		.replace(/^(\p{Letter})/u, x => x.toUpperCase());
 	return (`[${d.getFullYear()}-${z2(1 + d.getMonth())}-${z2(d.getDate())}`
-		+ ` ${z2(d.getHours())}:${z2(d.getMinutes())}]`);
+		+ ` ${weekday} ${z2(d.getHours())}:${z2(d.getMinutes())}]`);
 };
 
 function orgLink(url, title) {
