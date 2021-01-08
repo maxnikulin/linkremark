@@ -18,6 +18,14 @@
 "use strict";
 
 var lr_util = function() {
+	function toString(obj) {
+		return Object.prototype.toString.call(obj);
+	}
+
+	function isDate(obj) {
+		return toString(obj) === '[object Date]';
+	}
+
 	// In both cases typeof func === "function"
 	this.isFunction = function(func) {
 		return Object.prototype.toString.call(func) === '[object Function]';
@@ -94,6 +102,10 @@ var lr_util = function() {
 		const obj = new (this.setFuncName(function() {}, name))();
 		return func.call(obj);
 	};
+
+	Object.assign(this, {
+		toString, isDate,
+	});
 
 	return this;
 }.call(lr_util || new (function lr_util(){})());
