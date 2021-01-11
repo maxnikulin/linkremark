@@ -222,9 +222,9 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		}
 		/* Sometimes pages have invalid URLs e.g. due to errors in web applications */
 		try {
-			const safeUrl = lr_org.safeUrl(href);
+			const safeUrl = lr_org_buffer.safeUrl(href);
 			if (description.length === 0) {
-				const readableUrl = lr_org.readableUrl(href);
+				const readableUrl = lr_org_buffer.readableUrl(href);
 				if (readableUrl === safeUrl) {
 					return LrOrgNobreak(null, LrOrgMarkup(`[[${safeUrl}]]`));
 				} else {

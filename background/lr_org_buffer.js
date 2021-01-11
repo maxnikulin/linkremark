@@ -49,6 +49,115 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 	}
 
 	/**
+	 * Formatters for some objects
+	 */
+
+	function LrOrgDate(d) {
+		function z2(num) {
+			return ("" + num).padStart(2, "0");
+		}
+		const weekday = d.toLocaleString(navigator.language, {weekday: "short"})
+			.replace(/^(\p{Letter})/u, x => x.toUpperCase());
+		return LrOrgMarkup(`[${d.getFullYear()}-${z2(1 + d.getMonth())}-${z2(d.getDate())}`
+			+ ` ${weekday} ${z2(d.getHours())}:${z2(d.getMinutes())}]`);
+	}
+
+	/**
+	 * Force percent-encoding for characters considered safe by `encodeURIComponent`
+	 *
+	 * Warning: only single-byte characters are supported.
+	 */
+	function encodeByte(codeStr) {
+		return '%' + codeStr.codePointAt(0).toString(16).toUpperCase().padStart(2, '0')
+	}
+
+	/**
+	 * Collected URLs are already in percent encoding.
+	 *
+	 * Formally accordingly to info '(org)Link format'
+	 * https://orgmode.org/manual/Link-Format.html
+	 * only brackets and backslash before brackets should be escaped with
+	 * backslash. Really there is at least the following issue
+	 * https://lists.gnu.org/archive/html/emacs-orgmode/2020-12/msg00706.html
+	 * "Bug: Tildes in URL impact visible link text"
+	 *
+	 * The problem is that parameter names and values could contain pre or post
+	 * characters from org-emphasis-regexp-components.
+	 * I hope, excessive percent encoding is less harm.
+	 *
+	 * Dashes in http://t-e.st/dash-path#dash-anchor should be preserved,
+	 * but they should be escaped in http://te.st/dir?b-=&a=- to avoid
+	 * spurious unveiling of verbatim-like part.
+	 */
+	 function safeUrlComponent(url) {
+		/*
+		 * :;,? could not appear in pathname, search or fragment
+		 * _ (underline) is likely used too often and unlike ~= does not cause problem.
+		 */
+		return url.replace(/[\\\]\[(){}!]/g, encodeByte)
+			.replace(/([*=~+])([-.])/g, (match, p1, p2) => p1 + encodeByte(p2))
+			.replace(/(-)([*=~+])/g, (match, p1, p2) => encodeByte(p1) + p2);
+	}
+
+	/**
+	 * Square brackets however could be a part of IPv6 address http://[::1]/
+	 * that org 9.1 could not handle.
+	 */
+	function safeUrlHost(hostname) {
+		return hostname.replace(/\\(?:[\[\]]|$)/g, "\\$&").replace(/[\[\]]/g, "\\$&");
+	}
+
+	function safeUrl(url) {
+		url = new URL(url);
+		// pathname could be replaced by the value with additional percent encoding,
+		// but backslashes could not be added to hostname.
+		return [
+			url.protocol,
+			url.hostname || url.protocol === "file:" ? "//" : "",
+			safeUrlComponent(url.username),
+			url.password ? ":" : "",
+			safeUrlComponent(url.password),
+			url.username || url.password ? "@" : "",
+			safeUrlHost(url.hostname),
+			url.port ? ":" : "",
+			url.port,
+			safeUrlComponent(url.pathname),
+			safeUrlComponent(url.search),
+			safeUrlComponent(url.hash),
+		].join("");
+	}
+
+	/**
+	 * Avoid percent encoding for Unicode characters.
+	 * Remove newlines and repeating spaces.
+	 *
+	 * TODO punycode.js for hostname
+	 */
+	function readableUrl(url) {
+		if (!url) {
+			return url;
+		}
+		let result = "" + url;
+		try {
+			result = decodeURI(url);
+		} catch (ex) {
+			console.warn("lr_org_buffer.readableUrl %o %o", url, ex);
+		}
+		return safeLinkDescription(result);
+	}
+
+	/**
+	 * Org mode 9.1 does not allow brackets in link text.
+	 * 9.3 just suggests to add zero width space between "]]".
+	 */
+	function safeLinkDescription(description) {
+		if (!description) {
+			return description;
+		}
+		return ("" + description).replace(/\s+/g, " ").replace(/(])(]|$)/g, "$1\u200B$2");
+	}
+
+	/**
 	 * DFA transition functions
 	 */
 	class LrOrgBufferState {
@@ -255,7 +364,7 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 						this.pushSingle(line);
 					}
 				} else if (lr_util.isDate(element)) {
-					this.pushSingle(LrOrgMarkup(orgFormatDate(element)));
+					this.pushSingle(LrOrgDate(element));
 				} else {
 					this.pushSingle(element);
 				}
@@ -308,6 +417,14 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 	Object.assign(this, {
 		LrOrgStartLine, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgMarkup,
 		LrOrgBuffer, LrOrgBufferState,
+		LrOrgDate,
+		readableUrl,
+		safeUrl,
+		internal: {
+			safeLinkDescription,
+			safeUrlComponent,
+			encodeByte,
+		},
 	});
 
 	return this;

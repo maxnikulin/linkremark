@@ -106,13 +106,13 @@ var lr_test_org = lr_util.namespace("lr_test_org", lr_test_org, function() {
 	this.test_safeUrl = lr_test.parametrize(
 		this.casesSafeUrl,
 		function test_safeUrl(url, safe, _readable) {
-			lr_test.assertEq(lr_org.safeUrl(url), safe);
+			lr_test.assertEq(lr_org_buffer.safeUrl(url), safe);
 		});
 
 	this.test_readableUrl = lr_test.parametrize(
 		this.casesSafeUrl,
 		function test_readableUrl(url, _safe, readable) {
-			lr_test.assertEq(lr_org.readableUrl(url), readable);
+			lr_test.assertEq(lr_org_buffer.readableUrl(url), readable);
 		});
 
 	lr_test.suites.push(this);
