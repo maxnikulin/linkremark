@@ -76,17 +76,20 @@ and offers to copt it to clipboard,
 so it can be just yanked to the text editor.
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
 or [[info:org#Capture]] is the next step.
-You could start with a very simple template
-#+begin_example
-"* %?%(org-get-x-clipboard 'CLIPBOARD)
-"
+You could start with a very simple template having "plain" type
+#+begin_example emacs-lisp
+  ("c" "Clipboard with tree (plain)"
+   plain (file "capture.org")
+   "%(org-get-x-clipboard \'CLIPBOARD)"
+   :empty-lines 1)
 #+end_example
 
-Later would likely decide to setup external protocol handler
+Later you likely would decide to setup external protocol handler
 for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]]
 or to create a native messaging backend.
 In the latter case have a look at [[file:examples/backend-python/lr_example.py]]
-for inspiration.
+for inspiration. On the current development stage I do not recommend
+=:immediate-finish= option, it is better to inspect capture result.
 
 If you are not familiar with Org Mode capture feature,
 you could find description of workflow in blogs, e.g.

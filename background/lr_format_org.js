@@ -143,6 +143,7 @@ function lr_preferred_url(frame) {
 }
 
 function lr_preferred_title(meta) {
+	// FIXME limit title length
 	if (!meta) {
 		return null;
 	}
@@ -173,21 +174,6 @@ function lr_format_org_description(meta) {
 	return variants.length > 0 ? variants[0].value : null;
 }
 
-function lr_format_org_properties(properties, out) {
-	if (!(properties.length > 0)) {
-		return;
-	}
-	out.push("  :PROPERTIES:");
-	const propSet = new Set();
-	for (let [prop, value] of properties) {
-		const plus = propSet.has(prop) ? "+" : "";
-		propSet.add(prop);
-		out.push(`  :${prop}${plus}: ${value}`);
-	}
-	out.push("  :END:");
-	return out;
-}
-
 function lrOrgCollectProperties(result, frame) {
 	const imageVariants = lr_property_variants(frame, 'image');
 	if (imageVariants && imageVariants.length > 0) {
@@ -208,28 +194,34 @@ function lr_format_selection_body(selection) {
 	if (selection == null || selection === "") {
 		return [];
 	} else if (Array.isArray(selection)) {
+		const { LrOrgMarkup, LrOrgSeparatorLine, LrOrgWordSeparator } = lr_org_tree;
 		return selection.reduce(function(result, element) {
-			if (result.array.length > 0) {
+			if (result.length > 0) {
 				if (element === "") {
-					result.array.push("\n...\n");
-					result.afterSeparator = true;
+					result.push(
+						LrOrgSeparatorLine,
+						LrOrgMarkup("..."),
+						LrOrgSeparatorLine,
+					);
 				} else {
-					if (!result.afterSeparator) {
-						const last = result.array.length - 1;
-						result.array[last] += " … " + element;
+					const last = result[result.length - 1];
+					if (last !== LrOrgSeparatorLine) {
+						result.push(
+							LrOrgWordSeparator, LrOrgMarkup("…"), LrOrgWordSeparator,
+							element,
+						)
 					} else {
-						result.afterSeparator = false;
-						result.array.push(element);
+						result.push(element);
 					}
 				}
 			} else {
 				if (!element) {
 					console.warn("lr_format_selection_body: empty element in the beginning")
 				}
-				result.array.push(element);
+				result.push(element);
 			}
 			return result;
-		}, { array: [], afterSeparator: false }).array;
+		}, []);
 	}
 	return [ "" + selection ];
 }
@@ -240,54 +232,60 @@ function lr_format_org_selection(frame) {
 	if (!selection) {
 		return [];
 	}
-	const out = [];
-	out.push('\n#+begin_quote');
-	out.push(...lr_format_selection_body(selection));
-	out.push('#+end_quote');
-	return out;
+	return lr_org_tree.LrOrgQuote(null, ...lr_format_selection_body(selection));
 }
 
 function lr_format_org_frame(frame, options = {}) {
-	const out = [];
-	for (let url of lr_sorted_url(frame) || []) {
-		try {
-			out.push(`- URL :: ${orgLink(url)}`);
-		} catch (ex) {
-			// FIXME report to preview page
-			console.error("lr_format_org_frame: invalid URL %s: %o", url, ex);
+	const title = lr_preferred_title(frame);
+	let url = null;
+	const properties = options.baseProperties && options.baseProperties.slice() || [];
+	lrOrgCollectProperties(properties, frame);
+	const {
+		LrOrgDefinitionItem, LrOrgHeading, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgLink,
+	} = lr_org_tree;
+	const body = [];
+	for (let variant of lr_sorted_url(frame) || []) {
+		body.push(LrOrgDefinitionItem({ term: "URL" }, LrOrgLink({ href: variant })));
+		if (url == null) {
+			url = variant;
 		}
 	}
-	const title = lr_preferred_title(frame);
 	if (title) {
-		out.push(`- title :: ${title}`);
+		body.push(LrOrgDefinitionItem({ term: "title" }, title));
 	}
 	for (let property of ['author', 'published_time', 'modified_time']) {
 		const variants = lr_property_variants(frame, property);
 		for (const entry of variants || []) {
-			out.push(`- ${property} :: ${entry.value}`);
+			body.push(LrOrgDefinitionItem({ term: property }, entry.value));
 		}
 	}
-	const description = lr_format_org_description(frame);
 	if (options.addReferrer && !options.separateReferrer) {
-		out.push(...lr_format_org_referrer(frame));
+		body.push(...lr_format_org_referrer(frame));
 	}
+	const description = lr_format_org_description(frame);
 	if (description) {
-		out.push(`- description :: ${description}`);
+		body.push(LrOrgDefinitionItem({ term: "description" }, description));
 	}
+	body.push(LrOrgSeparatorLine);
 	if (!options.suppressSelection) {
-		out.push(...lr_format_org_selection(frame));
+		body.push(...lr_format_org_selection(frame));
+		body.push(LrOrgSeparatorLine);
 	}
 	if (options.addReferrer && options.separateReferrer) {
-		out.push(...lr_format_org_referrer(frame, true));
+		body.push(...lr_format_org_referrer(frame));
 	}
-	return out.join("\n");
+	if (options.body) {
+		body.push(LrOrgSeparatorLine, ...options.body);
+	}
+	return { title, url, tree: LrOrgHeading({ heading: title, properties }, ...body) };
 }
 
-function lr_format_org_referrer(frame, separate = false) {
+function lr_format_org_referrer(frame) {
 	const referrerVariants = lr_property_variants(frame, 'referrer');
-	const result = separate ? [""] : [];
+	const result = [];
 	for (let entry of referrerVariants || []) {
-		result.push(`- referrer :: ${orgLink(entry.value)}`);
+		result.push(lr_org_tree.LrOrgDefinitionItem(
+			{ term: "referrer" }, lr_org_tree.LrOrgLink({ href: entry.value })));
 	}
 	return result;
 }
@@ -314,94 +312,149 @@ function lr_replace_special_characters(text, platformInfo) {
 		replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "\uFFFD");
 }
 
+function lr_format_org_image(frameChain, target, platformInfo, baseProperties) {
+	const meta = frameChain[0];
+
+	if (meta.get('srcUrl') == null && meta.get('imageAlt') == null && meta.get('imageTitle') == null) {
+		console.error("No image captured"); // TODO report to error collector
+		return;
+	}
+
+	const { LrOrgLink, LrOrgDefinitionItem } = lr_org_tree;
+	const url = meta.getAnyValue('srcUrl');
+	// FIXME limit text length
+	const imgTitle = meta.getAnyValue('imageAlt') || meta.getAnyValue('imageTitle') || LrOrgLink({ href: url });
+	const title = ["Image: ", imgTitle]; // TODO i18n
+	const properties = baseProperties.slice();
+	for (const url of lr_property_variants(meta, "srcUrl")) {
+		properties.push(["URL_IMAGE", url.value]);
+	}
+
+	const description = [];
+	for (const [property, name] of [["srcUrl", "image URL"], ["imageAlt", "alt"], ["imageTitle", "title"]]) {
+		const variants = lr_property_variants(meta, property);
+		for (let v of variants) {
+			description.push(LrOrgDefinitionItem({ term: name }, LrOrgLink({ href: v.value })));
+		}
+	}
+	const config = { title, url, properties, baseProperties, description };
+	return lr_format_frame_chain_with_target(frameChain, target, platformInfo, config);
+}
+
+function lr_format_org_link (frameChain, target, platformInfo, baseProperties) {
+	const meta = frameChain[0];
+	const linkUrlVariants = meta.get("linkUrl");
+	if (linkUrlVariants == null) {
+		console.error("No link captured"); // TODO report to error collector
+		return
+	}
+
+	const { LrOrgLink, LrOrgDefinitionItem, LrOrgWordSeparator } = lr_org_tree;
+
+	const linkTextVariants = meta.get("linkText");
+	const linkText0 = linkTextVariants && linkTextVariants[0].value;
+	// TODO try selection text if it short enough
+	// especially if it contains link text
+	const title = ["Link:"]; // TODO i18n
+	if (linkText0) {
+		title.push(LrOrgWordSeparator, linkText0);
+	}
+	if (!(linkText0 && linkText0.length > 20)) {
+		title.push(LrOrgWordSeparator, LrOrgLink({ href: linkUrlVariants[0].value }));
+	}
+	const description = [];
+	let url;
+	for (const variant of linkUrlVariants) {
+		if (url == null) {
+			url = variant.value;
+		}
+		description.push(LrOrgDefinitionItem({ term: "Link URL" }, LrOrgLink({ href: variant.value })));
+	}
+	for (const variant of (linkTextVariants || [])) {
+		description.push(LrOrgDefinitionItem({ term: "Link text" }, variant.value));
+	}
+	for (const [property, name] of [
+		["linkTitle", "Link title"], ["linkHreflang", "Link language"],
+		["linkType", "Link type"], ["linkDownload", "Link file hint"]]
+	) {
+		for (const variant of (meta.get(property) || [])) {
+			description.push(LrOrgDefinitionItem({ term: name }, vairant.value));
+		}
+	}
+	const config = { title, url, properties: baseProperties, baseProperties, description };
+	return lr_format_frame_chain_with_target(frameChain, target, platformInfo, config);
+}
+
+function lr_format_frame_chain_with_target(frameChain, target, platformInfo, config) {
+	const { title, url, description, properties, baseProperties } = config;
+	const { LrOrgHeading, LrOrgSeparatorLine, toText } = lr_org_tree;
+	description.push(LrOrgSeparatorLine);
+	description.push(...lr_format_org_selection(frameChain[0]));
+	description.push(LrOrgSeparatorLine);
+	if (frameChain.length > 1) {
+		description.push("In the frame of the following page"); // TODO i18n
+	} else {
+		description.push("On the page"); // TODO i18n
+	}
+	description.push(LrOrgSeparatorLine);
+	const sourceFrames = lr_format_org_frame_chain(frameChain, target, platformInfo, baseProperties);
+	const tree = LrOrgHeading(
+		{ heading: title, properties },
+		...description,
+		...sourceFrames,
+	);
+	return { title: toText(title), url, tree };
+}
+
+function lr_format_org_frame_chain(frameChain, target, platformInfo, baseProperties) {
+	return frameChain.map((frame, index, array) => lr_format_org_frame(
+		frame, {
+			suppressSelection: index === 0 && !!target,
+			addReferrer: index === array.length - 1,
+			separateReferrer: false,
+			baseProperties,
+		}
+	).tree);
+}
+
 function lr_format_org(frameChain, target, platformInfo) {
 	if (!frameChain) {
-		throw new Error("Capture failed"); // FIXME
+		throw new Error("Capture failed");
 	}
-
-	var out = [];
-	const properties = frameChain.reduce(lrOrgCollectProperties, [["DATE_ADDED", orgFormatDate(new Date())]]);
-	lr_format_org_properties(properties, out);
-	out.push("");
-
-	let title, url;
-	const meta = frameChain[0];
-	let hasTarget = false;
+	const baseProperties = [["DATE_ADDED", new Date()]];
+	let result = null;
 	switch (target) {
 		case "image":
-			if (meta.get('srcUrl') == null && meta.get('imageAlt') == null && meta.get('imageTitle') == null) {
-				throw new Error("No image captured");
-			}
-			const imgTitle = meta.getAnyValue('imageAlt') || meta.getAnyValue('imageTitle') || orgLink(meta.getAnyValue('srcUrl'));
-			title = `Image: ${imgTitle}`;
-			for (const [property, name] of [["srcUrl", "image URL"], ["imageAlt", "alt"], ["imageTitle", "title"]]) {
-				const variants = lr_property_variants(frameChain[0], property);
-				for (let v of variants) {
-					out.push(`- ${name} :: ${orgLink(v.value)}`);
-					if (url == null) {
-						url = v.value;
-					}
-				}
-			}
-			hasTarget = true;
+			result = lr_format_org_image(frameChain, target, platformInfo, baseProperties);
 			break;
 		case "link":
-			const linkUrlVariants = meta.get("linkUrl");
-			if (linkUrlVariants == null) {
-				throw new Error("No linkUrl captured");
-			}
-			const linkTextVariants = meta.get("linkText");
-			const linkText0 = linkTextVariants && linkTextVariants[0].value;
-			// TODO try selection text if it short enough
-			// especially if it contains link text
-			const linkTitleComponents = ["Link:"];
-			if (linkText0) {
-				linkTitleComponents.push(linkText0);
-			}
-			if (!(linkText0 && linkText0.length > 20)) {
-				linkTitleComponents.push(orgLink(linkUrlVariants[0].value));
-			}
-			title = linkTitleComponents.join(" ");
-			for (const variant of linkUrlVariants) {
-				if (url == null) {
-					url = variant.value;
-				}
-				out.push(`- Link URL :: ${orgLink(variant.value)}`);
-			}
-			for (const variant of (linkTextVariants || [])) {
-				out.push(`- Link text :: ${variant.value}`);
-			}
-			for (const [property, name] of [
-				["linkTitle", "Link title"], ["linkHreflang", "Link language"],
-				["linkType", "Link type"], ["linkDownload", "Link file hint"]]
-			) {
-				for (const variant of (meta.get(property) || [])) {
-					out.push(`- ${name} :: ${vairant.value}`);
-				}
-			}
-			hasTarget = true;
+			result = lr_format_org_link(frameChain, target, platformInfo, baseProperties);
 			break;
-		default:
-			url = lr_preferred_url(frameChain[0]);
-			title = lr_preferred_title(frameChain[0]) || url;
 	}
-
-	if (hasTarget) {
-		out.push(...lr_format_org_selection(meta));
-		out.push("\nOn the page\n");
+	if (!result) {
+		const subframes = frameChain.slice(1).map(
+			(frame, index, array) => lr_format_org_frame(
+				frame, {
+					suppressSelection: false,
+					addReferrer: index === array.length - 1,
+					separateReferrer: false,
+					baseProperties,
+				}
+			).tree
+		);
+		result = lr_format_org_frame(frameChain[0], {
+			suppressSelection: false,
+			addReferrer: subframes.length === 0,
+			separateReferrer: false,
+			baseProperties,
+			body: subframes,
+		});
 	}
-
-	out.push(frameChain.map((frame, index, array) => lr_format_org_frame(
-		frame, {
-			suppressSelection: index === 0 && hasTarget,
-			addReferrer: index === array.length - 1,
-			separateReferrer: array.length > 1,
-		}
-	)).join('\n\nSubframe of\n\n'));
+	const { url, title, tree } = result;
 	return {
 		url,
-		title: lr_replace_special_characters(title, platformInfo),
-		body: lr_replace_special_characters(out.join("\n"), platformInfo),
+		title: title, // FIXME lr_replace_special_characters(title, platformInfo),
+		body: lr_org_tree.toText(tree), // FIXME lr_replace_special_characters(out.join("\n"), platformInfo),
 	};
 }
 
@@ -414,23 +467,3 @@ var orgFormatDate = function(d) {
 	return (`[${d.getFullYear()}-${z2(1 + d.getMonth())}-${z2(d.getDate())}`
 		+ ` ${weekday} ${z2(d.getHours())}:${z2(d.getMinutes())}]`);
 };
-
-function orgLink(url, title) {
-	if (url) {
-		// FIXME handle exception in the case of invalid URL
-		const safeUrl = lr_org.safeUrl(url);
-		if (title) {
-			const description = lr_org.safeLinkDescription(title);
-			return `[[${safeUrl}][${description}]]`;
-		} else {
-			const readableUrl = lr_org.readableUrl(url);
-			return safeUrl === readableUrl ? `[[${safeUrl}]]` : `[[${safeUrl}][${readableUrl}]]`;
-		}
-	} else {
-		if (title) {
-			return title;
-		} else {
-			return "";
-		}
-	}
-}

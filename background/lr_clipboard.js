@@ -123,7 +123,7 @@ var lr_clipboard = function() {
 			throw new Error("No content provided for clipboard format " + format);
 		}
 		if (content.body) {
-			content = content.title + "\n" + content.body;
+			content = content.body;
 		}
 		const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
 		// It seems that result value is unspecified.
@@ -241,20 +241,28 @@ var lr_clipboard = function() {
 			title: "Template name configured in Org mode Capture",
 			description: [
 				"Emacs configuration should define capture template something like",
-				"\n\"* %:description\n%?%:initial\"",
+				"\n",
+				'("p" "Prepared tree (plain)" plain (file "capture.org") "%:initial" :empty-lines 1)',
+				"\n",
+				"Though description (title) and url are available,",
+				"body contains already formatted subtree.",
 			],
 		});
 		lr_settings.registerOption({
 			name: "export.methods.orgProtocol.clipboardForBody",
 			defaultValue: false,
 			version: "0.1",
-			title: "Copy note text to clipboard instead of setting \"body\" parameter",
+			title: "Copy note text to clipboard instead of setting the \"body\" parameter",
 			description: [
+				"Experimental option, expected template should be something like",
+				"\n",
+				'("c" "Clipboard with tree (plain)" plain (file "capture.org") "%(org-get-x-clipboard \'CLIPBOARD)" :empty-lines 1)',
+				"\n",
 				"Unsure if lenthy captures could really cause a trouble",
 				"with external protocol handlers. Anyway creating of",
-				"naitve messaging backend could be more reliable options",
-				"Template example",
-				"\n\"* %:description\n%?%(org-get-x-clipboard 'CLIPBOARD)\"",
+				"naitve messaging backend could be more reliable options.",
+				"Though description (title) and url parameters are available,",
+				"clipboard contains already formatted subtree.",
 			],
 		});
 	};

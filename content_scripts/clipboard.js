@@ -120,7 +120,7 @@
 			const {transport, ...capture} = await lrSendMessage("cache.getLastResult");
 			const content = capture[transport.format];
 			if (transport.method === "clipboard") {
-				await lrClipboardCopyFromContentScript(content.title + "\n" + content.body);
+				await lrClipboardCopyFromContentScript(content.body);
 			} else if (transport.method === "org-protocol") {
 				if (transport.clipboardForBody) {
 					await lrClipboardCopyFromContentScript(content.body);

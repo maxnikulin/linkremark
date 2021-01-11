@@ -50,12 +50,8 @@ var gLrGetPromise = bapi.runtime.sendMessage({method: "cache.getLast", params: [
 		const top_result = result;
 		if (top_result != null) {
 			const {result, debugInfo} = top_result;
-			let text = result;
 			const format = result && result.transport && result.transport.format;
-			const formattedResult = result && format && result[format];
-			if (formattedResult) {
-				text = formattedResult.title + "\n" + formattedResult.body;
-			}
+			let text = result && format && result[format] && result[format].body || result;
 			if (typeof text !== "string" && text != null) {
 				text = JSON.stringify(result, null, "  ");
 			}
@@ -117,7 +113,9 @@ async function lrDoLaunch() {
 		}
 		if (transport.clipboardForBody) {
 			try {
-				await navigator.clipboard.writeText(content.body);
+				if (!copyResult()) {
+					await navigator.clipboard.writeText(content);
+				}
 			} catch (ex) {
 				throw new Error("Write to clipboard failed " + ex);
 			}

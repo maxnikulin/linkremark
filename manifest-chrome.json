@@ -60,6 +60,8 @@
 			"common/bapi.js",
 			"background/lr_util.js",
 			"background/lr_format_org.js",
+			"background/lr_org_buffer.js",
+			"background/lr_org_tree.js",
 			"background/meta.js",
 			"background/native.js",
 			"common/org_protocol.js",
