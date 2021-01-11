@@ -193,29 +193,7 @@ function lr_format_org_referrer(frame) {
 	return result;
 }
 
-/*
- * It is better to avoid control characters since they
- * could be accidentally pasted into terminal without proper protection.
- * https://flask.palletsprojects.com/en/1.1.x/security/#copy-paste-to-terminal
- * Copy/Paste to Terminal (in Security Considerations)
- * https://security.stackexchange.com/questions/39118/how-can-i-protect-myself-from-this-kind-of-clipboard-abuse
- * How can I protect myself from this kind of clipboard abuse?
- */
-function lr_replace_special_characters(text, platformInfo) {
-	// 1. Replace TAB with 8 spaces to avoid accidental activation of completion
-	//    if pasted to bash (dubious).
-	// 2. Newlines \r and \n should be normalized.
-	//    Hope new macs uses "\n", not "\r".
-	// 3. Other control characters should be replaced.
-	//    U+FFFD REPLACEMENT CHARACTER
-	//    used to replace an unknown, unrecognized or unrepresentable character
-	const nl = platformInfo.os !== "win" ? "\n" : "\r\n";
-	return text.replace(/\t/g, '        ').
-		replace(/\r\n|\r|\n/g, nl).
-		replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "\uFFFD");
-}
-
-function lr_format_org_image(frameChain, target, platformInfo, baseProperties) {
+function lr_format_org_image(frameChain, target, baseProperties) {
 	const meta = frameChain[0];
 
 	if (meta.get('srcUrl') == null && meta.get('imageAlt') == null && meta.get('imageTitle') == null) {
@@ -241,10 +219,10 @@ function lr_format_org_image(frameChain, target, platformInfo, baseProperties) {
 		}
 	}
 	const config = { title, url, properties, baseProperties, description };
-	return lr_format_frame_chain_with_target(frameChain, target, platformInfo, config);
+	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
 
-function lr_format_org_link (frameChain, target, platformInfo, baseProperties) {
+function lr_format_org_link (frameChain, target, baseProperties) {
 	const meta = frameChain[0];
 	const linkUrlVariants = meta.get("linkUrl");
 	if (linkUrlVariants == null) {
@@ -285,10 +263,10 @@ function lr_format_org_link (frameChain, target, platformInfo, baseProperties) {
 		}
 	}
 	const config = { title, url, properties: baseProperties, baseProperties, description };
-	return lr_format_frame_chain_with_target(frameChain, target, platformInfo, config);
+	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
 
-function lr_format_frame_chain_with_target(frameChain, target, platformInfo, config) {
+function lr_format_frame_chain_with_target(frameChain, target, config) {
 	const { title, url, description, properties, baseProperties } = config;
 	const { LrOrgHeading, LrOrgSeparatorLine, toText } = lr_org_tree;
 	description.push(LrOrgSeparatorLine);
@@ -300,7 +278,7 @@ function lr_format_frame_chain_with_target(frameChain, target, platformInfo, con
 		description.push("On the page"); // TODO i18n
 	}
 	description.push(LrOrgSeparatorLine);
-	const sourceFrames = lr_format_org_frame_chain(frameChain, target, platformInfo, baseProperties);
+	const sourceFrames = lr_format_org_frame_chain(frameChain, target, baseProperties);
 	const tree = LrOrgHeading(
 		{ heading: title, properties },
 		...description,
@@ -309,7 +287,7 @@ function lr_format_frame_chain_with_target(frameChain, target, platformInfo, con
 	return { title: toText(title), url, tree };
 }
 
-function lr_format_org_frame_chain(frameChain, target, platformInfo, baseProperties) {
+function lr_format_org_frame_chain(frameChain, target, baseProperties) {
 	return frameChain.map((frame, index, array) => lr_format_org_frame(
 		frame, {
 			suppressSelection: index === 0 && !!target,
@@ -320,7 +298,7 @@ function lr_format_org_frame_chain(frameChain, target, platformInfo, basePropert
 	).tree);
 }
 
-function lr_format_org(frameChain, target, platformInfo) {
+function lr_format_org(frameChain, target) {
 	if (!frameChain) {
 		throw new Error("Capture failed");
 	}
@@ -328,10 +306,10 @@ function lr_format_org(frameChain, target, platformInfo) {
 	let result = null;
 	switch (target) {
 		case "image":
-			result = lr_format_org_image(frameChain, target, platformInfo, baseProperties);
+			result = lr_format_org_image(frameChain, target, baseProperties);
 			break;
 		case "link":
-			result = lr_format_org_link(frameChain, target, platformInfo, baseProperties);
+			result = lr_format_org_link(frameChain, target, baseProperties);
 			break;
 	}
 	if (!result) {
@@ -356,7 +334,7 @@ function lr_format_org(frameChain, target, platformInfo) {
 	const { url, title, tree } = result;
 	return {
 		url,
-		title: title, // FIXME lr_replace_special_characters(title, platformInfo),
-		body: lr_org_tree.toText(tree), // FIXME lr_replace_special_characters(out.join("\n"), platformInfo),
+		title: lr_util.replaceSpecial(title),
+		body: lr_org_tree.toText(tree),
 	};
 }

@@ -22,7 +22,6 @@ var lr_export = function() {
 	this.methodMap = new Map();
 
 	this.initAsync = async function() {
-		this.platformInfo = await bapi.runtime.getPlatformInfo();
 		lr_settings.registerOption({
 			name: "export.method",
 			defaultValue: "clipboard",
@@ -50,7 +49,7 @@ var lr_export = function() {
 			const frame = result.object[0];
 			result.org = lr_format_org(
 				result.metaMap,
-				frame && frame.target, lr_export.platformInfo);
+				frame && frame.target);
 			return result.org;
 		});
 

@@ -103,8 +103,37 @@ var lr_util = function() {
 		return func.call(obj);
 	};
 
+	var platformInfo = {};
+	/* lr_util is too basic for initAsync function */
+	var platformInfoPromise = bapi.runtime.getPlatformInfo().then(value => platformInfo = value);
+
+	/*
+	 * It is better to avoid control characters since they
+	 * could be accidentally pasted into terminal without proper protection.
+	 * https://flask.palletsprojects.com/en/1.1.x/security/#copy-paste-to-terminal
+	 * Copy/Paste to Terminal (in Security Considerations)
+	 * https://security.stackexchange.com/questions/39118/how-can-i-protect-myself-from-this-kind-of-clipboard-abuse
+	 * How can I protect myself from this kind of clipboard abuse?
+	 */
+	function replaceSpecial(text) {
+		// 1. Replace TAB with 8 spaces to avoid accidental activation of completion
+		//    if pasted to bash (dubious).
+		// 2. Newlines \r and \n should be normalized.
+		//    Hope new macs uses "\n", not "\r".
+		// 3. Other control characters should be replaced.
+		//    U+FFFD REPLACEMENT CHARACTER
+		//    used to replace an unknown, unrecognized or unrepresentable character
+		//
+		// There is a small chance that platformInfo is not available yet.
+		const nl = platformInfo.os !== "win" ? "\n" : "\r\n";
+		return text.replace(/\t/g, '        ').
+			replace(/\r\n|\r|\n/g, nl).
+			replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "\uFFFD");
+	}
+
 	Object.assign(this, {
 		toString, isDate,
+		replaceSpecial, platformInfo, platformInfoPromise,
 	});
 
 	return this;

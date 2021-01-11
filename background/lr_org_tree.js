@@ -26,7 +26,7 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		const buffer = new lr_org_buffer.LrOrgBuffer();
 		toOrgRecursive(buffer, elements);
 		buffer.flush();
-		return buffer.out.join("\n");
+		return lr_util.replaceSpecial(buffer.out.join("\n"));
 	};
 
 	function toOrgRecursive(buffer, element) {
