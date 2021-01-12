@@ -22,12 +22,14 @@
  */
 
 console.debug("LR: loading...");
+
+var gLrLoadErrorCount = 0;
 try {
 	/* It catches only errors in synchronous code run on add-on startup.
 	 * Errors from event listeners such as `browserAction.onClicked`
 	 * are invisible for this handler. */
 	window.addEventListener("error", function(...args) {
-		console.error('LR window.onerror', ...args);
+		++gLrLoadErrorCount;
 	});
 } catch (ex) {
 	console.error("LR error while trying to set error listener", ex);
@@ -41,3 +43,11 @@ var lr_native_messaging;
 var lr_settings;
 var lr_util;
 var gLrAsyncScript;
+
+!function lrNotifyLoading() {
+	// `bapi` has not initialized yet, so use `chrome` as more portable
+	chrome.browserAction.setBadgeText({ text: "…"});
+	chrome.browserAction.setBadgeBackgroundColor({ color: [159, 0, 0, 159] });
+	var name = chrome.runtime.getManifest().short_name || "";
+	chrome.browserAction.setTitle({ title: name + " Loading..." });
+}();

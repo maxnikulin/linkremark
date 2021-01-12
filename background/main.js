@@ -31,6 +31,16 @@ var lrAddListeners = lr_util.notFatal(function() {
 	bapi.storage.onChanged.addListener(lr_settings.changedListener);
 });
 
+var lrResetLoadingState = lr_util.notFatal(function() {
+	if (gLrLoadErrorCount === 0) {
+		bapi.browserAction.setBadgeText({ text: "" });
+		bapi.browserAction.setTitle({ title: bapi.i18n.getMessage("cmdPageRemark") });
+	} else {
+		bapi.browserAction.setBadgeText({ text: "\\!/" });
+		bapi.browserAction.setTitle({ title: name + " Error" }); // TODO i18n
+	}
+});
+
 function lrMainSync() {
 	lr_settings.initSync();
 	lr_export.initSync();
@@ -51,6 +61,7 @@ async function lrMainAsync() {
 	gLrAsyncScript = new LrAsyncScript();
 	gLrAsyncScript.register(gLrRpcServer);
 	lr_settings.register(gLrRpcServer);
+	lrResetLoadingState();
 	console.debug("LR: async init completed");
 }
 

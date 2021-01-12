@@ -119,6 +119,9 @@ function bapiChrome(bapi, chrome) {
 			onClicked: asis, /*{
 				addListener: asis,
 			}, */
+			setTitle: promisify,
+			setBadgeText: promisify,
+			setBadgeBackgroundColor: promisify,
 		},
 		commands: {
 			onCommand: asis /* {
@@ -128,6 +131,9 @@ function bapiChrome(bapi, chrome) {
 		contextMenus: {
 			create: asis,
 			onClicked: asis,
+		},
+		i18n: {
+			getMessage: asis,
 		},
 		runtime: {
 			connectNative: asis,
