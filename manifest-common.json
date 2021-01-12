@@ -67,6 +67,7 @@
 			"background/lr_clipboard.js",
 			"background/lr_native_messaging.js",
 			"background/lr_tabframe.js",
+			"background/lr_notify.js",
 			"background/lr_action.js",
 			"background/main.js"
 		]

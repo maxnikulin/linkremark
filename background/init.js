@@ -40,6 +40,7 @@ var lr_action;
 var lr_clipboard;
 var lr_export;
 var lr_native_messaging;
+var lr_notify;
 var lr_settings;
 var lr_util;
 var gLrAsyncScript;

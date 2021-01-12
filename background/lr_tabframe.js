@@ -290,6 +290,7 @@ async function captureTabFocusedFrame(tab, target=null) {
 	// In chromium-87 contextMenus listener gets
 	// tab.id == -1 and tab.windowId == -1 for PDF files
 	const activeTab = tab && tab.id >= 0 ? tab : await getActiveTab();
+	lr_notify.notify({ state: lr_notify.state.PROGRESS, tabId: activeTab.id });
 	let result = {};
 	let errorCollector = [];
 	try {
@@ -337,11 +338,13 @@ async function captureTabFocusedFrame(tab, target=null) {
 		if (!exportResult) {
 			throw new Error("Export failed");
 		}
+		lr_notify.notify({ state: lr_notify.state.SUCCESS, tabId: activeTab.id });
 	} catch (ex) {
 		console.error("captureTabFocusedFrame", ex);
 		result.error = lr_util.errorToObject(ex);
 		gLrResultCache.put(result, errorCollector);
 		errorCollector.push({ step: "captureTabFocusedFrame", error: lr_util.errorToObject(ex)});
+		lr_notify.notify({ state: lr_notify.state.ERROR, tabId: activeTab.id });
 		return await lrAsyncReportStep(
 			async function reportError() { return lr_action.openPreview(activeTab); },
 			errorCollector);
