@@ -1,12 +1,26 @@
 
 MAKE_MANIFEST = tools/make_manifest.py
+MANIFEST_FIREFOX_src = manifest-common.json manifest-part-firefox.json
+MANIFEST_TEST_src = manifest-part-test.yaml
+MANIFEST_FIREFOX_TEST_src = $(MANIFEST_FIREFOX_src) $(MANIFEST_TEST_src)
+
+MANIFEST_CHROME_src = manifest-common.json manifest-part-chrome.json
+MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
 
 # For development with almost no build step.
 firefox: manifest-firefox.json
 	ln -sf manifest-firefox.json manifest.json
 
-manifest-firefox.json: manifest-common.json manifest-part-firefox.json
-	$(MAKE_MANIFEST) --output $@ $^
+firefox-test: manifest-firefox-test.json
+	ln -sf manifest-firefox-test.json manifest.json
+
+manifest-firefox.json: $(MANIFEST_FIREFOX_src)
+	$(MAKE_MANIFEST) --output $@ $(MANIFEST_FIREFOX_src)
+
+manifest-firefox-test.json: $(MANIFEST_FIREFOX_TEST_src)
+	$(MAKE_MANIFEST) --output $@ $(MANIFEST_FIREFOX_TEST_src)
+
+manifest-firefox.json manifest-firefox-test.json: $(MAKE_MANIFEST)
 
 # For development with almost no build step.
 # Not a real dependency-aware target
@@ -14,8 +28,16 @@ manifest-firefox.json: manifest-common.json manifest-part-firefox.json
 chrome: manifest-chrome.json
 	ln -sf manifest-chrome.json manifest.json
 
-manifest-chrome.json: manifest-common.json manifest-part-chrome.json
-	$(MAKE_MANIFEST) --output $@ $^
+chrome-test: manifest-chrome-test.json
+	ln -sf manifest-chrome-test.json manifest.json
+
+manifest-chrome.json: $(MANIFEST_CHROME_src)
+	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_src)
+
+manifest-chrome-test.json: $(MANIFEST_CHROME_TEST_src)
+	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_TEST_src)
+
+manifest-chrome.json manifest-chrome-test.json: $(MAKE_MANIFEST)
 
 test:
 	test/test_json_files.py
@@ -66,4 +88,4 @@ firefox-dist: firefox
 		"icons/lr-48.png" \
 		"_locales/en/messages.json"
 
-.PHONY: clean crome firefox test firefox-dist"
+.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test

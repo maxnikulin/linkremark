@@ -1,2 +1,4 @@
-# generated for chrome of firefox
+# generated for chrome or firefox
 manifest.json
+manifest-firefox-test.json
+manifest-chrome-test.json

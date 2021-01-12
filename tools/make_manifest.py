@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 import json
 import sys
+import yaml
 
 
 def make_arg_parser():
@@ -40,12 +41,17 @@ def main():
                     update_recursive(d_value, patch.pop(key))
                 else:
                     raise ValueError('%r value is not an object' % (key, ))
+            elif isinstance(d_value, list):
+                d_value.extend(patch.pop(key))
 
         d.update(patch)
 
     def read(file_obj, result_dict):
+        if file_obj.name.endswith(".yaml"):
+            obj = yaml.load(file_obj)
+        else:
             obj = json.load(file_obj, object_pairs_hook=OrderedDict)
-            update_recursive(result_dict, obj)
+        update_recursive(result_dict, obj)
 
     def write(file_obj, result_dict):
         json.dump(
