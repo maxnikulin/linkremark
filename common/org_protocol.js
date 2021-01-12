@@ -24,13 +24,13 @@ var lrOrgProtocol = function() {
 	 * "org-protocol://capture?template=x&title=Hello&body=World&url=http:%2F%2Fexample.com"
 	 * from object { template: 'x', title: 'Hello', body: 'World', url: 'http://example.com' }
 	 * `base` is capture or store-link sub-protocol URI base.
+	 *
+	 * `template` field is optional. Emacs shows prompt if it is omitted.
 	 */
 	this.makeUrl = function(params, base=lrOrgProtocol.URL_CAPTURE) {
-		/*
-		if (!params.template) {
-			throw new Error("lrOrgProtocol.makeUrl: template is not specified");
+		if (params.template == null || params.template === "") {
+			delete params.template;
 		}
-		*/
 		const url = new URL(base);
 		const query = new URLSearchParams(params);
 		// url.searchParams is a read-only attribute
