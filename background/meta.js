@@ -149,6 +149,19 @@ class LrMeta {
 	};
 };
 
+lr_meta.normalizeUrl = function(href) {
+	if (!href) {
+		return href;
+	} else if (href.startsWith("javascript:")) {
+		return "javascript:";
+	} else if (href.startsWith("data:")) {
+		return "data:";
+	} else if (href.search("#") === href.length - 1) {
+		return href.substring(0, href.length - 1);
+	}
+	return href;
+};
+
 lr_meta.copyProperty = function(value, metaMap, property, key) {
 	if (value == null) {
 		return;
@@ -161,16 +174,14 @@ lr_meta.mergeTab = function(frameInfo, meta) {
 	if (tab == null) {
 		return;
 	}
-	lr_meta.copyProperty(tab.url, meta, "url", "tab.url");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(tab.url), meta, "url", "tab.url");
 	lr_meta.copyProperty(tab.title, meta, "title", "tab.title");
-	if (tab.favIconUrl) {
-		lr_meta.copyProperty({ url: tab.favIconUrl }, meta, "favicon", "tab.favicon");
-	}
+	lr_meta.copyProperty(lr_meta.normalizeUrl(tab.favIconUrl), meta, "favicon", "tab.favicon");
 };
 
 lr_meta.mergeFrame = function(frameInfo, meta) {
 	if (frameInfo.frame && !frameInfo.frame.synthetic) {
-		lr_meta.copyProperty(frameInfo.frame.url, meta, "url", "frame.url");
+		lr_meta.copyProperty(lr_meta.normalizeUrl(frameInfo.frame.url), meta, "url", "frame.url");
 	}
 };
 
@@ -179,7 +190,7 @@ lr_meta.mergeContent = function(frameInfo, meta) {
 	if (content == null) {
 		return;
 	}
-	lr_meta.copyProperty(content.url, meta, "url", "window.location");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(content.url), meta, "url", "window.location");
 	lr_meta.copyProperty(content.title, meta, "title", "document.title");
 	lr_meta.copyProperty(content.body, meta, "selection", "window.getSelection");
 }
@@ -193,14 +204,14 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 		clickData.selectionText && [ clickData.selectionText ],
 		meta, "selection", "clickData.selectionText");
 	lr_meta.copyProperty(clickData.linkText, meta, "linkText", "clickData.linkText");
-	lr_meta.copyProperty(clickData.linkUrl, meta, "linkUrl", "clickData.linkUrl");
-	lr_meta.copyProperty(clickData.frameUrl, meta, "url", "clickData.frameUrl");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.linkUrl), meta, "linkUrl", "clickData.linkUrl");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.frameUrl), meta, "url", "clickData.frameUrl");
 	if (frameInfo.frame.frameId === 0) {
-		lr_meta.copyProperty(clickData.pageUrl, meta, "url", "clickData.pageUrl");
+		lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.pageUrl), meta, "url", "clickData.pageUrl");
 	}
 	lr_meta.copyProperty(clickData.mediaType, meta, "mediaType", "clickData.mediaType");
 	lr_meta.copyProperty(
-		clickData.srcUrl,
+		lr_meta.normalizeUrl(clickData.srcUrl),
 		meta,
 		clickData.captureObject === "frame" || clickData.captureObject === "link" ? "url" : "srcUrl",
 		"clickData.srcUrl");
@@ -215,10 +226,10 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 	if (relations == null) {
 		return;
 	}
-	lr_meta.copyProperty(relations.referrer, meta, 'referrer', 'document.referrer');
-	lr_meta.copyProperty(relations.opener, meta, 'referrer', 'window.opener');
-	lr_meta.copyProperty(relations.parent, meta, 'referrer', 'window.parent');
-	lr_meta.copyProperty(relations.top, meta, 'referrer', 'window.top');
+	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.referrer), meta, 'referrer', 'document.referrer');
+	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.opener), meta, 'referrer', 'window.opener');
+	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.parent), meta, 'referrer', 'window.parent');
+	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.top), meta, 'referrer', 'window.top');
 	lr_meta.copyProperty(relations.lastModified, meta, 'lastModified', 'document.lastModified');
 };
 
@@ -227,7 +238,7 @@ lr_meta.mergeLink = function(frameInfo, meta) {
 	if (link == null) {
 		return;
 	}
-	lr_meta.copyProperty(link.href, meta, "linkUrl", "link.href");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(link.href), meta, "linkUrl", "link.href");
 	lr_meta.copyProperty(link.text, meta, "linkText", "link.text");
 	lr_meta.copyProperty(link.title, meta, "linkTitle", "link.title");
 	lr_meta.copyProperty(link.type, meta, "linkType", "link.type");
@@ -240,7 +251,7 @@ lr_meta.mergeImage = function(frameInfo, meta) {
 	if (image == null) {
 		return;
 	}
-	lr_meta.copyProperty(image.src, meta, "srcUrl", "image.src");
+	lr_meta.copyProperty(lr_meta.normalizeUrl(image.src), meta, "srcUrl", "image.src");
 	lr_meta.copyProperty(image.alt, meta, "imageAlt", "image.alt");
 	lr_meta.copyProperty(image.title, meta, "imageTitle", "image.title");
 };
@@ -386,21 +397,19 @@ lr_meta.mergeLdJson = function(frameInfo, meta) {
 		"datePublished": "published_time",
 		"dateModified": "modified_time",
 		"description": true,
-		"url": true,
 	};
 	const website_fields = {
 		'name': 'title',
-		'url': true,
 		'description': true,
 	};
 
 	function copyImage(json, meta) {
 		if (Array.isArray(json.image)) {
 			for (const image of (json.image)) {
-				lr_meta.copyProperty(image, meta, "image", "ld_json.image");
+				lr_meta.copyProperty(lr_meta.normalizeUrl(image), meta, "image", "ld_json.image");
 			}
 		} else {
-			lr_meta.copyProperty(json.image, meta, "image", "ld_json.image");
+			lr_meta.copyProperty(lr_meta.normalizeUrl(json.image), meta, "image", "ld_json.image");
 		}
 	}
 
@@ -411,7 +420,9 @@ lr_meta.mergeLdJson = function(frameInfo, meta) {
 			lr_meta.copyProperty(lr_meta.get_ld_json_value(json[src]),
 				meta, dst === true ? src : dst, `ld_json.${src}`);
 		}
-		lr_meta.copyProperty(lr_meta.get_ld_json_main_entity(json),
+		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_value(json["url"])),
+			meta, "url", "ld_json.url");
+		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_main_entity(json)),
 			meta, 'url', 'ld_json.mainEntityOfPage');
 		copyImage(json, meta);
 		break;
@@ -420,6 +431,8 @@ lr_meta.mergeLdJson = function(frameInfo, meta) {
 			lr_meta.copyProperty(lr_meta.get_ld_json_value(json[src]),
 				meta, dst === true ? src : dst, `ld_json.${src}`);
 		}
+		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_value(json["url"])),
+			meta, "url", "ld_json.url");
 		copyImage(json, meta);
 		break;
 	default:

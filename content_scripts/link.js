@@ -116,12 +116,16 @@
 			return document.activeElement;
 		}
 		
-		function getAbsoluteURL(hrefAttr, node) {
-			if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:") || hrefAttr.startsWith("data:")) {
-				return null;
+		function getUrl(node, attr) {
+			const hrefAttr = node.getAttribute(attr);
+			if (!hrefAttr || hrefAttr === "#") {
+				return node.baseURI;
+			} else if (hrefAttr.startsWith("javascript:")) {
+				return "javascript:";
+			} else if (hrefAttr.startsWith("data:")) {
+				return "data:";
 			}
-			// TODO filter hrefAttr === node.baseURI
-			return (new URL(hrefAttr, node.baseURI)).href;
+			return node[attr];
 		}
 
 		function setProperty(src, attrName, object, name) {
@@ -166,7 +170,7 @@
 				throw new Error(`target element is not a link: ${link && link.nodeName}`);
 			}
 			const obj = {};
-			const href = getAbsoluteURL(link.getAttribute('href'), link);
+			const href = getUrl(link, "href");
 			if (href) {
 				obj.href = href;
 			} else {

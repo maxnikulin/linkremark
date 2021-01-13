@@ -132,6 +132,18 @@
 				const code = locale.toLowerCase().match(/^[a-z]+/);
 				return code ? code[0] : code;
 			}
+
+			function getHref(link) {
+				const hrefAttr = link.getAttribute('href');
+				if (
+					!hrefAttr || hrefAttr === "#"
+					|| hrefAttr.startsWith("javascript:") || hrefAttr.startsWith("data:")
+				) {
+					return null;
+				}
+				return link.href;
+			}
+
 			let langs = new Set();
 			try {
 				for (const navigatorLanguage of navigator.languages || []) {
@@ -145,7 +157,7 @@
 				langs.add('en');
 			}
 			for (let link of head.querySelectorAll('link[href]')) {
-				const href = link.getAttribute('href');
+				const href = getHref(link);
 				if (!href) {
 					console.debug('empty href in %s', link.outerHTML);
 					continue;

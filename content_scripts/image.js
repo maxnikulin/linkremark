@@ -117,12 +117,14 @@
 			return document.activeElement;
 		}
 		
-		function getAbsoluteURL(hrefAttr, node) {
-			if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:") || hrefAttr.startsWith("data:")) {
+		function getUrl(node, attr) {
+			const hrefAttr = node.getAttribute(attr);
+			if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:")) {
 				return null;
+			} else if (hrefAttr.startsWith("data:")) {
+				return "data:"
 			}
-			// TODO filter hrefAttr === node.baseURI
-			return (new URL(hrefAttr, node.baseURI)).href;
+			return node[attr];
 		}
 
 		async function lrImageProperties() {
@@ -132,7 +134,7 @@
 				throw new Error(`target element is not an image: ${img && img.nodeName}`);
 			}
 			const obj = {};
-			obj.src = getAbsoluteURL(img.getAttribute('src'), img);
+			obj.src = getUrl(img, 'src');
 			obj.alt = img.getAttribute('alt');
 			obj.title = img.getAttribute('title');
 
