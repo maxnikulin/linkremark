@@ -128,28 +128,50 @@
 				}
 			}
 
+			function langCode(locale) {
+				const code = locale.toLowerCase().match(/^[a-z]+/);
+				return code ? code[0] : code;
+			}
+			let langs = new Set();
+			try {
+				for (const navigatorLanguage of navigator.languages || []) {
+					const code = langCode(navigatorLanguage);
+					if (code) {
+						langs.add(code);
+					}
+				}
+			} catch (ex) {
+				console.error("LR: trying to get languagers: %s %o", ex, ex);
+				langs.add('en');
+			}
 			for (let link of head.querySelectorAll('link[href]')) {
 				const href = link.getAttribute('href');
 				if (!href) {
 					console.debug('empty href in %s', link.outerHTML);
 					continue;
 				}
-				const linkType = link.getAttribute('type');
-				const linkRel = link.getAttribute('rel');
+				const attrs = {};
+				for (const attribute of ['type', 'rel', 'media', 'hreflang', 'title']) {
+					attrs[attribute] = link.getAttribute(attribute);
+				}
 				let source = null;
 
-				switch(linkRel) {
+				switch(attrs.rel) {
 				case 'canonical':
 				case 'shortlink':
 				case 'shorturl':
-					source = `link.${linkRel}`;
+					source = `link.${attrs.rel}`;
 					break;
 				case 'alternate':
-					if (!linkType) {
-						source = 'link.alternate';
-					} else {
+					if (attrs.type) {
 						console.debug('ignore link rel="alternate" type="%s" href="%s"',
-							linkType, href);
+							attrs.type, href);
+					} else if (attrs.hreflang) {
+						if (langs.has(langCode(attrs.hreflang))) {
+							source = 'link.alternate';
+						}
+					} else {
+						source = 'link.alternate';
 					}
 					break;
 				case 'image_src':
@@ -158,8 +180,9 @@
 				default:
 					break;
 				}
+				delete attrs.rel;
 				if (source) {
-					setProp('url', href, source);
+					setProp('url', href, source, attrs);
 				}
 			}
 
