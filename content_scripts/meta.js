@@ -99,7 +99,7 @@
 			}
 			const map = new Map();
 
-			function setProp(name, value, src) {
+			function setProp(name, value, src, attrs) {
 				if (!value) {
 					console.debug('empty value for %s %s', name, src);
 					return;
@@ -110,12 +110,22 @@
 					map.set(name, submap);
 				}
 
-				let srcArray = submap.get(value);
-				if (!srcArray) {
-					srcArray = [];
-					submap.set(value, srcArray);
+				let attrMap = submap.get(value);
+				if (!attrMap) {
+					attrMap = new Map();
+					submap.set(value, attrMap);
 				}
-				srcArray.push(src);
+				for (let [attrName, attrValue] of [["keys", src], ...Object.entries(attrs || {})]) {
+					if (attrValue == null || attrValue === "") {
+						continue;
+					}
+					let valueSet = attrMap.get(attrName);
+					if (!valueSet) {
+						valueSet = new Set();
+						attrMap.set(attrName, valueSet);
+					}
+					valueSet.add(attrValue);
+				}
 			}
 
 			for (let link of head.querySelectorAll('link[href]')) {
@@ -224,8 +234,12 @@
 			const result = Object.create(null);
 			for (let [key, valueMap] of resultMap.entries()) {
 				const variants = [];
-				for (let [value, keys] of valueMap.entries()) {
-					variants.push({ value, keys });
+				for (let [value, attrMap] of valueMap.entries()) {
+					const valueObj = { value };
+					for (const [attrName, attrValues] of attrMap.entries()) {
+						valueObj[attrName] = Array.from(attrValues);
+					}
+					variants.push(valueObj);
 				}
 				result[key] = variants;
 			}
