@@ -21,3 +21,24 @@ li {
 ul {
 	list-style: none;
 }
+
+/* Firefox does not draw outline on preveiw page at all,
+ * Chromium adds thich enough black solid line. */
+:focus  {
+	outline: #4040c0 dotted medium;
+}
+
+button, input {
+	padding: 0.5ex;
+	margin: 0.5ex;
+	outline-offset: 0.25ex;
+}
+
+button {
+	min-width: 15ex;
+}
+
+details {
+	margin-top: 1ex;
+	outline-offset: 0.25ex;
+}
