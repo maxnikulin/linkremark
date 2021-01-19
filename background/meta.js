@@ -113,6 +113,9 @@ class LrMeta {
 		}
 	};
 	set(property, value, key) {
+		if (value == null) {
+			return false;
+		}
 		if (this.object == null) {
 			this.object = {};
 		}
@@ -121,7 +124,8 @@ class LrMeta {
 			this.object[property] = array;
 			this.propertyMap.set(property, new LrMetaVariants(array));
 		}
-		this.propertyMap.get(property).set(value, key);
+		this.propertyMap.get(property).set(value, "" + key);
+		return true;
 	};
 	get(property, key=null) {
 		const variants = this.propertyMap.get(property);
@@ -353,91 +357,13 @@ lr_meta.decodeDescription = function(metaMap) {
 	}
 }
 
-lr_meta.get_ld_json_value = function(src_field) {
-	if (src_field == null) {
-		return;
-	}
-	switch (Object.prototype.toString.apply(src_field)) {
-	case "[object String]":
-		return src_field;
-		break;
-	case "[object Object]":
-		const result = [];
-		for (let [prop, value] of Object.entries(src_field)) {
-			if (prop[0] !== '@') {
-				result.push(value);
-			}
-		}
-		return result.join(" ");
-		break;
-	default:
-		return "" + src_field;
-		break;
-	}
-};
-
-lr_meta.get_ld_json_main_entity = function(ld_json) {
-	const mainEntity = ld_json.mainEntityOfPage;
-	if (mainEntity != null && mainEntity["@type"] == 'WebPage') {
-		return mainEntity['@id'];
-	}
-	return null;
-};
-
 lr_meta.mergeLdJson = function(frameInfo, meta) {
 	const json = frameInfo.meta && frameInfo.meta.result &&
 		frameInfo.meta.result.ld_json && frameInfo.meta.result.ld_json.result;
 	if (json == null) {
 		return;
 	}
-
-	const article_fields = {
-		"headline": "title",
-		"author": true,
-		"datePublished": "published_time",
-		"dateModified": "modified_time",
-		"description": true,
-	};
-	const website_fields = {
-		'name': 'title',
-		'description': true,
-	};
-
-	function copyImage(json, meta) {
-		if (Array.isArray(json.image)) {
-			for (const image of (json.image)) {
-				lr_meta.copyProperty(lr_meta.normalizeUrl(image), meta, "image", "ld_json.image");
-			}
-		} else {
-			lr_meta.copyProperty(lr_meta.normalizeUrl(json.image), meta, "image", "ld_json.image");
-		}
-	}
-
-	switch (json['@type']) {
-	case 'Article':
-	case 'NewsArticle':
-		for (const [src, dst] of Object.entries(article_fields)) {
-			lr_meta.copyProperty(lr_meta.get_ld_json_value(json[src]),
-				meta, dst === true ? src : dst, `ld_json.${src}`);
-		}
-		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_value(json["url"])),
-			meta, "url", "ld_json.url");
-		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_main_entity(json)),
-			meta, 'url', 'ld_json.mainEntityOfPage');
-		copyImage(json, meta);
-		break;
-	case 'WebSite':
-		for (const [src, dst] of Object.entries(website_fields)) {
-			lr_meta.copyProperty(lr_meta.get_ld_json_value(json[src]),
-				meta, dst === true ? src : dst, `ld_json.${src}`);
-		}
-		lr_meta.copyProperty(lr_meta.normalizeUrl(lr_meta.get_ld_json_value(json["url"])),
-			meta, "url", "ld_json.url");
-		copyImage(json, meta);
-		break;
-	default:
-		console.warn('lr_meta.merge_ld_json: unsupported @type=%s', json["@type"]);
-	}
+	return lr_json_ld.mergeJsonLd(json, meta);
 };
 
 lr_meta.html_entity_string = Object.assign(Object.create(null), {

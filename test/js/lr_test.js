@@ -127,8 +127,49 @@ var lr_test = lr_util.namespace("lr_test", lr_test, function(){
 		return retval;
 	};
 
+	this.assertEqSet = function(a, b) {
+		if (!(a instanceof Set) && !(b instanceof Set)) {
+			return undefined;
+		}
+		if (!(a instanceof Set)) {
+			[b, a] = [a, b];
+		}
+		if (!b || !b[Symbol.iterator]) {
+			throw new LrAssertionError("Counterpart of Set is not iterable");
+		}
+		let n = 0;
+		for (const element of b) {
+			if (!a.has(element)) {
+				throw new LrAssertionError(`Element ${element} is missed`);
+			}
+			++n;
+		}
+		if (n !== a.size) {
+			throw new LrAssertionError(`Set sizes ${n} !== ${a.size}`);
+		}
+		return true;
+	};
+
 	this.assertEq = function(a, b, msg) {
-		if (a != b) {
+		try {
+			for (const comparator of [this.assertEqSet]) {
+				const result = comparator(a, b);
+				if (result === undefined) {
+					continue;
+				} else if (!result) {
+					throw new LrAssertionError(`Comparator ${comparator.name} returned false`);
+				} else {
+					return true;
+				}
+			}
+		} catch (ex) {
+			if (ex instanceof LrAssertionError) {
+				const message = msg == null ? "not equal" : "" + msg;
+				throw new LrAssertionError(`Assert ${a} == ${b} failed: ${ex}: ${message}`);
+			}
+			throw ex;
+		}
+		if (a !== b) {
 			const message = msg == null ? "not equal" : "" + msg;
 			throw new LrAssertionError(`Assert ${a} == ${b} failed: ${message}`);
 		}
