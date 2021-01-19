@@ -204,6 +204,8 @@
 				['mediator_author', 'author'],
 				['datePublished', 'published_time'],
 				['dateModified', 'modified_time'],
+				['blog-name', 'site_name'],
+				['twitter:site', 'site_name'],
 			]);
 			const propertyMap = new Map([
 				['og:url', 'url'],
@@ -219,8 +221,8 @@
 				['og:image', 'image'],
 				['vk:image', 'image'],
 				['twitter:image', 'image'],
-				/* TODO og:type article */
-				/* TODO og:type website + og:site_name */
+				['og:site_name', 'site_name'],
+				/* TODO og:type article, website */
 			]);
 			const itempropMap = new Map([
 				['datePublished', 'published_time'],

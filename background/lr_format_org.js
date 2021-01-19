@@ -156,7 +156,7 @@ function lr_format_org_frame(frame, options = {}) {
 	if (title) {
 		body.push(LrOrgDefinitionItem({ term: "title" }, title));
 	}
-	for (let property of ['author', 'published_time', 'modified_time']) {
+	for (let property of ['author', 'published_time', 'modified_time', 'site_name']) {
 		const variants = lr_property_variants(frame, property);
 		for (const entry of variants || []) {
 			body.push(LrOrgDefinitionItem({ term: property }, entry.value));
