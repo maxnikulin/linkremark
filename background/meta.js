@@ -167,7 +167,7 @@ lr_meta.normalizeUrl = function(href) {
 };
 
 lr_meta.copyProperty = function(value, metaMap, property, key) {
-	if (value == null) {
+	if (value == null || value === "") {
 		return;
 	}
 	metaMap.set(property, value, key);

@@ -45,14 +45,20 @@ function lr_preferred_url(frame) {
 	return urlVariants && urlVariants.length > 0 ? urlVariants[0] : null;
 }
 
-function lr_preferred_title(meta) {
-	// FIXME limit title length
+function lr_sorted_title(meta) {
 	if (!meta) {
-		return null;
+		return [];
 	}
 	const titleVariants = meta.get('title') || [];
 	const valueVariants = titleVariants.map(entry => entry.value);
 	valueVariants.sort((a, b) => b.length - b.length);
+	return valueVariants;
+}
+
+function lr_preferred_title(meta) {
+	// FIXME limit title length
+	// TODO fallback to selection, description fragment of reasonable length
+	const valueVariants = lr_sorted_title(meta);
 	return valueVariants.length > 0 ? valueVariants[0] : null;
 }
 
@@ -153,8 +159,8 @@ function lr_format_org_frame(frame, options = {}) {
 			url = variant;
 		}
 	}
-	if (title) {
-		body.push(LrOrgDefinitionItem({ term: "title" }, title));
+	for (const titleVariant of lr_sorted_title(frame)) {
+		body.push(LrOrgDefinitionItem({ term: "title" }, titleVariant));
 	}
 	for (let property of ['author', 'published_time', 'modified_time', 'site_name']) {
 		const variants = lr_property_variants(frame, property);
@@ -180,7 +186,8 @@ function lr_format_org_frame(frame, options = {}) {
 	if (options.body) {
 		body.push(LrOrgSeparatorLine, ...options.body);
 	}
-	return { title, url, tree: LrOrgHeading({ heading: title, properties }, ...body) };
+	const heading = title || ( url ? LrOrgLink({ href: url }) : "No title" ); // TODO i18n
+	return { title: title || url, url, tree: LrOrgHeading({ heading, properties }, ...body) };
 }
 
 function lr_format_org_referrer(frame) {
