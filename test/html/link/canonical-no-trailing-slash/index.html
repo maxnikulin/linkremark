@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: caninical link without trailing slash</title>
+  </head>
+  <body>
+    <nav>
+      <a href="../../index.html">Up</a>
+      <a href="../index.html">Link tests</a>
+      <a href="../url.html">URLs</a>
+    </nav>
+    <h1>LinkRemark Test: Canonical link without trailing slash</h1>
+    <p>
+    Check that if canonocal link is the similar to location
+    of the current page but trailing slash is missed then
+    separate item is not added to the capture.
+    </p>
+    <p id="js_warning" style="background-color: #faa">
+    This test requires enabled JavaScript to add link element depending
+    on address of the web server.
+    </p>
+  <script>
+    if (window.location.href.endsWith("/index.html")) {
+      window.location = "./"
+    }
+    var link = document.createElement("link");
+    link.setAttribute("href", window.location.href.replace(/\/$/, ""));
+    link.setAttribute("rel", "canonical");
+    document.head.append(link);
+    var warning = document.getElementById("js_warning");
+    warning.style.display = 'none';
+  </script>
+  </body>
+</html>

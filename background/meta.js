@@ -294,6 +294,7 @@ lr_meta.merge = function(frameInfo, headData) {
 		this.decodeDescription,
 		this.removeDescriptionDuplicate,
 		this.removeTextLinkDuplicate,
+		this.removeNonCanonicalSlash,
 	];
 	for (const method of cleanupMethods) {
 		try {
@@ -356,6 +357,15 @@ lr_meta.decodeDescription = function(metaMap) {
 		metaMap.replace('description', og, lr_meta.unescapeEntities(og));
 	}
 }
+
+lr_meta.removeNonCanonicalSlash = function(meta) {
+	const canonical = meta.get("url", "link.canonical");
+	if (!canonical) {
+		return;
+	}
+	const toRemove = canonical.endsWith("/") ? canonical.replace(/\/$/, "") : canonical + "/";
+	meta.deleteValue("url", toRemove);
+};
 
 lr_meta.mergeLdJson = function(frameInfo, meta) {
 	const json = frameInfo.meta && frameInfo.meta.result &&
