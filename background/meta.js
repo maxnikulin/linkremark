@@ -98,7 +98,7 @@ class LrMetaVariants {
 		}
 		this.array.splice(this.array.indexOf(entry), 1);
 	};
-	get size() { return this.array.size; };
+	get size() { return this.array.length; };
 }
 
 class LrMeta {
