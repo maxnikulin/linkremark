@@ -120,21 +120,24 @@ if (action == "launch") {
 }
 
 async function lrLaunch() {
+	let result = null
 	try {
-		if (await lrDoLaunch()) {
+		result = await gLrGetPromise;
+		if (await lrDoLaunch(result)) {
 			pushActionResult("Closing the tab...");
 			setTimeout(() => window.close(), 1000);
 		}
 	} catch (ex) {
 		pushActionResult(ex.message, "error");
 		pushActionResult("Try a button, please");
-		buttonCopyClose.focus();
+		if (result) {
+			buttonCopyClose.focus();
+		}
 		throw ex;
 	}
 }
 
-async function lrDoLaunch() {
-	const result = await gLrGetPromise;
+async function lrDoLaunch(result) {
 	const { transport, ...capture } = result;
 	if (transport.method === "clipboard") {
 		if (!copyResult()) {
