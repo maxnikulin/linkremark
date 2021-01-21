@@ -17,6 +17,17 @@
 
 "use strict";
 
+function byId(id) {
+	return document.getElementById(id);
+}
+
+function setTitle(title) {
+	document.title = title ? "LR: " + title : "LR Capture Preview";
+	const pageTitle = byId("pageTitle");
+	pageTitle.textContent = title ? "LinkRemark Capture: " + title
+		: "LinkRemark Capture Preview";
+}
+
 var dumpElement = document.getElementById("dump");
 var errorElement = document.getElementById("error");
 var resultElement = document.getElementById("result");
@@ -40,38 +51,62 @@ async function copyClose() {
 	}
 }
 
-var gLrGetPromise = bapi.runtime.sendMessage({method: "cache.getLast", params: []}).then(response => {
-	console.log("received %o", response);
-	if (response != null) {
-		const {result, error, ...other} = response;
-		if (error != null) {
-			pushActionResult(JSON.stringify(error, null, "  "), "error");
-		}
-		const top_result = result;
-		if (top_result != null) {
-			const {result, debugInfo} = top_result;
-			const format = result && result.transport && result.transport.format;
-			let text = result && format && result[format] && result[format].body || result;
-			if (typeof text !== "string" && text != null) {
-				text = JSON.stringify(result, null, "  ");
-			}
-			resultElement.textContent = text;
-			dumpElement.innerText = JSON.stringify(debugInfo, null, "  ");
-			if (result && result.error) {
-				pushActionResult(result.error.message || "Some error happened", "error");
-				expandDebugInfo();
-			}
-			return result;
-		}
-	} else {
-		pushActionResult("got null response", "error");
+function setCaptureResult(result) {
+	const format = result && result.transport && result.transport.format;
+	const formattedResult = format && result[format];
+	const body = formattedResult && formattedResult.body;
+	let text = null;
+	if (typeof body === "string") {
+		text = body;
+	} else if (body != null) {
+		text = JSON.stringify(body, null, "");
 	}
-});
+	if (body != null) {
+		setTitle(formattedResult.title);
+		resultElement.textContent = text;
+		return true;
+	}
+	return false;
+}
 
-gLrGetPromise.catch(e => {
-	pushActionResult("" + e, "error");
-	throw e;
-});
+async function lrFetchCachedResult() {
+	try {
+		const cachedResult = await lrSendMessage("cache.getLast");
+		if (cachedResult == null) {
+			throw new Error("Got no capture result");
+		}
+		const {result, debugInfo } = cachedResult;
+		let success = lrNotFatal(setCaptureResult)(result);
+		dumpElement.innerText = JSON.stringify(debugInfo, null, "  ");
+		if (!success || (result && result.error)) {
+			expandDebugInfo();
+		}
+		if (result && result.error) {
+			const message = result.error.message || "Some error happened"
+			if (success) {
+				pushActionResult(message, "error");
+				success = false;
+			} else {
+				throw new Error(message);
+			}
+		} else if (!success) {
+			setTitle("No capture result");
+			pushActionResult("No capture result");
+		}
+		if (!success) {
+			// bypass catch but prevent launch
+			return Promise.reject(new Error("Capture is not completely successful"));
+		}
+		return result;
+	} catch (ex) {
+		pushActionResult(ex, "error");
+		pushActionResult("check extension console for errors", "error");
+		setTitle("Error: " + ex);
+		throw ex;
+	}
+}
+
+var gLrGetPromise = lrFetchCachedResult();
 
 var buttonCopyClose = document.getElementById("copyClose");
 buttonCopyClose.addEventListener("click", copyClose);
