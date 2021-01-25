@@ -10,18 +10,46 @@
   </head>
   <body>
     <h1 id="pageTitle">LinkRemark Capture Preview</h1>
-    <div>
-      <button id="copyClose" autofocus="true">Copy and Close</button>
-      <button id="copy">Copy</button>
-    </div>
-    <ul id="actionResult">
-    </ul>
-    <textarea class="result" id="result" cols="80" rows="25"></textarea>
-    <pre class="error" id="error"></pre>
+    <details class="section" id="detailsCapture">
+      <summary>Capture</summary>
+      <form id="params">
+        <details class="section" id="detailsClipboard">
+          <summary>Clipboard</summary>
+          <div>
+            <button id="copyClose" autofocus="true">Copy and Close</button>
+            <button id="copy">Copy</button>
+          </div>
+        </details>
+        <details class="section" id="detailsOrgProtocol">
+          <summary>Org protocol</summary>
+          <div>
+            <button id="orgProtocolLaunchClose">Launch and Close</button>
+            <button id="orgProtocolLaunch">Launch Handler</button>
+          </div>
+          <div>
+            <label>Template <input name="template" size="3"> (as configured in Emacs)</label>
+          </div>
+          <div>
+            <label>Title <input name="title" size="60"></label>
+          </div>
+          <div>
+            <label>Url <input name="url" size="60"></label>
+          </div>
+          <div>
+            <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
+            <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
+          </div>
+        </details>
+        <ul id="actionResult">
+        </ul>
+        <textarea class="result" name="body" cols="80" rows="10"></textarea>
+      </form>
+    </details>
     <div>Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
       to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
+    </div>
     <div>Visit <a href="settings.html">settings</a> page.</div>
-    <details id="debugInfo">
+    <details class="section" id="debugInfo">
       <summary>Debug Info</summary>
     <pre id="dump"></pre>
     </details>

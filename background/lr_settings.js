@@ -43,6 +43,7 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 	this.register = function(rpc) {
 		rpc.register("settings.descriptors", this.handleGetDescriptors);
 		rpc.register("settings.update", this.handleUpdate);
+		rpc.register("settings.get", this.handleGet);
 	};
 
 	this.getOption = function(name) {
@@ -56,6 +57,21 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 		}
 		return descriptor.defaultValue;
 	};
+
+	this.getSettings = function(names) {
+		if (typeof names === "string") {
+			return this.getOption(names);
+		} else if (Array.isArray(names)) {
+			const result = {};
+			for (const item of names) {
+				result[item] = this.getOption(item);
+			}
+			return result;
+		}
+		throw new TypeError("Unsupported argument type");
+	};
+
+	this.handleGet = this.getSettings.bind(this);
 
 	this.changedListener = async function(changes, area) {
 		console.debug("LR storage changed", area, changes);
