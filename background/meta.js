@@ -382,6 +382,8 @@ lr_meta.html_entity_string = Object.assign(Object.create(null), {
 	apos: "'",
 	gt: ">",
 	lt: "<",
+	laquo: "»",
+	raquo: "»",
 });
 
 lr_meta.htmlEntityReplaceCb = function(match, p1) {
