@@ -1,12 +1,57 @@
 
-textarea.result {
-	max-width: 90%;
+body {
+	font-family: sans-serif;
+	background-color: white;
+}
+
+@media all and (min-width: 42em) {
+	html {
+		background-color: lightblue;
+		padding: 1em;
+	}
+	body {
+		padding: 1em;
+		margin: 0px auto;
+		width: max-content;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	details.section > summary {
+		margin-left: 0ex;
+	}
+
+	details.section > *, .leftMargin {
+		margin-left: 2ex;
+	}
+
+	.limitedWidth {
+		width: 38em;
+		max-width: 100%;
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
+.expandable {
+	width: max-content;
+	max-width: 100%;
+}
+
+h1 {
+	font-size: 1.5em;
+}
+
+textarea {
+	max-width: 100%;
+	outline-offset: 0.25ex;
 }
 .error {
 	background-color: #ffa0a0;
 }
 pre {
 	white-space: pre-wrap;
+	overflow-wrap: anywhere
 }
 .success {
 	background-color: #a0ffa0;
@@ -20,17 +65,28 @@ li {
 
 ul {
 	list-style: none;
+	padding-left: 0px;
 }
 
 /* Firefox does not draw outline on preveiw page at all,
  * Chromium adds thich enough black solid line. */
-:focus  {
+:focus {
 	outline: #4040c0 dotted medium;
 }
 
+input {
+	padding-top: 0.25ex;
+	padding-bottom: 0.25ex;
+	margin-top: 0.75ex;
+	margin-bottom: 0.75ex;
+}
+
+button {
+	padding: 0.25ex;
+	margin: 0.75ex;
+}
+
 button, input {
-	padding: 0.5ex;
-	margin: 0.5ex;
 	outline-offset: 0.25ex;
 }
 
@@ -41,4 +97,30 @@ button {
 details {
 	margin-top: 1ex;
 	outline-offset: 0.25ex;
+}
+
+details.section[open] > summary, details[open] > summary .wrappedSection {
+	font-size: larger;
+	font-weight: bold;
+}
+
+div.p {
+	margin-top: 0.5ex;
+	margin-bottom: 0.5ex;
+	padding: 0.5ex;
+}
+
+label.half {
+	display: inline-block;
+	min-width: 45%;
+}
+
+input.long {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+span.fixed {
+	display: inline-block;
+	min-width: 5ex;
 }

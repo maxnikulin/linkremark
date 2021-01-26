@@ -9,48 +9,51 @@
     <link rel="icon" sizes="16x16" href="/icons/lr-16.png">
   </head>
   <body>
-    <h1 id="pageTitle">LinkRemark Capture Preview</h1>
-    <details class="section" id="detailsCapture">
-      <summary>Capture</summary>
-      <form id="params">
-        <details class="section" id="detailsClipboard">
-          <summary>Clipboard</summary>
-          <div>
-            <button id="copyClose" autofocus="true">Copy and Close</button>
-            <button id="copy">Copy</button>
-          </div>
-        </details>
-        <details class="section" id="detailsOrgProtocol">
-          <summary>Org protocol</summary>
-          <div>
-            <button id="orgProtocolLaunchClose">Launch and Close</button>
-            <button id="orgProtocolLaunch">Launch Handler</button>
-          </div>
-          <div>
-            <label>Template <input name="template" size="3"> (as configured in Emacs)</label>
-          </div>
-          <div>
-            <label>Title <input name="title" size="60"></label>
-          </div>
-          <div>
-            <label>Url <input name="url" size="60"></label>
-          </div>
-          <div>
-            <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
-            <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
-          </div>
-        </details>
-        <ul id="actionResult">
-        </ul>
-        <textarea class="result" name="body" cols="80" rows="10"></textarea>
-      </form>
-    </details>
-    <div>Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
-      to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
+    <div class="limitedWidth">
+      <h1 id="pageTitle">LinkRemark Capture Preview</h1>
+      <details id="detailsCapture" class="section">
+        <summary>Capture</summary>
+        <form id="params">
+          <details class="section" id="detailsClipboard">
+            <summary>Clipboard</summary>
+            <div>
+              <button id="copyClose" autofocus="true">Copy and Close</button>
+              <button id="copy">Copy</button>
+            </div>
+          </details>
+          <details class="section" id="detailsOrgProtocol">
+            <summary>Org protocol</summary>
+            <div>
+              <button id="orgProtocolLaunchClose">Launch and Close</button>
+              <button id="orgProtocolLaunch">Launch Handler</button>
+            </div>
+            <div>
+              <label>Template in Emacs <input name="template" size="3"></label>
+            </div>
+            <div>
+              <label><span class="fixed">Title</span> <input class="long" name="title" size="57"></label>
+            </div>
+            <div>
+              <label><span class="fixed">Url</span> <input class="long" name="url" size="57"></label>
+            </div>
+            <div>
+              <label class="half"><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
+              <label class="half"><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
+            </div>
+          </details>
+          <ul id="actionResult">
+          </ul>
+          <textarea name="body" cols="80" rows="10"></textarea>
+        </form>
+        <div class="p">Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
+          to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
+        </div>
+      </details>
+      <div class="p leftMargin">Visit <a href="settings.html">settings</a> page.</div>
     </div>
-    <div>Visit <a href="settings.html">settings</a> page.</div>
-    <details class="section" id="debugInfo">
-      <summary>Debug Info</summary>
+    <details class="expandable" id="debugInfo">
+      <!-- summary width is specified in em, so do not add "section" class to details -->
+      <summary class="limitedWidth"><span class="wrappedSection">Debug Info</span></summary>
     <pre id="dump"></pre>
     </details>
     <script type="text/javascript" src="/common/bapi.js"></script>
