@@ -47,6 +47,10 @@ It is really long to test if maximum allowed width is applied.</a>
       </li>
       <li><a href="javascript:alert('Alert!')"><code>javascript:alert('Alert!')</code></a></li>
       <li><a href="#">Just hash #</a></li>
+      <li><a href="http://&lt;a href=&quot;something.html&quot;&gt;something&lt/a&gt"
+             >Invalid nested link simulating web application error</a>
+        <code>new URL(element.href)</code> generates an exception</code>
+      </li>
       <li>Org-protocol
         <a href="org-protocol:/capture?template=&title=Org%20Mode&url=https:%2F%2Forgmode.org%2F&body=Your%20life%20in%20plain%20text"
              >capture with unspecified template</a></li>
