@@ -48,7 +48,7 @@ var lr_export = function() {
 			}
 			const frame = result.object[0];
 			result.org = lr_format_org(
-				result.metaMap,
+				result.object,
 				frame && frame.target);
 			return result.org;
 		});

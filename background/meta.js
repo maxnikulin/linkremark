@@ -102,26 +102,19 @@ class LrMetaVariants {
 }
 
 class LrMeta {
-	constructor(head) {
-		this.object = head;
-		this.propertyMap = new Map();
-		if (this.object == null) {
-			return;
-		}
-		for (const [property, values] of Object.entries(this.object)) {
-			this.propertyMap.set(property, new LrMetaVariants(values));
-		}
+	constructor() {
+		Object.defineProperty(this, "propertyMap", {
+			value: new Map(),
+			enumerable: false,
+		});
 	};
 	set(property, value, key) {
 		if (value == null) {
 			return false;
 		}
-		if (this.object == null) {
-			this.object = {};
-		}
 		if (!this.propertyMap.has(property)) {
 			const array = [];
-			this.object[property] = array;
+			this[property] = array;
 			this.propertyMap.set(property, new LrMetaVariants(array));
 		}
 		this.propertyMap.get(property).set(value, "" + key);
@@ -148,7 +141,7 @@ class LrMeta {
 		variants.deleteValue(value);
 		if (!(variants.size > 0)) {
 			this.propertyMap.delete(property);
-			delete this.object[property];
+			delete this[property];
 		}
 	};
 };
@@ -220,8 +213,7 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 		clickData.captureObject === "frame" || clickData.captureObject === "link" ? "url" : "srcUrl",
 		"clickData.srcUrl");
 	if (clickData.captureObject) {
-		// TODO meta.object is not public interface
-		meta.object.target = clickData.captureObject;
+		meta.target = clickData.captureObject;
 	}
 };
 
@@ -270,19 +262,30 @@ lr_meta.mergeImage = function(frameInfo, meta) {
 	lr_meta.copyProperty(image.title, meta, "imageTitle", "image.title");
 };
 
-lr_meta.cloneHead = function(frameInfo) {
+lr_meta.mergeHead = function(frameInfo, meta) {
 	const head = frameInfo && frameInfo.meta && frameInfo.meta.result
 		&& frameInfo.meta.result.head && frameInfo.meta.result.head.result || null;
-	return JSON.parse(JSON.stringify(head)) || {};
+	if (!head) {
+		return meta;
+	}
+	for (const [ field, descriptorArray ] of Object.entries(head)) {
+		for (const descriptor of descriptorArray) {
+			for (const key of descriptor.keys || [`unspecified.${field}`]) {
+				lr_meta.copyProperty(descriptor.value, meta, field, key);
+			}
+		}
+	}
+	return meta;
 }
 
-lr_meta.merge = function(frameInfo, headData) {
-	const meta = new LrMeta(headData);
+lr_meta.merge = function(frameInfo) {
+	const meta = new LrMeta();
 	if (!frameInfo) {
 		return meta;
 	}
 
 	const mergeMethods = [
+		this.mergeHead,
 		this.mergeTab,
 		this.mergeFrame,
 		this.mergeContent,

@@ -320,26 +320,13 @@ async function captureTabFocusedFrame(tab, target=null) {
 		const frameChain = await lrAsyncReportStep(
 			async function tabFramesInfo() { return lrGatherTabInfo(tab, target, activeTab); },
 			errorCollector, { result: true });
+
 		result.object = lrReportStep(
-			function cloneFrameMetaHead() {
-				return frameChain.map(frame => lr_meta.cloneHead(frame));
+			function frameMergeMeta() {
+				return frameChain.map(frame => lr_meta.merge(frame));
 			},
 			errorCollector);
 		errorCollector.push({step: "captureResult", result});
-		const metaMap = lrReportStep(
-			function frameMergeMeta() {
-				const length = result.object.length;
-				const meta = [];
-				for (let i = 0; i < length; ++i) {
-					meta.push(lr_meta.merge(frameChain[i], result.object[i]));
-				}
-				return meta;
-			},
-			errorCollector);
-		Object.defineProperty(result, 'metaMap', {
-			value: metaMap,
-			enumerable: false,
-		});
 
 		gLrResultCache.put(result, errorCollector);
 		const exportResult = await lrAsyncReportStep(
