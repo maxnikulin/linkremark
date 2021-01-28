@@ -19,25 +19,33 @@
  *
  * Returns
  *
- *     { error: [ { message, name, ... } ] }
+ *     { error: { message, name, ... } }
  *
  * or
  *
- *     { result: {
- *		referrer: document.referrer,
- *		opener: window.opener,
- *		activeElementNode: document.activeElement nodeName,
- *		activeElementHref: document.activeElement href or src,
- *		isTop: window.top === window,
- *		top: window.top.location,
- *		parent: window.parent.location
- *		focus: document.hasFocus()
- *		focusedElements: node names of ":focus" elements
- *		lastModified: document.lastModified
- *     } }
+ *     { result: [ ... ], warnings: [ ... ] }
+ *
+ * where result elements are objects { value, key, error }
+ * when the value is available.
+ * error is optional error associated with particular key-value.
+ * keys:
+ * - "document.referrer" (location),
+ * - "window.opener" (location),
+ * - "document.activeElement.nodeName",
+ * - "document.activeElement.href",
+ * - "document.activeElement.src",
+ * - "window.top" (location),
+ * - "window.isTop" (`window.top === window`),
+ * - "window.parent" (location),
+ * - "document.hasFocus",
+ * - "document.focusedElements" (`document.querySelectorAll(":focus")`),
+ * - "document.lastModified"
+ *
+ * Warnings field is added when some exception could not be associated with
+ * particular values but they are not a reason to abandon execution.
  *
  * `SecurityError` exceptions while trying to get top or parent location
- * are silently ignored.
+ * are silently ignored or added as a string without stack or other fields.
  */
 
 "use strict";
@@ -74,37 +82,84 @@
 	const warnings = [];
 	const response = { warnings };
 	try {
-		function lrIgnore(func) {
-			try {
-				return func();
-			} catch (ex) {
-				warnings.push(lrToObject(ex));
+		const DEFAILT_SIZE_LIMIT = 1000;
+
+		function normalize(value, sizeLimit) {
+			sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+			const t = typeof value;
+			let error;
+			if (value == null || t === "boolean" || t === "number") {
+				return [ value, error ];
 			}
+			if (t !== "string" && value.toString === Object.prototype.toString) {
+				// [object Object] is obviously useless
+				throw TypeError("Not a string and has no toString");
+			}
+			value = "" + value;
+			if (!(value.length <= sizeLimit)) {
+				error = { name: "LrOverflowError", size: value.length };
+				value = value.substring(0, sizeLimit);
+			}
+			return [ value, error ];
 		}
-		function lrIgnoreSecurityError(func) {
+
+		function lrPushProperty(array, getter, props) {
+			if (props == null) {
+				props = {};
+			}
+			const retval = { key: props.key || "unspecified." + (getter && getter.name) };
 			try {
-				return func();
-			} catch (ex) {
-				if (ex.name === "SecurityError") {
-					return;
+				const [ value, error ] = normalize(getter(), props.sizeLimit);
+				if (value != null || props.forceNull) {
+					retval.value = value;
 				}
-				warnings.push(lrToObject(ex));
+				if (error) {
+					retval.error = error;
+				}
+				if (!props.key) {
+					throw new Error("Missed property key");
+				}
+			} catch (ex) {
+				if (ex && ex.name === "SecurityError") {
+					retval.error = ex.name;
+				} else {
+					console.error(ex);
+					retval.error = lrToObject(ex);
+				}
+			}
+			if (retval.hasOwnProperty("value") || retval.error != null) {
+				array.push(retval);
 			}
 		}
 
-		const result = {};
-
-		lrIgnore(function lrDocumentReferrer() {
+		function lrDocumentReferrer() {
 			if (window.document.referrer) {
-				result.referrer = "" + window.document.referrer;
+				return "" + window.document.referrer;
 			}
-		});
-		lrIgnore(function lrWindowOpener() {
+		}
+		function lrWindowOpener() {
 			if (window.opener) {
-				result.opener = "" + window.opener.location;
+				return "" + window.opener.location;
 			}
-		});
-		lrIgnore(function lrActiveElement() {
+		}
+		function lrTopWindowLocation() {
+			const top = window.top;
+			if (top && top !== window) {
+				return "" + top.location;
+			}
+		}
+		function lrIsTopWindow() {
+			try {
+				return window.top === window;
+			} catch (ex) {
+				if (ex && ex.name === "SecurityError") {
+					return false;
+				}
+				throw ex;
+			}
+		}
+
+		function lrActiveElementNodeName() {
 			// Chrome-87: PDF file is represented as <embed> element,
 			// that is actually some nested tab.
 			// clickData.frameId == 0, tab.id == -1 in context menu handler,
@@ -113,47 +168,71 @@
 			// try to restore frame chain using activeElement.
 			const activeElement = window.document.activeElement;
 			if (activeElement) {
-				result.activeElementNode = "" + activeElement.nodeName;
-				if (activeElement.href) {
-					result.activeElementHref = "" + activeElement.href;
-				} else if (activeElement.src) {
-					result.activeElementHref = "" + activeElement.src;
-				}
+				return "" + activeElement.nodeName;
 			}
-		});
+		}
 
-		lrIgnoreSecurityError(function lrIsTopWindow() {
-			let top = window.top;
-			if (top) {
-				result.isTop = (top === window);
-				if (!result.isTop) {
-					result.top = "" + top.location;
-				}
+		function lrActiveElementHref() {
+			const activeElement = window.document.activeElement;
+			if (activeElement && activeElement.href) {
+				return "" + activeElement.href;
 			}
-		});
+		}
 
-		lrIgnoreSecurityError(function lrWindowParent() {
+		function lrActiveElementSrc() {
+			const activeElement = window.document.activeElement;
+			if (activeElement && activeElement.src) {
+				return "" + activeElement.src;
+			}
+		};
+
+		function lrWindowParent() {
 			var parent = window.parent;
 			if (parent && parent !== window) {
-				result.parent = "" + parent.location;
+				return "" + parent.location;
 			}
-		});
+		}
 
-		lrIgnore(function lrHasFocus() {
+		function lrHasFocus() {
 			// Allow to pick proper <iframe> where text is selected
-			result.hasFocus = window.document.hasFocus();
-		});
+			return window.document.hasFocus();
+		}
 
-		lrIgnore(function lrFocusedElement() {
+		function lrFocusedTags() {
 			const focus = document.querySelectorAll(":focus");
 			if (focus && focus.length > 0) {
-				result.focusedElements = [...focus].map(x => x.nodeName);
+				return Array.from(focus, x => x.nodeName);
 			}
-		});
+		}
 
-		lrIgnore(function lrLastModified() {
-			result.lastModified = document.lastModified;
-		});
+		function lrLastModified() {
+			return document.lastModified;
+		}
+
+		const properties = [
+			[ lrDocumentReferrer, "document.referrer" ],
+			[ lrWindowOpener, "window.opener" ],
+			[ lrTopWindowLocation, "window.top" ],
+			[ lrIsTopWindow, "window.isTop" ],
+			[ lrActiveElementNodeName, "document.activeElement.nodeName" ],
+			[ lrActiveElementHref, "document.activeElement.href" ],
+			[ lrActiveElementSrc, "document.activeElement.src" ],
+			[ lrWindowParent, "window.parent" ],
+			[ lrHasFocus, "document.hasFocus" ],
+			[ lrFocusedTags, "document.focusedTags" ],
+			[ lrLastModified, "document.lastModified" ],
+		];
+
+		const result = [];
+		for (const item of properties) {
+			try {
+				const [getter, key] = item;
+				lrPushProperty(result, getter, { key: key });
+			} catch (ex) {
+				console.error("LR: %o", item);
+				warnings.push(lrToObject(ex));
+			}
+		}
 
 		response.result = result;
 		return response;

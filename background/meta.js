@@ -230,11 +230,21 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 	if (relations == null) {
 		return;
 	}
-	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.referrer), meta, 'referrer', 'document.referrer');
-	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.opener), meta, 'referrer', 'window.opener');
-	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.parent), meta, 'referrer', 'window.parent');
-	lr_meta.copyProperty(lr_meta.normalizeUrl(relations.top), meta, 'referrer', 'window.top');
-	lr_meta.copyProperty(relations.lastModified, meta, 'lastModified', 'document.lastModified');
+	const referrerKeys = new Set([
+		'document.referrer',
+		'window.opener',
+		'window.parent',
+		'window.top',
+	]);
+	for (const descriptor of relations) {
+		if (referrerKeys.has(descriptor.key)) {
+			lr_meta.copyProperty(
+				lr_meta.normalizeUrl(descriptor.value), meta, 'referrer', descriptor.key);
+		} else if (descriptor.key === 'document.lastModified') {
+			lr_meta.copyProperty(
+				descriptor.value, meta, 'lastModified', descriptor.key);
+		}
+	}
 };
 
 lr_meta.mergeLink = function(frameInfo, meta) {
