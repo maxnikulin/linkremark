@@ -190,12 +190,17 @@ function lr_format_org_frame(frame, options = {}) {
 	return { title: title || url, url, tree: LrOrgHeading({ heading, properties }, ...body) };
 }
 
+// FIXME: add wrapper to catch exceptions
 function lr_format_org_referrer(frame) {
 	const referrerVariants = lr_property_variants(frame, 'referrer');
 	const result = [];
 	for (let entry of referrerVariants || []) {
+		if (!entry.value) {
+			console.warn("lr_format_org_referrer: skipping due to missed href: %o", entry);
+			continue;
+		}
 		result.push(lr_org_tree.LrOrgDefinitionItem(
-			{ term: "referrer" }, lr_org_tree.LrOrgLink({ href: entry.value })));
+			{ term: "referrer" }, lr_org_tree.LrOrgLink({ descriptor: entry })));
 	}
 	return result;
 }

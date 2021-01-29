@@ -17,7 +17,91 @@
 
 "use strict";
 
-var lr_meta = lr_meta || {};
+var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
+	const DEFAILT_SIZE_LIMIT = 1000;
+	const TEXT_SIZE_LIMIT = 4000;
+
+	function sanitizeLength(value, error, limit = DEFAILT_SIZE_LIMIT) {
+		if (!value || typeof value === "number") {
+			return { value, ...(error ? { error } : {}) };
+		}
+		if (typeof value !== "string") {
+			console.warn("lr_meta.sanitizeLength: not a string %o", value);
+			value = "" + value;
+		}
+		if (value.length > limit) {
+			return {
+				value: value.substring(0, limit),
+				error: {
+					name: "LrOverflowError",
+					size: value.length,
+				},
+			};
+		}
+		return { value, ...(error ? { error } : {}) }
+	}
+
+	function sanitizeUrl(href, error) {
+		if (!href) {
+			return { value: href };
+		}
+		const isURL = href instanceof URL;
+		if (isURL) {
+			href = href.href;
+		}
+		if (typeof href !== 'string') {
+			return { value: null, error: "TypeError" };
+		}
+		if (href.startsWith("javascript:")) {
+			return { value: "javascript:", error: "LrForbiddenUrlSchema" };
+		} else if (href.startsWith("data:")) {
+			return { value: "data:", error: "LrForbiddenUrlSchema" };
+		}
+		const retval = sanitizeLength(href, error);
+		if (retval.error) {
+			return retval;
+		}
+		href = retval.value;
+		if (!isURL) {
+			try {
+				href = (new URL(href)).href;
+			} catch (ex) {
+				console.debug("lr_meta.sanitizeUrl: not an URL: %s %o", href, ex);
+				retval.error = "LrNotURL";
+			}
+		}
+		if (href && href.search("#") === href.length - 1) {
+			href = href.substring(0, href.length - 1);
+		}
+		retval.value = href;
+		return retval;
+	};
+
+	function errorText(error) {
+		if (!error) {
+			return "";
+		}
+		const name = typeof error === 'string' ? error : error.name;
+		switch (name) {
+			case 'LrOverflowError':
+				return 'truncated';
+				break;
+			case 'LrForbiddenUrlSchema':
+				return 'URL schema not allowed';
+				break;
+			default:
+				break;
+		}
+		return "error";
+	}
+
+	Object.assign(this, {
+		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
+		sanitizeLength, sanitizeUrl,
+		errorText,
+	});
+	return this;
+});
 
 class LrMetaVariants {
 	constructor(variantArray) {
@@ -32,6 +116,7 @@ class LrMetaVariants {
 		}
 	};
 	set (value, key) {
+		// FIXME allow multiple values with the same key
 		const keyEntry = this.keyMap.get(key);
 		if (keyEntry != null) {
 			if (keyEntry.value === value) {
@@ -57,6 +142,46 @@ class LrMetaVariants {
 		}
 		this.keyMap.set(key, valueEntry);
 	};
+	addDescriptor(descriptor) {
+		if (!descriptor) {
+			console.warn("LrMetaVariants.addDescriptor: empty argument");
+			return false;
+		}
+		const { key, value, ...attributes } = descriptor;
+		// FIXME allow multiple values with the same key
+		const keyEntry = this.keyMap.get(key);
+		if (keyEntry != null) {
+			if (keyEntry.value === value) {
+				return;
+			}
+			const keyIndex = keyEntry.keys.indexOf(key);
+			if (keyIndex >= 0) {
+				keyEntry.keys.splice(keyIndex, 1);
+				if (keyEntry.keys.length === 0) {
+					this.valueMap.delete(keyEntry.value);
+					this.keyMap.delete(key);
+					this.array.splice(this.array.indexOf(keyEntry), 1);
+				}
+			}
+		}
+		let valueEntry = this.valueMap.get(value);
+		if (valueEntry != null) {
+			valueEntry.keys.push(key);
+		} else {
+			valueEntry = { value, keys: [key] };
+			this.array.push(valueEntry);
+			this.valueMap.set(value, valueEntry);
+		}
+		for (const [ attrKey, attrValue ] of Object.entries(attributes)) {
+			const currentValue = valueEntry[attrKey];
+			if (currentValue !== undefined && currentValue !== attrValue) {
+				console.warn("LrMetaVariants.addDescriptor %s attr %s: %o != %o",
+					value, attrKey, currentValue, attrValue);
+			}
+			valueEntry[attrKey] = attrValue;
+		}
+		this.keyMap.set(key, valueEntry);
+	}
 	getValueByKey(key) {
 		const entry = this.keyMap.get(key);
 		return entry && entry.value;
@@ -107,6 +232,16 @@ class LrMeta {
 			value: new Map(),
 			enumerable: false,
 		});
+		Object.defineProperty(this, "sanitizerMap", {
+			enumerable: false,
+			value: new Map(Object.entries({
+				url: lr_meta.sanitizeUrl,
+				linkUrl: lr_meta.sanitizeUrl,
+				srcUrl: lr_meta.sanitizeUrl,
+				referrer: lr_meta.sanitizeUrl,
+				title: lr_meta.sanitizeLength,
+			})),
+		});
 	};
 	set(property, value, key) {
 		if (value == null) {
@@ -120,6 +255,37 @@ class LrMeta {
 		this.propertyMap.get(property).set(value, "" + key);
 		return true;
 	};
+	addDescriptor(property, descriptor) {
+		if (descriptor == null) {
+			return false;
+		}
+		if (!property || typeof property !== "string") {
+			console.error("LrMeta.addDescriptor: bad property name: %o %o", property, descriptor);
+			return false;
+		}
+		if (typeof descriptor !== 'object') {
+			console.error("LrMeta.addDescriptor: descriptor is not an object: %o %o", property, descriptor);
+			return false;
+		}
+		let { key, value, error, ...other } = descriptor;
+		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
+		const sanitizedResult = sanitizer(value, error);
+		if (!key) {
+			console.error("LrMeta.addDescriptor: missed key: %o %o", property, descriptor);
+			key = "unspecified." + property;
+		}
+		let variants = this.propertyMap.get(property);
+		if (!variants) {
+			const array = [];
+			this[property] = array;
+			variants = new LrMetaVariants(array);
+			this.propertyMap.set(property, variants);
+		}
+		// Value is added only if sanitizer set it
+		variants.addDescriptor({...other, error, ...sanitizedResult, key});
+		return true;
+	}
+
 	get(property, key=null) {
 		const variants = this.propertyMap.get(property);
 		if (variants == null || key == null) {
@@ -230,11 +396,9 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 	]);
 	for (const descriptor of relations) {
 		if (referrerKeys.has(descriptor.key)) {
-			lr_meta.copyProperty(
-				lr_meta.normalizeUrl(descriptor.value), meta, 'referrer', descriptor.key);
+			meta.addDescriptor('referrer', descriptor);
 		} else if (descriptor.key === 'document.lastModified') {
-			lr_meta.copyProperty(
-				descriptor.value, meta, 'lastModified', descriptor.key);
+			meta.addDescriptor('lastModified', descriptor);
 		}
 	}
 };
