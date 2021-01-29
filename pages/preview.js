@@ -33,20 +33,23 @@ function setCaptureResult(result) {
 	const transport = result && result.transport;
 	const format = transport && transport.format;
 	const formattedResult = format && result[format];
-	const body = formattedResult && formattedResult.body;
+	// Allow "object" format that has no body, url, and title fields
+	const body = formattedResult && formattedResult.body || formattedResult;
 	let text = "";
 	if (typeof body === "string") {
 		text = body;
 	} else if (body != null) {
-		text = JSON.stringify(body, null, "");
+		text = JSON.stringify(body, null, "  ");
 	}
 	const title = formattedResult && formattedResult.title;
 	if (body != null) {
-		setTitle(title);
 		form.body.textContent = text;
 	}
-	if (title) {
+	if (typeof title === "string") {
+		setTitle(title);
 		form.title.value = title;
+	} else {
+		setTitle();
 	}
 	const url = formattedResult && formattedResult.url;
 	if (url) {
