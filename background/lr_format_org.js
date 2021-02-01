@@ -93,7 +93,7 @@ function lrOrgCollectProperties(result, frame) {
 	const modifiedVariants = lr_property_variants(frame, 'lastModified');
 	if (modifiedVariants && modifiedVariants.length > 0) {
 		for (let time of modifiedVariants) {
-			result.push(["LAST_MODIFIED", time.value]);
+			result.push(["LAST_MODIFIED", ...lr_formatter.parseDate(time.value)]);
 		}
 	}
 	return result;
@@ -162,10 +162,16 @@ function lr_format_org_frame(frame, options = {}) {
 	for (const titleVariant of lr_sorted_title(frame)) {
 		body.push(LrOrgDefinitionItem({ term: "title" }, titleVariant));
 	}
+	const dateProperties = new Set(["published_time", "modified_time"]);
 	for (let property of ['author', 'published_time', 'modified_time', 'site_name']) {
 		const variants = lr_property_variants(frame, property);
 		for (const entry of variants || []) {
-			body.push(LrOrgDefinitionItem({ term: property }, entry.value));
+			try {
+				const value = dateProperties.has(property) ? lr_formatter.parseDate(entry.value) : entry.value;
+				body.push(LrOrgDefinitionItem({ term: property }, value));
+			} catch (ex) {
+				console.error("lr_format_org_frame: ignoring error for: %s %o", entry, ex);
+			}
 		}
 	}
 	if (options.addReferrer && !options.separateReferrer) {

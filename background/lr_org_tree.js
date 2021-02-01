@@ -202,12 +202,12 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		}
 		const seen = new Set();
 		const children = [];
-		for (let [prop, value] of properties) {
+		for (let [prop, ...value] of properties) {
 			const plus = seen.has(prop) ? "+" : "";
 			children.push(
 				LrOrgMarkup(":"), LrOrgNobreak(null, prop), LrOrgMarkup(plus + ":"),
 				LrOrgWordSeparator,
-				LrOrgNobreak(null, value),
+				LrOrgNobreak(null, ...value),
 				LrOrgStartLine,
 			)
 			seen.add(prop);
