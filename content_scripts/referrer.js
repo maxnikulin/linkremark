@@ -91,7 +91,7 @@
 	try {
 		const DEFAILT_SIZE_LIMIT = 1000;
 
-		function normalize(value, sizeLimit) {
+		function lrNormalize(value, sizeLimit) {
 			sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
 			const t = typeof value;
 			let error;
@@ -111,12 +111,10 @@
 		}
 
 		function lrPushProperty(array, getter, props) {
-			if (props == null) {
-				props = {};
-			}
+			props = props || {};
 			const retval = { key: props.key || "unspecified." + (getter && getter.name) };
 			try {
-				const [ value, error ] = normalize(getter(), props.sizeLimit);
+				const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
 				if (value != null || props.forceNull) {
 					retval.value = value;
 				}
@@ -130,7 +128,6 @@
 				if (ex && ex.name === "SecurityError") {
 					retval.error = ex.name;
 				} else {
-					console.error(ex);
 					retval.error = lrToObject(ex);
 				}
 			}
@@ -236,8 +233,12 @@
 				const [getter, key] = item;
 				lrPushProperty(result, getter, { key: key });
 			} catch (ex) {
-				console.error("LR: %o", item);
-				warnings.push(lrToObject(ex));
+				if (item && item.key) {
+					result.push({ key: item.key, error: lrToObject(ex) });
+				} else {
+					console.error("LR: %o", item);
+					warnings.push(lrToObject(ex));
+				}
 			}
 		}
 
