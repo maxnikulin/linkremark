@@ -52,10 +52,10 @@
 
 (function lrReferrer() {
 
-	/** Error instances could not pass through `sendMessage()` to backend */
+	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
+		console.error(obj);
 		if (obj instanceof Error) {
-			console.error(obj);
 			var error = Object.create(null);
 			if (obj.message != null) {
 				error.message = obj.message;
@@ -67,11 +67,18 @@
 			} else {
 				error.name = Object.prototype.toString.call(obj);
 			}
-			for (let prop of ["code", "stack", "fileName", "lineNumber"]) {
-				if (obj[prop] != null) {
-					// Make `stack` readable in `JSON.stringify()` dump.
-					error[prop] = ("" + obj[prop]).split("\n");
+			for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
+				const value = obj[prop];
+				if (value == null) {
+					continue;
 				}
+				if (typeof value !== "string") {
+					error[prop] = value;
+					continue;
+				}
+				// Make `stack` readable in `JSON.stringify()` dump.
+				const lines = value.split("\n");
+				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
 		} else {

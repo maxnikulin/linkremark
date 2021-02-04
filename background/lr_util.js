@@ -61,10 +61,18 @@ var lr_util = function() {
 		} else {
 			error.name = Object.prototype.toString.call(obj);
 		}
-		for (let prop of ["code", "stack", "fileName", "lineNumber"]) {
-			if (obj[prop] != null) {
-				error[prop] = ("" + obj[prop]).split("\n");
+		for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
+			const value = obj[prop];
+			if (value == null) {
+				continue;
 			}
+			if (typeof value !== "string") {
+				error[prop] = value;
+				continue;
+			}
+			// Make `stack` readable in `JSON.stringify()` dump.
+			const lines = value.split("\n");
+			error[prop] = lines.length > 1 ? lines : value;
 		}
 		return error;
 	};

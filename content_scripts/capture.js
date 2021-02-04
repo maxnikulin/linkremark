@@ -56,7 +56,7 @@
 				}
 				// Make `stack` readable in `JSON.stringify()` dump.
 				const lines = value.split("\n");
-				error[prop] = lines.length > 0 ? lines : value;
+				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
 		} else {
