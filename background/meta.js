@@ -20,6 +20,7 @@
 var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
+	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
 	function sanitizeLength(value, error, limit = DEFAILT_SIZE_LIMIT) {
 		if (!value || typeof value === "number") {
@@ -39,6 +40,10 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 			};
 		}
 		return { value, ...(error ? { error } : {}) }
+	}
+
+	function sanitizeText(value, error, limit = TEXT_SIZE_LIMIT) {
+		return sanitizeLength(value, error, limit);
 	}
 
 	function sanitizeUrl(href, error) {
@@ -75,7 +80,38 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 		}
 		retval.value = href;
 		return retval;
-	};
+	}
+
+	function sanitizeTextArray(fragmentArray, error) {
+		if (!Array.isArray(fragmentArray)) {
+			return { value: [], error: "TypeError" };
+		}
+		const result = [];
+		let available = TEXT_SIZE_LIMIT;
+		for (const fragment of fragmentArray) {
+			error = error || (fragment && fragment.error);
+			const value = fragment.value;
+			if (!value) {
+				result.push(fragment);
+				continue;
+			} else if (typeof value !== "string") {
+				result.push({...fragment, value: "", error: "TypeError"});
+				continue;
+			}
+			if (value.length <= available) {
+				result.push(fragment);
+				available -= value.length;
+				continue;
+			}
+			if (available < DEFAILT_SIZE_LIMIT) {
+				available = 0;
+			}
+			const sanitized = sanitizeLength(value, fragment.error, available);
+			result.push({...fragment, ...sanitized});
+			error = error || sanitized.error;
+		}
+		return { value: result, error };
+	}
 
 	function errorText(error) {
 		if (!error) {
@@ -97,7 +133,8 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
-		sanitizeLength, sanitizeUrl,
+		sanitizeLength, sanitizeText, sanitizeUrl,
+		sanitizeTextArray,
 		errorText,
 	});
 	return this;
@@ -186,6 +223,9 @@ class LrMetaVariants {
 		const entry = this.keyMap.get(key);
 		return entry && entry.value;
 	};
+	getDescriptorByKey(key) {
+		return this.keyMap.get(key);
+	}
 	replace(value, replacement) {
 		if (value === replacement) {
 			return;
@@ -240,6 +280,9 @@ class LrMeta {
 				srcUrl: lr_meta.sanitizeUrl,
 				referrer: lr_meta.sanitizeUrl,
 				title: lr_meta.sanitizeLength,
+				selection: lr_meta.sanitizeText,
+				linkText: lr_meta.sanitizeText,
+				selectionTextFragments: lr_meta.sanitizeTextArray,
 			})),
 		});
 	};
@@ -286,6 +329,24 @@ class LrMeta {
 		return true;
 	}
 
+	addStructure(property, descriptor) {
+		if (descriptor == null) {
+			return false;
+		}
+		if (!property || typeof property !== "string") {
+			console.error("LrMeta.addStructure: bad property name: %o %o", property, descriptor);
+			return false;
+		}
+		const sanitizer = this.sanitizerMap.get(property); // TODO || lr_meta.sanitizeStructure;
+		if (!sanitizer) {
+			console.error("LrMeta.addStructure: sanitizer for %s is not defined", property);
+		}
+		let { value, error, ...other } = descriptor;
+		const sanitizedResult = sanitizer ? sanitizer(value, error) : {};
+		this[property] = { value, error, ...other, ...sanitizedResult, type: "structure" };
+		return true;
+	}
+
 	get(property, key=null) {
 		const variants = this.propertyMap.get(property);
 		if (variants == null || key == null) {
@@ -293,6 +354,10 @@ class LrMeta {
 		}
 		return variants.getValueByKey(key);
 	};
+	getDescriptor(property, key) {
+		const variants = this.propertyMap.get(property);
+		return variants && variants.getDescriptorByKey(key);
+	}
 	getAnyValue(property) {
 		const variants = this.propertyMap.get(property);
 		return variants && variants.array && variants.array[0] &&
@@ -353,9 +418,30 @@ lr_meta.mergeContent = function(frameInfo, meta) {
 	if (content == null) {
 		return;
 	}
-	lr_meta.copyProperty(lr_meta.normalizeUrl(content.url), meta, "url", "window.location");
-	lr_meta.copyProperty(content.title, meta, "title", "document.title");
-	lr_meta.copyProperty(content.body, meta, "selection", "window.getSelection");
+	const selectionFragments = [];
+	for (const descriptor of content) {
+		switch (descriptor.key) {
+			case 'window.location':
+				meta.addDescriptor('url', descriptor);
+				break;
+			case 'document.title':
+				meta.addDescriptor('title', descriptor);
+				break;
+			case 'window.getSelection.text':
+				meta.addDescriptor('selection', descriptor);
+				break;
+			case 'window.getSelection.range':
+				selectionFragments.push(descriptor);
+				break;
+			default:
+				console.warn("lr_meta.mergeContent: unsupported property %o", descriptor);
+		}
+	}
+	if (selectionFragments.length === 1) {
+		meta.addDescriptor('selection', selectionFragments[0]);
+	} else if (selectionFragments.length > 1) {
+		meta.addStructure('selectionTextFragments', { value: selectionFragments });
+	}
 }
 
 lr_meta.mergeClickData = function(frameInfo, meta) {
@@ -363,10 +449,14 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 	if (clickData == null) {
 		return;
 	}
-	lr_meta.copyProperty(
-		clickData.selectionText && [ clickData.selectionText ],
-		meta, "selection", "clickData.selectionText");
-	lr_meta.copyProperty(clickData.linkText, meta, "linkText", "clickData.linkText");
+	meta.addDescriptor("selection", clickData.selectionText && {
+		value: clickData.selectionText,
+		key: "clickData.selectionText",
+	});
+	meta.addDescriptor("linkText", clickData.linkText && {
+		value: clickData.linkText,
+		key: "clickData.linkText"
+	});
 	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.linkUrl), meta, "linkUrl", "clickData.linkUrl");
 	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.frameUrl), meta, "url", "clickData.frameUrl");
 	if (frameInfo.frame.frameId === 0) {

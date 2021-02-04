@@ -104,7 +104,9 @@ function lr_format_selection_body(selection) {
 		return [];
 	} else if (Array.isArray(selection)) {
 		const { LrOrgMarkup, LrOrgSeparatorLine, LrOrgWordSeparator } = lr_org_tree;
-		return selection.reduce(function(result, element) {
+		return selection.reduce(function(result, descriptor) {
+			const element = descriptor.value;
+			const { error } = descriptor;
 			if (result.length > 0) {
 				if (element === "") {
 					result.push(
@@ -124,10 +126,13 @@ function lr_format_selection_body(selection) {
 					}
 				}
 			} else {
-				if (!element) {
+				if (!element && !error) {
 					console.warn("lr_format_selection_body: empty element in the beginning")
 				}
 				result.push(element);
+			}
+			if (error) {
+				result.push(`\n(${lr_meta.errorText(error)})`);
 			}
 			return result;
 		}, []);
@@ -136,8 +141,22 @@ function lr_format_selection_body(selection) {
 }
 
 function lr_format_org_selection(frame) {
-	const selection = frame.get("selection", "window.getSelection") ||
-		frame.get("selection", "clickData.selectionText");
+	let selection = frame.selectionTextFragments && frame.selectionTextFragments.value;
+	let hasText = selection && Array.isArray(selection) && selection.some(x => x.value);
+	if (!hasText) {
+		const selectionWhole = frame.getDescriptor("selection", "window.getSelection.text");
+		hasText = selectionWhole && selectionWhole.value;
+		if (hasText) {
+			selection = [ selectionWhole ];
+		}
+	}
+	if (!hasText) {
+		const selectionWhole = frame.getDescriptor("selection", "clickData.selectionText");
+		hasText = selectionWhole && selectionWhole.value;
+		if (hasText) {
+			selection = [ selectionWhole ];
+		}
+	}
 	if (!selection) {
 		return [];
 	}
