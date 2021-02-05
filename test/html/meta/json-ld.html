@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: JSON-LD Metadata</title>
+    <script type="application/ld+json">{
+      "@context": "http://schema.org",
+      "@type": "Article",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ho.st/post/312/"
+      },
+      "headline": "LinkRemark Test: LD+JSON metadata",
+      "datePublished": "2020-01-07T15:03:24+03:00",
+      "dateModified": "2020-01-08T07:06:00+03:00",
+      "author": {
+        "@type": "Person",
+        "name": "Tom Soyer"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Si-Te",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://c.dn/images/si-te.png"
+        }
+      },
+      "description": "This is a description in ld+json for Article @type.",
+      "url": "https://hos.st/post/312/#post-content-body",
+      "about": [
+        "a_keyword-one",
+        "a_second",
+        "a_topic-3"
+      ],
+      "image": [
+        "https://stora.ge/web/q/qwerty.jpeg",
+        "https://stora.ge/web/a/asdfgh.png"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Metadata</a>
+      <a href="head-links.html">&lt;link&gt; with attributes</a>
+      <a href="meta-head.html">&lt;head&gt; meta</a>
+    </nav>
+    <h1>LinkRemark Test: JSON-LD metadata</h1>
+    <p>This page contains some metadata as description, dateModified, datePublished
+    as ld+json <code>&lt;script&gt;</code> element.</p>
+  </body>
+</html>
