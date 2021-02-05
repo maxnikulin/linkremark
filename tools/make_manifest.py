@@ -48,7 +48,7 @@ def main():
 
     def read(file_obj, result_dict):
         if file_obj.name.endswith(".yaml"):
-            obj = yaml.load(file_obj)
+            obj = yaml.safe_load(file_obj)
         else:
             obj = json.load(file_obj, object_pairs_hook=OrderedDict)
         update_recursive(result_dict, obj)
