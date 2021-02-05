@@ -113,6 +113,21 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 		return { value: result, error };
 	}
 
+	function sanitizeObject(obj, error) {
+		try {
+			const length = JSON.stringify(obj).length;
+			if (!(length < 2*TEXT_SIZE_LIMIT)) {
+				return { error: {
+					name: "LrOverflowError",
+					size: value.length,
+				} };
+			}
+			return { value: obj };
+		} catch (ex) {
+			return { error: lr_util.errorToObject(ex) };
+		}
+	}
+
 	function errorText(error) {
 		if (!error) {
 			return "";
@@ -134,6 +149,7 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
 		sanitizeLength, sanitizeText, sanitizeUrl,
+		sanitizeObject,
 		sanitizeTextArray,
 		errorText,
 	});
@@ -276,6 +292,7 @@ class LrMeta {
 			enumerable: false,
 			value: new Map(Object.entries({
 				url: lr_meta.sanitizeUrl,
+				image: lr_meta.sanitizeUrl,
 				linkUrl: lr_meta.sanitizeUrl,
 				srcUrl: lr_meta.sanitizeUrl,
 				referrer: lr_meta.sanitizeUrl,
@@ -283,6 +300,7 @@ class LrMeta {
 				selection: lr_meta.sanitizeText,
 				linkText: lr_meta.sanitizeText,
 				selectionTextFragments: lr_meta.sanitizeTextArray,
+				json_ld: lr_meta.sanitizeObject,
 			})),
 		});
 	};
@@ -517,17 +535,13 @@ lr_meta.mergeImage = function(frameInfo, meta) {
 };
 
 lr_meta.mergeHead = function(frameInfo, meta) {
-	const head = frameInfo && frameInfo.meta && frameInfo.meta.result
-		&& frameInfo.meta.result.head && frameInfo.meta.result.head.result || null;
-	if (!head) {
+	const array = frameInfo && frameInfo.meta && frameInfo.meta.result || null;
+	if (!array) {
 		return meta;
 	}
-	for (const [ field, descriptorArray ] of Object.entries(head)) {
-		for (const descriptor of descriptorArray) {
-			for (const key of descriptor.keys || [`unspecified.${field}`]) {
-				lr_meta.copyProperty(descriptor.value, meta, field, key);
-			}
-		}
+	for (const entry of array) {
+		const { property, ...descriptor } = entry || {};
+		meta.addDescriptor(property, descriptor);
 	}
 	return meta;
 }
@@ -635,12 +649,15 @@ lr_meta.removeNonCanonicalSlash = function(meta) {
 };
 
 lr_meta.mergeLdJson = function(frameInfo, meta) {
-	const json = frameInfo.meta && frameInfo.meta.result &&
-		frameInfo.meta.result.ld_json && frameInfo.meta.result.ld_json.result;
-	if (json == null) {
+	const variants = meta.get("json_ld");
+	if (!variants) {
 		return;
 	}
-	return lr_json_ld.mergeJsonLd(json, meta);
+	for (const entry of variants) {
+		if (entry.value) {
+			return lr_json_ld.mergeJsonLd(entry.value, meta);
+		}
+	}
 };
 
 lr_meta.html_entity_string = Object.assign(Object.create(null), {

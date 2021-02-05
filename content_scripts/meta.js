@@ -18,41 +18,41 @@
 /**
  * Acquire metadata for the current frame
  *
- * `window.location` and `document.title` are obtained by capture.js
- *
  * Returns
- *
- *     { result: {
- *         head: { result: {
- *              url: [
- *                  { value: "https://some.site/", keys: [ "link.canonical", "og:url" ] },
- *              ],
- *              title: [
- *                  { value: "Special page", keys: [ "og:title", "twitter.title" ] },
- *              ],
- *              description: ...
- *              author: ...
- *              image: ...
- *              published_time: ...
- *              modified_time: ...
- *          }},
- *          ld_json: { result: { ... } }
- *     }}
- *
- * Any result could be replaced by
  *
  *     { error: { message, name, ... } }
  *
- * `ld_json.result` could be null if a script element is absent.
+ * or
  *
- * Text of `html/head/title` element is obtained by the sibling script `capture.js`.
+ *     { result: [ Descriptor... ] }
+ *
+ * where Descriptor could have the following fields
+ *
+ *     { property, value, key, error }
+ *
+ * and some other attributes.
+ *
+ * - Properties: url, title, description, author, image, published_time, modified_time, json_ld.
+ *   Non-critical errors no associated with particular entry are reported
+ *   with "warning" property.
+ * - Examples:
+ *
+ *        { property: "url", value: "https://some.site/", key: "link.canonical" },
+ *        { property: "url", value: "https://some.site/", key: "og:url" },
+ *        { property: "title", value: "Special page", key: "og:title" },
+ *        { property: "title", value: "Special page", key: "twitter.title" },
+ *
+ * `window.location`, and `document.title` (text of `html/head/title` element)
+ * are obtained by `capture.js`.
  */
 
 "use strict";
 
-(function meta() {
-	/** Error instances could not be passed through `sendMessage()` to backend */
+(function lrMeta() {
+
+	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
+		console.error(obj);
 		if (obj instanceof Error) {
 			var error = Object.create(null);
 			if (obj.message != null) {
@@ -65,11 +65,18 @@
 			} else {
 				error.name = Object.prototype.toString.call(obj);
 			}
-			// browser specific
-			for (let prop of ["code", "stack", "fileName", "lineNumber"]) {
-				if (obj[prop] != null) {
-					error[prop] = ("" + obj[prop]).split("\n");
+			for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
+				const value = obj[prop];
+				if (value == null) {
+					continue;
 				}
+				if (typeof value !== "string") {
+					error[prop] = value;
+					continue;
+				}
+				// Make `stack` readable in `JSON.stringify()` dump.
+				const lines = value.split("\n");
+				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
 		} else {
@@ -77,231 +84,284 @@
 		}
 	}
 
-	function lrResultOrError(func) {
+	function LrOverflowError(size) {
+		self = this || {};
+		self.name = "LrOverflowError";
+		if (typeof size === "number") {
+			self.size = size;
+		} else {
+			self.message = size;
+		}
+		return self;
+	}
+
+	const DEFAILT_SIZE_LIMIT = 1000;
+	const TEXT_SIZE_LIMIT = 4000;
+	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
+
+	function lrNormalize(value, sizeLimit) {
+		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		const t = typeof value;
+		if (value == null || t === "boolean" || t === "number") {
+			return { value };
+		}
+		if (t !== "string" && value.toString === Object.prototype.toString) {
+			// [object Object] is obviously useless
+			throw TypeError("Not a string and has no toString");
+		}
+		value = "" + value;
+		if (!(value.length <= sizeLimit)) {
+			const error = new LrOverflowError(value.length);
+			value = value.substring(0, sizeLimit);
+			return { value, error }
+		}
+		return { value };
+	}
+
+	function lrPushProperty(array, getter, props) {
+		props = props || {};
+		const retval = { key: props.key || "unspecified." + (getter && getter.name) };
 		try {
-			return { result: func() };
+			const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
+			if (value != null || props.forceNull) {
+				retval.value = value;
+			}
+			if (error) {
+				retval.error = error;
+			}
+			if (!props.key) {
+				throw new Error("Missed property key");
+			}
 		} catch (ex) {
-			console.error(ex);
-			try {
-				return { error: lrToObject(ex) };
-			} catch (unexpected) {
-				console.error(unexpected);
-			}
-			return { error: ex };
+			retval.error = lrToObject(ex);
+		}
+		if (retval.hasOwnProperty("value") || retval.error != null) {
+			array.push(retval);
 		}
 	}
 
-	function lrCollectDocumentMeta() {
-		function lrCollectHeadMeta() {
-			const head = document.head;
-			if (head == null) {
+	function lrExtractHeadLinks(array) {
+		const head = document.head;
+		if (head == null) {
+			return null;
+		}
+
+		function langCode(locale) {
+			const code = locale && locale.toLowerCase().match(/^[a-z]+/);
+			return code ? code[0] : code;
+		}
+
+		function getHref(link) {
+			const hrefAttr = link.getAttribute('href');
+			if (
+				!hrefAttr || hrefAttr === "#"
+				|| hrefAttr.startsWith("javascript:") || hrefAttr.startsWith("data:")
+			) {
 				return null;
 			}
-			const map = new Map();
+			return link.href;
+		}
 
-			function setProp(name, value, src, attrs) {
-				if (!value) {
-					console.debug('empty value for %s %s', name, src);
-					return;
+		let langs = new Set();
+		try {
+			for (const navigatorLanguage of navigator.languages || []) {
+				const code = langCode(navigatorLanguage);
+				if (code) {
+					langs.add(code);
 				}
-				let submap = map.get(name);
-				if (!submap) {
-					submap = new Map();
-					map.set(name, submap);
-				}
+			}
+		} catch (ex) {
+			array.push({ property: 'warning', key: 'lr.head.languages', error: lrToObject(ex) });
+			langs.add('en');
+		}
 
-				let attrMap = submap.get(value);
-				if (!attrMap) {
-					attrMap = new Map();
-					submap.set(value, attrMap);
-				}
-				for (let [attrName, attrValue] of [["keys", src], ...Object.entries(attrs || {})]) {
-					if (attrValue == null || attrValue === "") {
-						continue;
-					}
-					let valueSet = attrMap.get(attrName);
-					if (!valueSet) {
-						valueSet = new Set();
-						attrMap.set(attrName, valueSet);
-					}
-					valueSet.add(attrValue);
+		function lrExtractLink(array, link) {
+			const href = getHref(link);
+			if (!href) {
+				console.debug('empty href in %s', link.outerHTML);
+				return;
+			}
+			const attrs = {};
+			for (const attribute of ['type', 'rel', 'media', 'hreflang', 'title']) {
+				const attrValue = link.getAttribute(attribute);
+				if (attrValue && attrValue.length < DEFAILT_SIZE_LIMIT) {
+					attrs[attribute] = attrValue;
 				}
 			}
 
-			function langCode(locale) {
-				const code = locale.toLowerCase().match(/^[a-z]+/);
-				return code ? code[0] : code;
-			}
-
-			function getHref(link) {
-				const hrefAttr = link.getAttribute('href');
-				if (
-					!hrefAttr || hrefAttr === "#"
-					|| hrefAttr.startsWith("javascript:") || hrefAttr.startsWith("data:")
-				) {
-					return null;
-				}
-				return link.href;
-			}
-
-			let langs = new Set();
-			try {
-				for (const navigatorLanguage of navigator.languages || []) {
-					const code = langCode(navigatorLanguage);
-					if (code) {
-						langs.add(code);
+			switch(attrs.rel) {
+			case 'canonical':
+			case 'shortlink':
+			case 'shorturl':
+				attrs.key = `link.${attrs.rel}`;
+				attrs.property = 'url';
+				break;
+			case 'alternate':
+				attrs.property = 'url';
+				if (attrs.type) {
+					console.debug('ignore link rel="alternate" type="%s" href="%s"',
+						attrs.type, href);
+				} else if (attrs.hreflang) {
+					if (langs.has(langCode(attrs.hreflang))) {
+						attrs.key = 'link.alternate';
 					}
-				}
-			} catch (ex) {
-				console.error("LR: trying to get languagers: %s %o", ex, ex);
-				langs.add('en');
-			}
-			for (let link of head.querySelectorAll('link[href]')) {
-				const href = getHref(link);
-				if (!href) {
-					console.debug('empty href in %s', link.outerHTML);
-					continue;
-				}
-				const attrs = {};
-				for (const attribute of ['type', 'rel', 'media', 'hreflang', 'title']) {
-					attrs[attribute] = link.getAttribute(attribute);
-				}
-				let source = null;
-
-				switch(attrs.rel) {
-				case 'canonical':
-				case 'shortlink':
-				case 'shorturl':
-					source = `link.${attrs.rel}`;
-					break;
-				case 'alternate':
-					if (attrs.type) {
-						console.debug('ignore link rel="alternate" type="%s" href="%s"',
-							attrs.type, href);
-					} else if (attrs.hreflang) {
-						if (langs.has(langCode(attrs.hreflang))) {
-							source = 'link.alternate';
-						}
-					} else {
-						source = 'link.alternate';
-					}
-					break;
-				case 'image_src':
-					setProp('image', href, 'link.image_src');
-					break;
-				default:
-					break;
-				}
-				delete attrs.rel;
-				if (source) {
-					setProp('url', href, source, attrs);
-				}
-			}
-
-			const nameMap = new Map([
-				['description', 'description'],
-				['author', 'author'],
-				['mediator_author', 'author'],
-				['datePublished', 'published_time'],
-				['dateModified', 'modified_time'],
-				['blog-name', 'site_name'],
-				['twitter:site', 'site_name'],
-			]);
-			const propertyMap = new Map([
-				['og:url', 'url'],
-				['og:title', 'title'],
-				['twitter:title', 'title'],
-				['og:description', 'description'],
-				['twitter:description', 'description'],
-				['article:published_time', 'published_time'],
-				['article:modified_time', 'modified_time'],
-				['og:updated_time', 'modified_time'],
-				['article:publisher', 'publisher'],
-				['og:image:secure_url', 'image'],
-				['og:image', 'image'],
-				['vk:image', 'image'],
-				['twitter:image', 'image'],
-				['og:site_name', 'site_name'],
-				/* TODO og:type article, website */
-			]);
-			const itempropMap = new Map([
-				['datePublished', 'published_time'],
-			]);
-			/* TODO author
-			 * wordpress: body span.author
-			 */
-
-			for (let meta of head.querySelectorAll('meta')) {
-				let content = meta.getAttribute('content');
-				if (!content) {
-					if (!meta.hasAttribute('charset')) {
-						console.debug('LR.meta: Empty content for %s', meta.outerHTML);
-					}
-					continue;
 				} else {
-					content = content.trim();
+					attrs.key = 'link.alternate';
 				}
-				const name = meta.getAttribute('name');
-				const property = meta.getAttribute('property');
-				const itemprop = meta.getAttribute('itemprop');
-				if (name) {
-					const target = nameMap.get(name) || propertyMap.get(name);
-					if (target) {
-						setProp(target, content, 'meta.name.' + name);
-					}
-				} else if (property) {
-					const target = propertyMap.get(property);
-					if (target) {
-						setProp(target, content, 'meta.property.' + property);
-					}
-				} else if (itemprop) {
-					const target = itempropMap.get(itemprop);
-					if (target) {
-						setProp(target, content, 'itemprop.' + itemprop);
-					}
-				}
+				break;
+			case 'image_src':
+				attrs.property = 'image';
+				attrs.key = 'link.image_src';
+				break;
+			default:
+				break;
 			}
-			return map;
+			if (attrs.key) {
+				Object.assign(attrs, lrNormalize(href));
+				array.push(attrs);
+			}
 		}
 
-		function lrSerializeMeta(resultMap) {
-			if (!resultMap instanceof Map) {
-				return resultMap;
+		for (let link of head.querySelectorAll('link[href]')) {
+			try {
+				lrExtractLink(array, link);
+			} catch (ex) {
+				array.push({ 'property': 'warning', key: 'lr.head.link', error: lrToObject(ex) });
 			}
-			const result = Object.create(null);
-			for (let [key, valueMap] of resultMap.entries()) {
-				const variants = [];
-				for (let [value, attrMap] of valueMap.entries()) {
-					const valueObj = { value };
-					for (const [attrName, attrValues] of attrMap.entries()) {
-						valueObj[attrName] = Array.from(attrValues);
-					}
-					variants.push(valueObj);
-				}
-				result[key] = variants;
-			}
-			return result;
 		}
 
-		function lrGetLD_JSON() {
-			const scriptList = document.querySelectorAll('script[type="application/ld+json"]');
-			const warnings = [];
-			if (scriptList == null || !(scriptList.length > 0)) {
-				return null;
-			}
-			if (scriptList.length != 1) {
-				const msg = `non-unique script ld+json object, count=${scriptList.length}`;
-				console.warn("lr_ld_json: " + msg);
-				// warnings.push(msg); // FIXME
-			}
-			return JSON.parse(scriptList[0].innerText);
-		}
-
-		return {
-			head: lrResultOrError(() => lrSerializeMeta(lrCollectHeadMeta())),
-			ld_json: lrResultOrError(lrGetLD_JSON),
-		};
 	}
 
-	return lrResultOrError(lrCollectDocumentMeta);
+	function lrExtractLD_JSON(item) {
+		const scriptList = document.querySelectorAll('script[type="application/ld+json"]');
+		if (scriptList == null || !(scriptList.length > 0)) {
+			return null;
+		}
+		if (scriptList.length != 1) {
+			item.error = {
+				name: 'LrValueError',
+				message: 'Non-unique script ld+json object',
+				count: scriptList.length,
+			}
+		}
+		const strValue = scriptList[0].innerText;
+		if (!(strValue.length < 8*TEXT_SIZE_LIMIT)) {
+			item.error = new LrOverflowError(strValue.length);
+			return;
+		}
+		const value = JSON.parse(strValue);
+		const length = JSON.stringify(value).length;
+		if (length <= 2*TEXT_SIZE_LIMIT) {
+			item.value = value;
+		} else {
+			item.error = new LrOverflowError(length);
+		}
+	}
+
+	function lrExtractHeadMeta(array) {
+		const nameMap = new Map([
+			['description', 'description'],
+			['author', 'author'],
+			['mediator_author', 'author'],
+			['datePublished', 'published_time'],
+			['dateModified', 'modified_time'],
+			['blog-name', 'site_name'],
+			['twitter:site', 'site_name'],
+		]);
+		const propertyMap = new Map([
+			['og:url', 'url'],
+			['og:title', 'title'],
+			['twitter:title', 'title'],
+			['og:description', 'description'],
+			['twitter:description', 'description'],
+			['article:published_time', 'published_time'],
+			['article:modified_time', 'modified_time'],
+			['og:updated_time', 'modified_time'],
+			['article:publisher', 'publisher'],
+			['og:image:secure_url', 'image'],
+			['og:image', 'image'],
+			['vk:image', 'image'],
+			['twitter:image', 'image'],
+			['og:site_name', 'site_name'],
+			/* TODO og:type article, website */
+		]);
+		const itempropMap = new Map([
+			['datePublished', 'published_time'],
+		]);
+		const sizeLimitMap = new Map([
+			['description', TEXT_SIZE_LIMIT],
+		]);
+		/* TODO author
+		 * wordpress: body span.author
+		 */
+
+		function setProp(property, value, key) {
+			if (value == null || value === "") {
+				return;
+			}
+			array.push({ ...lrNormalize(value, sizeLimitMap.get(property)), key, property });
+		}
+
+		const head = document.head;
+		for (let meta of head.querySelectorAll('meta')) {
+			let content = meta.getAttribute('content');
+			if (!content) {
+				if (!meta.hasAttribute('charset')) {
+					console.debug('LR.meta: Empty content for %s', meta.outerHTML);
+				}
+				continue;
+			} else {
+				content = content.trim();
+			}
+			const name = meta.getAttribute('name');
+			const property = meta.getAttribute('property');
+			const itemprop = meta.getAttribute('itemprop');
+			if (name) {
+				const target = nameMap.get(name) || propertyMap.get(name);
+				if (target) {
+					setProp(target, content, 'meta.name.' + name);
+				}
+			} else if (property) {
+				const target = propertyMap.get(property);
+				if (target) {
+					setProp(target, content, 'meta.property.' + property);
+				}
+			} else if (itemprop) {
+				const target = itempropMap.get(itemprop);
+				if (target) {
+					setProp(target, content, 'itemprop.' + itemprop);
+				}
+			}
+		}
+	}
+
+	try {
+		const result = [];
+		try {
+			lrExtractHeadMeta(result);
+		} catch (ex) {
+			result.push({ property: "error", key: "lr.meta.head_meta", error: lrToObject(ex) });
+		}
+		try {
+			lrExtractHeadLinks(result);
+		} catch (ex) {
+			result.push({ property: "error", key: "lr.meta.head_links", error: lrToObject(ex) });
+		}
+		let item = {
+			property: "json_ld",
+			key: "document.script",
+		};
+		try {
+			lrExtractLD_JSON(item);
+		} catch (ex) {
+			item.error = lrToObject(ex);
+		}
+		if (item.value || item.error) {
+			result.push(item);
+		}
+		return { result };
+	} catch (ex) {
+		return { error: lrToObject(ex) };
+	}
+	return { error: "LR internal error: meta.js: should not reach end of the function" };
 })();
