@@ -295,9 +295,23 @@
 		 * wordpress: body span.author
 		 */
 
-		function setProp(property, value, key) {
+		function setProp(node, property, value, key) {
 			if (value == null || value === "") {
 				return;
+			}
+			if (property === 'url' || property === 'image') {
+				if (value === '#' || value.startsWith('data:') || value.startsWith('javascript:')) {
+					console.debug('Ignoring %s %s "%s"', property, key, value);
+					return;
+				}
+				try {
+					value = new URL(value, node.baseURI).href;
+				} catch (ex) {
+					console.debug(
+						'Ignoring invalid URL %s %s "%s": %o',
+						property, key, value, ex);
+					return;
+				}
 			}
 			array.push({ ...lrNormalize(value, sizeLimitMap.get(property)), key, property });
 		}
@@ -319,17 +333,17 @@
 			if (name) {
 				const target = nameMap.get(name) || propertyMap.get(name);
 				if (target) {
-					setProp(target, content, 'meta.name.' + name);
+					setProp(meta, target, content, 'meta.name.' + name);
 				}
 			} else if (property) {
 				const target = propertyMap.get(property);
 				if (target) {
-					setProp(target, content, 'meta.property.' + property);
+					setProp(meta, target, content, 'meta.property.' + property);
 				}
 			} else if (itemprop) {
 				const target = itempropMap.get(itemprop);
 				if (target) {
-					setProp(target, content, 'itemprop.' + itemprop);
+					setProp(meta, target, content, 'itemprop.' + itemprop);
 				}
 			}
 		}
