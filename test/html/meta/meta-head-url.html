@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Metadata in head — URL special cases</title>
+    <meta name="author" content="Rel Urel">
+    <meta name="og:url" content="#">
+    <meta name="og:url" content="javascript:alert('JavaScript')">
+    <meta name="og:url" content="data:text/plain,data-URI">
+    <meta name="og:url" content="&lt;a href=&quot;something-broken.html&quot;&gt;it's broken&lt;a&gt;">
+    <meta name="og:url" content="//localhost/meta/meta-head-url.html#missed-schema">
+    <meta name="og:url" content="/meta/meta-head-url.html#absolute-path">
+    <meta name="og:url" content="meta-head-url.html#relative-path">
+    <meta name="og:url" content="#just-anchor">
+    <meta name="og:url" content="?query=only">
+    <meta name="og:url" content="https:/c.dn/to-be-discarded.html">
+    <meta name="og:image" content="#">
+    <meta name="og:image" content="javascript:alert('JavaScript')">
+    <meta name="og:image" content="data:text/plain,data-URI">
+    <meta name="og:image" content="//localhost/meta/missed-schema.png">
+    <meta name="twitter:image" content="/meta/absolute-path.png">
+    <meta name="og:image" content="relative-path.png">
+    <meta name="og:image" content="#just-anchor">
+    <meta name="og:image" content="?query=only">
+    <meta name="og:image" content="https:/c.dn/to-be-discarded.png">
+    <meta name="description" content="Description 1">
+    <meta name="description" content="Description 2">
+    <meta name="description" content="Description 3">
+    <meta name="description" content="Description 4">
+    <meta name="description" content="Description 5">
+    <meta name="description" content="Description 6">
+    <meta name="description" content="Description 7">
+    <meta name="datePublished" content="2020-03-05T18:02:12+01:00">
+    <meta name="datePublished" content="2020-03-05T18:03:13+01:00">
+    <meta name="datePublished" content="2020-03-05T18:04:14+01:00">
+    <meta name="datePublished" content="2020-03-05T18:05:15+01:00">
+    <meta name="datePublished" content="2020-03-05T18:06:16+01:00">
+    <meta name="datePublished" content="2020-03-05T18:07:17+01:00">
+    <meta name="datePublished" content="2020-03-05T18:08:18+01:00">
+    <link rel="image_src" href="link_image1.png">
+    <link rel="image_src" href="link_image2.png">
+    <link rel="image_src" href="link_image3.png">
+    <link rel="image_src" href="link_image4.png">
+    <link rel="image_src" href="link_image5.png">
+    <link rel="image_src" href="link_image6.png">
+    <link rel="canonical" href="canonical1.html">
+    <link rel="shortlink" href="shortlink1.html">
+    <link rel="alternate" href="alternative1.html">
+    <link rel="canonical" href="canonical2.html">
+    <link rel="shortlink" href="shortlink2.html">
+    <link rel="alternate" href="alternative2.html">
+    <link rel="canonical" href="canonical3.html">
+    <link rel="shortlink" href="shortlink3.html">
+    <link rel="alternate" href="alternative3.html">
+    <link rel="canonical" href="canonical4.html">
+    <link rel="shortlink" href="shortlink4.html">
+    <link rel="alternate" href="alternative4.html">
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Metadata</a>
+      <a href="meta-head.html">&lt;head&gt; meta</a>
+    </nav>
+    <h1>LinkRemark Test: Metadata in head — URL special cases</h1>
+    <p>Test relative, invalid URLs, and excessive number of meta elements in HTML head.</p>
+  </body>
+</html>
