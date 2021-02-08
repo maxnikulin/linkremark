@@ -175,6 +175,12 @@
 			langs.add('en');
 		}
 
+		const countLimitMap = new Map(Object.entries({
+			url: 10,
+			image: 5,
+			other: 10,
+		}));
+
 		function lrExtractLink(array, link) {
 			const href = getHref(link);
 			if (!href) {
@@ -216,9 +222,29 @@
 			default:
 				break;
 			}
-			if (attrs.key) {
-				Object.assign(attrs, lrNormalize(href));
-				array.push(attrs);
+
+			let limit = countLimitMap.get(attrs.property);
+			if (limit != null) {
+				countLimitMap.set(attrs.property, --limit);
+			} else {
+				limit = countLimitMap.get('other');
+				countLimitMap.set('other', --limit);
+			}
+			if (limit >= 0) {
+				if (attrs.key) {
+					Object.assign(attrs, lrNormalize(href));
+					array.push(attrs);
+				}
+			} else if (limit === -1) {
+				array.push({
+					property: 'warning',
+					key: 'lr.head.link',
+					error: {
+						name: 'LrPropertyCountOverflow',
+						property: attrs.property,
+						key: attrs.key,
+					},
+				});
 			}
 		}
 
@@ -291,6 +317,15 @@
 		const sizeLimitMap = new Map([
 			['description', TEXT_SIZE_LIMIT],
 		]);
+		const countLimitMap = new Map(Object.entries({
+			url: 5,
+			title: 5,
+			description: 5,
+			image: 5,
+			published_time: 5,
+			modified_time: 5,
+			other: 10,
+		}));
 		/* TODO author
 		 * wordpress: body span.author
 		 */
@@ -299,6 +334,28 @@
 			if (value == null || value === "") {
 				return;
 			}
+			let limit = countLimitMap.get(property);
+			if (limit != null) {
+				countLimitMap.set(property, --limit);
+			} else {
+				limit = countLimitMap.get('other');
+				countLimitMap.set('other', --limit);
+			}
+			if (limit < 0) {
+				if (limit === -1) {
+					array.push({
+						property: 'warning',
+						key: 'lr.head.meta',
+						error: {
+							name: 'LrPropertyCountOverflow',
+							property: property,
+							key: key,
+						},
+					});
+				}
+				return;
+			}
+
 			if (property === 'url' || property === 'image') {
 				if (value === '#' || value.startsWith('data:') || value.startsWith('javascript:')) {
 					console.debug('Ignoring %s %s "%s"', property, key, value);
