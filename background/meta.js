@@ -512,16 +512,15 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 };
 
 lr_meta.mergeLink = function(frameInfo, meta) {
-	const link = frameInfo.link && frameInfo.link.result;
-	if (link == null) {
+	const array = frameInfo.link && frameInfo.link.result;
+	if (!array) {
 		return;
 	}
-	lr_meta.copyProperty(lr_meta.normalizeUrl(link.href), meta, "linkUrl", "link.href");
-	lr_meta.copyProperty(link.text, meta, "linkText", "link.text");
-	lr_meta.copyProperty(link.title, meta, "linkTitle", "link.title");
-	lr_meta.copyProperty(link.type, meta, "linkType", "link.type");
-	lr_meta.copyProperty(link.download, meta, "linkDownload", "link.download");
-	lr_meta.copyProperty(link.hreflang, meta, "linkHreflang", "link.hreflang");
+	for (const entry of array) {
+		const { property, ...descriptor } = entry || {};
+		meta.addDescriptor(property, descriptor);
+	}
+	return meta;
 };
 
 lr_meta.mergeImage = function(frameInfo, meta) {

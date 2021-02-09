@@ -45,8 +45,29 @@
 		}
 	}
 
-	let warnings = [];
-	const result = { warnings };
+	const DEFAILT_SIZE_LIMIT = 1000;
+	const TEXT_SIZE_LIMIT = 4000;
+	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
+
+	function lrNormalize(value, sizeLimit) {
+		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		const t = typeof value;
+		if (value == null || t === "boolean" || t === "number") {
+			return { value };
+		}
+		if (t !== "string" && value.toString === Object.prototype.toString) {
+			// [object Object] is obviously useless
+			throw TypeError("Not a string and has no toString");
+		}
+		value = "" + value;
+		if (!(value.length <= sizeLimit)) {
+			const error = new LrOverflowError(value.length);
+			value = value.substring(0, sizeLimit);
+			return { value, error }
+		}
+		return { value };
+	}
+
 	try {
 		function lrRandomId() {
 			return Math.floor(Math.random()*Math.pow(2, 53));
@@ -95,13 +116,13 @@
 				// since there is no point to report its failure to the background page
 				// using the same (already failed) method.
 			} catch (ex) {
-				lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex), warnings ]);
+				lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex) ]);
 				throw ex;
 			}
-			lrSendMessage("asyncScript.resolve", [ promiseId, result, warnings ]);
+			lrSendMessage("asyncScript.resolve", [ promiseId, result ]);
 		}
 
-		async function getTargetElement() {
+		async function getTargetElement(errorCb) {
 			try {
 				const targetElementId = await lrSendMessage("cache.getTargetElement", []);
 				const menus = typeof browser !== "undefined" ? browser.menus : chrome.menus;
@@ -109,40 +130,39 @@
 					return menus.getTargetElement(targetElementId);
 				}
 			} catch (ex) {
-				warnings.push(lrToObject(ex));
+				if (errorCb) {
+					errorCb(ex);
+				} else {
+					console.error("LR: getTargetElement: %o", ex);
+				}
 			}
-			// Likely useless, return BODY. document.querySelectorAll(":focus")
-			// returns empty node list.
 			return document.activeElement;
 		}
 		
 		function getUrl(node, attr) {
 			const hrefAttr = node.getAttribute(attr);
 			if (!hrefAttr || hrefAttr === "#") {
-				return node.baseURI;
+				return { error: "LrNoURL" };
 			} else if (hrefAttr.startsWith("javascript:")) {
-				return "javascript:";
+				return { value: "javascript:", error: "LrPlaceHolder" };
 			} else if (hrefAttr.startsWith("data:")) {
-				return "data:";
+				return { value: "data:", error: "LrPlaceHolder" };
 			}
-			return node[attr];
+			return lrNormalize(node[attr]);
 		}
 
-		function setProperty(src, attrName, object, name) {
-			const value = src.getAttribute(attrName);
+		function addDescriptor(node, array, { attribute, property, key }) {
+			const value = node.getAttribute(attribute);
 			if (value != null) {
-				object[name] = value;
+				array.push({...lrNormalize(value), property, key});
 			}
 		}
 
 		function getText(node) {
 			let result = null;
 			try {
+				// TODO more smart cut, avoid other links in siblings
 				result = node.innerText;
-				if (result.length > 120) {
-					// TODO more smart cut in background script
-					result = result.substring(0, 120);
-				}
 				// TODO try to get text from title and alt elements inside (e.g. images)
 				for (
 					let parentNode = result.parent;
@@ -156,52 +176,57 @@
 					result = parentNode.innerText;
 				}
 			} catch (ex) {
-				warnings.push(lrToObject(ex));
+				return { error: lrToObject(ex) };
 			}
-			return result;
+			// Allow long enough text if it is link innerText,
+			// otherwise only short context from text around is allowed.
+			return result && lrNormalize(result, TEXT_SIZE_LIMIT);
 		}
 
 		async function lrLinkProperties() {
-			let link = await getTargetElement();
+			const result = [];
+			function pushWarning(error, key) {
+				result.push({
+					property: 'warning',
+					value: lrToObject(error),
+					key: key || 'lr.link',
+				});
+			}
+
+			let link = await getTargetElement(error => pushWarning(error, 'lr.link.getTargetElement'));
 			// Original click target could be suitable if link text is too long
 			for (; link != null && link.nodeName != 'A' && link != document.body; link = link.parentNode)
 				;
 			if (link == null || link.nodeName != 'A') {
 				throw new Error(`target element is not a link: ${link && link.nodeName}`);
 			}
-			const obj = {};
-			const href = getUrl(link, "href");
-			if (href) {
-				obj.href = href;
-			} else {
-				warnings.push(lrToObject(new Error("Element <a> has no suitable href")));
+			result.push({ ...getUrl(link, "href"), property: 'linkUrl', key: 'link.href' });
+			const attrArray = [
+				{ attribute: 'title', property: 'linkTitle', key: 'link.title' },
+				{ attribute: 'download', property: 'linkDownload', key: 'link.download' },
+				{ attribute: 'hreflang', property: 'linkHreflang', key: 'link.hreflang' },
+				{ attribute: 'type', property: 'linkType', key: 'link.type' },
+			];
+			for (const attr of attrArray) {
+				try {
+					addDescriptor(link, result, attr);
+				} catch (ex) {
+					result.push({...attr, error: lrToObject(ex)});
+				}
 			}
-			setProperty(link, 'title', obj, 'linkTitle');
-			setProperty(link, 'download', obj, 'linkDownload');
-			setProperty(link, 'hreflang', obj, 'linkHreflang');
-			setProperty(link, 'type', obj, 'linkType');
-			const text = getText(link);
-			if (text) {
-				obj.text = text;
+			const textDescriptor = getText(link);
+			if (textDescriptor) {
+				result.push({ ...textDescriptor, property: 'linkText', key: 'link.text' });
 			}
-			return obj;
+			return result;
 		}
 
 		const promiseId = lrRandomId();
 		// async function does not block execution
 		lrSettleAsyncScriptPromise(promiseId, lrLinkProperties);
-		result.promise = promiseId;
-
-		return result;
+		return { promise: promiseId };
 	} catch (ex) {
-		result.error = lrToObject(ex);
-		return result;
-	} finally {
-		if (warnings.length === 0) {
-			delete result.warnings;
-		}
-		// clear warnings before async actions
-		warnings = [];
+		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: link.js: should not reach end of the function" };
 })();
