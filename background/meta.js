@@ -524,13 +524,15 @@ lr_meta.mergeLink = function(frameInfo, meta) {
 };
 
 lr_meta.mergeImage = function(frameInfo, meta) {
-	const image = frameInfo.image && frameInfo.image.result;
-	if (image == null) {
+	const array = frameInfo.image && frameInfo.image.result;
+	if (array == null) {
 		return;
 	}
-	lr_meta.copyProperty(lr_meta.normalizeUrl(image.src), meta, "srcUrl", "image.src");
-	lr_meta.copyProperty(image.alt, meta, "imageAlt", "image.alt");
-	lr_meta.copyProperty(image.title, meta, "imageTitle", "image.title");
+	for (const entry of array) {
+		const { property, ...descriptor } = entry || {};
+		meta.addDescriptor(property, descriptor);
+	}
+	return meta;
 };
 
 lr_meta.mergeHead = function(frameInfo, meta) {

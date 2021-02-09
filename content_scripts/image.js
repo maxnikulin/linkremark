@@ -18,6 +18,29 @@
 "use strict";
 
 (function imageRemark() {
+	const DEFAILT_SIZE_LIMIT = 1000;
+	const TEXT_SIZE_LIMIT = 4000;
+	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
+
+	function lrNormalize(value, sizeLimit) {
+		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		const t = typeof value;
+		if (value == null || t === "boolean" || t === "number") {
+			return { value };
+		}
+		if (t !== "string" && value.toString === Object.prototype.toString) {
+			// [object Object] is obviously useless
+			throw TypeError("Not a string and has no toString");
+		}
+		value = "" + value;
+		if (!(value.length <= sizeLimit)) {
+			const error = new LrOverflowError(value.length);
+			value = value.substring(0, sizeLimit);
+			return { value, error }
+		}
+		return { value };
+	}
+
 	/** Error instances could not be passed through `sendMessage()` to backend */
 	function lrToObject(obj) {
 		if (obj instanceof Error) {
@@ -45,8 +68,6 @@
 		}
 	}
 
-	let warnings = [];
-	const result = { warnings };
 	try {
 		function lrRandomId() {
 			return Math.floor(Math.random()*Math.pow(2, 53));
@@ -95,13 +116,13 @@
 				// since there is no point to report its failure to the background page
 				// using the same (already failed) method.
 			} catch (ex) {
-				lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex), warnings ]);
+				lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex) ]);
 				throw ex;
 			}
-			lrSendMessage("asyncScript.resolve", [ promiseId, result, warnings ]);
+			lrSendMessage("asyncScript.resolve", [ promiseId, result ]);
 		}
 
-		async function getTargetElement() {
+		async function getTargetElement(errorCb) {
 			try {
 				const targetElementId = await lrSendMessage("cache.getTargetElement", []);
 				const menus = typeof browser !== "undefined" ? browser.menus : chrome.menus;
@@ -109,10 +130,15 @@
 					return menus.getTargetElement(targetElementId);
 				}
 			} catch (ex) {
-				warnings.push(lrToObject(ex));
+				if (errorCb) {
+					errorCb(ex);
+				} else {
+					console.error("LR: getTargetElement: %o", ex);
+				}
 			}
-			// Likely useless, return BODY. document.querySelectorAll(":focus")
-			// returns empty node list.
+			// Likely useless, returns `BODY`.
+			// `document.querySelectorAll(":focus")` returns empty node list.
+			// Such fallback works for focusable elements as links however.
 			// console.debug(document.activeElement, document.querySelectorAll(":focus"));
 			return document.activeElement;
 		}
@@ -120,42 +146,57 @@
 		function getUrl(node, attr) {
 			const hrefAttr = node.getAttribute(attr);
 			if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:")) {
-				return null;
+				return { error: "LrNoURL" };
 			} else if (hrefAttr.startsWith("data:")) {
-				return "data:"
+				return { value: "data:", error: "LrPlaceHolder" };
 			}
-			return node[attr];
+			return lrNormalize(node[attr]);
+		}
+
+		function addDescriptor(node, array, { attribute, property, key }) {
+			const value = node.getAttribute(attribute);
+			if (value != null) {
+				array.push({...lrNormalize(value), property, key});
+			}
 		}
 
 		async function lrImageProperties() {
-			const img = await getTargetElement();
+			const result = [];
+			function pushWarning(error, key) {
+				result.push({
+					property: 'warning',
+					value: lrToObject(error),
+					key: key || 'lr.image',
+				});
+			}
+
+			const img = await getTargetElement(error => pushWarning(error, 'lr.image.getTargetElement'));
 			if (img == null || img.nodeName != 'IMG') {
 				// Maybe it is worth checking CSS background-url property
 				throw new Error(`target element is not an image: ${img && img.nodeName}`);
 			}
-			const obj = {};
-			obj.src = getUrl(img, 'src');
-			obj.alt = img.getAttribute('alt');
-			obj.title = img.getAttribute('title');
 
-			return obj;
+			result.push({ ...getUrl(img, 'src'), property: 'srcUrl', key: 'image.src' });
+			const attrArray = [
+				{ attribute: 'alt', property: 'imageAlt', key: 'image.alt' },
+				{ attribute: 'title', property: 'imageTitle', key: 'image.title' },
+			];
+			for (const attr of attrArray) {
+				try {
+					addDescriptor(img, result, attr);
+				} catch (ex) {
+					result.push({...attr, error: lrToObject(ex)});
+				}
+			}
+			return result;
 		}
 
 		const promiseId = lrRandomId();
 		// async function does not block execution
 		lrSettleAsyncScriptPromise(promiseId, lrImageProperties);
-		result.promise = promiseId;
-
-		return result;
+		return { promise: promiseId };
 	} catch (ex) {
-		result.error = lrToObject(ex);
-		return result;
-	} finally {
-		if (warnings.length === 0) {
-			delete result.warnings;
-		}
-		// clear warnings before async actions
-		warnings = [];
+		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: image.js: should not reach end of the function" };
 })();
