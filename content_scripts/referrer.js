@@ -23,13 +23,13 @@
  *
  * or
  *
- *     { result: [ ... ], warnings: [ ... ] }
+ *     { result: [ ... ] }
  *
- * where result elements are objects { value, key, error }
+ * where result elements are objects { value, property, key, error }
  * when the value is available.
  * error is optional error associated with particular key-value.
  * keys:
- * - "document.referrer" (location),
+ * - "document.referrer",
  * - "window.opener" (location),
  * - "document.activeElement.nodeName",
  * - "document.activeElement.href",
@@ -40,9 +40,6 @@
  * - "document.hasFocus",
  * - "document.focusedElements" (`document.querySelectorAll(":focus")`),
  * - "document.lastModified"
- *
- * Warnings field is added when some exception could not be associated with
- * particular values but they are not a reason to abandon execution.
  *
  * `SecurityError` exceptions while trying to get top or parent location
  * are silently ignored or added as a string without stack or other fields.
@@ -86,171 +83,161 @@
 		}
 	}
 
-	const warnings = [];
-	const response = { warnings };
-	try {
-		const DEFAILT_SIZE_LIMIT = 1000;
+	const DEFAILT_SIZE_LIMIT = 1000;
 
-		function lrNormalize(value, sizeLimit) {
-			sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
-			const t = typeof value;
-			let error;
-			if (value == null || t === "boolean" || t === "number") {
-				return [ value, error ];
-			}
-			if (t !== "string" && value.toString === Object.prototype.toString) {
-				// [object Object] is obviously useless
-				throw TypeError("Not a string and has no toString");
-			}
-			value = "" + value;
-			if (!(value.length <= sizeLimit)) {
-				error = { name: "LrOverflowError", size: value.length };
-				value = value.substring(0, sizeLimit);
-			}
+	function lrNormalize(value, sizeLimit) {
+		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		const t = typeof value;
+		let error;
+		if (value == null || t === "boolean" || t === "number") {
 			return [ value, error ];
 		}
+		if (t !== "string" && value.toString === Object.prototype.toString) {
+			// [object Object] is obviously useless
+			throw TypeError("Not a string and has no toString");
+		}
+		value = "" + value;
+		if (!(value.length <= sizeLimit)) {
+			error = { name: "LrOverflowError", size: value.length };
+			value = value.substring(0, sizeLimit);
+		}
+		return [ value, error ];
+	}
 
-		function lrPushProperty(array, getter, props) {
-			props = props || {};
-			const retval = { key: props.key || "unspecified." + (getter && getter.name) };
-			try {
-				const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
-				if (value != null || props.forceNull) {
-					retval.value = value;
-				}
-				if (error) {
-					retval.error = error;
-				}
-				if (!props.key) {
-					throw new Error("Missed property key");
-				}
-			} catch (ex) {
-				if (ex && ex.name === "SecurityError") {
-					retval.error = ex.name;
-				} else {
-					retval.error = lrToObject(ex);
-				}
+	function lrPushProperty(array, getter, props) {
+		props = props || {};
+		const retval = { key: props.key || "unspecified." + (getter && getter.name) };
+		try {
+			const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
+			if (value != null || props.forceNull) {
+				retval.value = value;
 			}
-			if (retval.hasOwnProperty("value") || retval.error != null) {
-				array.push(retval);
+			if (error) {
+				retval.error = error;
+			}
+			if (!props.key) {
+				throw new Error("Missed property key");
+			}
+		} catch (ex) {
+			if (ex && ex.name === "SecurityError") {
+				retval.error = ex.name;
+			} else {
+				retval.error = lrToObject(ex);
 			}
 		}
+		if (retval.hasOwnProperty("value") || retval.error != null) {
+			if (props.property) {
+				retval.property = props.property;
+			}
+			array.push(retval);
+		}
+	}
 
-		function lrDocumentReferrer() {
-			if (window.document.referrer) {
-				return "" + window.document.referrer;
-			}
+	function lrDocumentReferrer() {
+		if (window.document.referrer) {
+			return "" + window.document.referrer;
 		}
-		function lrWindowOpener() {
-			if (window.opener) {
-				return "" + window.opener.location;
-			}
+	}
+	function lrWindowOpener() {
+		if (window.opener) {
+			return "" + window.opener.location;
 		}
-		function lrTopWindowLocation() {
-			const top = window.top;
-			if (top && top !== window) {
-				return "" + top.location;
-			}
+	}
+	function lrTopWindowLocation() {
+		const top = window.top;
+		if (top && top !== window) {
+			return "" + top.location;
 		}
-		function lrIsTopWindow() {
-			try {
-				return window.top === window;
-			} catch (ex) {
-				if (ex && ex.name === "SecurityError") {
-					return false;
-				}
-				throw ex;
+	}
+	function lrIsTopWindow() {
+		try {
+			return window.top === window;
+		} catch (ex) {
+			if (ex && ex.name === "SecurityError") {
+				return false;
 			}
+			throw ex;
 		}
+	}
 
-		function lrActiveElementNodeName() {
-			// Chrome-87: PDF file is represented as <embed> element,
-			// that is actually some nested tab.
-			// clickData.frameId == 0, tab.id == -1 in context menu handler,
-			// so actual tab is unknown.
-			// All frames in active tab reports no focus,
-			// try to restore frame chain using activeElement.
-			const activeElement = window.document.activeElement;
-			if (activeElement) {
-				return "" + activeElement.nodeName;
-			}
+	function lrActiveElementNodeName() {
+		// Chrome-87: PDF file is represented as <embed> element,
+		// that is actually some nested tab.
+		// clickData.frameId == 0, tab.id == -1 in context menu handler,
+		// so actual tab is unknown.
+		// All frames in active tab reports no focus,
+		// try to restore frame chain using activeElement.
+		const activeElement = window.document.activeElement;
+		if (activeElement) {
+			return "" + activeElement.nodeName;
 		}
+	}
 
-		function lrActiveElementHref() {
-			const activeElement = window.document.activeElement;
-			if (activeElement && activeElement.href) {
-				return "" + activeElement.href;
-			}
+	function lrActiveElementHref() {
+		const activeElement = window.document.activeElement;
+		if (activeElement && activeElement.href) {
+			return "" + activeElement.href;
 		}
+	}
 
-		function lrActiveElementSrc() {
-			const activeElement = window.document.activeElement;
-			if (activeElement && activeElement.src) {
-				return "" + activeElement.src;
-			}
-		};
-
-		function lrWindowParent() {
-			var parent = window.parent;
-			if (parent && parent !== window) {
-				return "" + parent.location;
-			}
+	function lrActiveElementSrc() {
+		const activeElement = window.document.activeElement;
+		if (activeElement && activeElement.src) {
+			return "" + activeElement.src;
 		}
+	};
 
-		function lrHasFocus() {
-			// Allow to pick proper <iframe> where text is selected
-			return window.document.hasFocus();
+	function lrWindowParent() {
+		var parent = window.parent;
+		if (parent && parent !== window) {
+			return "" + parent.location;
 		}
+	}
 
-		function lrFocusedTags() {
-			const focus = document.querySelectorAll(":focus");
-			if (focus && focus.length > 0) {
-				return Array.from(focus, x => x.nodeName);
-			}
+	function lrHasFocus() {
+		// Allow to pick proper <iframe> where text is selected
+		return window.document.hasFocus();
+	}
+
+	function lrFocusedTags() {
+		const focus = document.querySelectorAll(":focus");
+		if (focus && focus.length > 0) {
+			return Array.from(focus, x => x.nodeName);
 		}
+	}
 
-		function lrLastModified() {
-			return document.lastModified;
-		}
+	function lrLastModified() {
+		return document.lastModified;
+	}
 
+	try {
 		const properties = [
-			[ lrDocumentReferrer, "document.referrer" ],
-			[ lrWindowOpener, "window.opener" ],
-			[ lrTopWindowLocation, "window.top" ],
-			[ lrIsTopWindow, "window.isTop" ],
-			[ lrActiveElementNodeName, "document.activeElement.nodeName" ],
-			[ lrActiveElementHref, "document.activeElement.href" ],
-			[ lrActiveElementSrc, "document.activeElement.src" ],
-			[ lrWindowParent, "window.parent" ],
-			[ lrHasFocus, "document.hasFocus" ],
-			[ lrFocusedTags, "document.focusedTags" ],
-			[ lrLastModified, "document.lastModified" ],
+			{ getter: lrDocumentReferrer, property: "referrer", key: "document.referrer" },
+			{ getter: lrWindowOpener, property: "referrer", key: "window.opener" },
+			{ getter: lrTopWindowLocation, property: "referrer", key: "window.top" },
+			{ getter: lrIsTopWindow, key: "window.isTop" },
+			{ getter: lrActiveElementNodeName, key: "document.activeElement.nodeName" },
+			{ getter: lrActiveElementHref, key: "document.activeElement.href" },
+			{ getter: lrActiveElementSrc, key: "document.activeElement.src" },
+			{ getter: lrWindowParent, property: "referrer", key: "window.parent" },
+			{ getter: lrHasFocus, key: "document.hasFocus" },
+			{ getter: lrFocusedTags, key: "document.focusedTags" },
+			{ getter: lrLastModified, property: "lastModified", key: "document.lastModified" },
 		];
 
 		const result = [];
-		for (const item of properties) {
+		for (const { getter, ...descriptor } of properties) {
 			try {
-				const [getter, key] = item;
-				lrPushProperty(result, getter, { key: key });
+				lrPushProperty(result, getter, descriptor);
 			} catch (ex) {
-				if (item && item.key) {
-					result.push({ key: item.key, error: lrToObject(ex) });
-				} else {
-					console.error("LR: %o", item);
-					warnings.push(lrToObject(ex));
-				}
+				descriptor.error = lrToObject(ex);
+				result.push(descriptor);
 			}
 		}
 
-		response.result = result;
-		return response;
+		return { result };
 	} catch (ex) {
-		response.error = lrToObject(ex);
-		return response;
-	} finally {
-		if (warnings.length === 0) {
-			delete response.warnings;
-		}
+		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: referrer.js: should not reach end of the function" };
 })();

@@ -496,17 +496,10 @@ lr_meta.mergeRelations = function(frameInfo, meta) {
 	if (relations == null) {
 		return;
 	}
-	const referrerKeys = new Set([
-		'document.referrer',
-		'window.opener',
-		'window.parent',
-		'window.top',
-	]);
-	for (const descriptor of relations) {
-		if (referrerKeys.has(descriptor.key)) {
-			meta.addDescriptor('referrer', descriptor);
-		} else if (descriptor.key === 'document.lastModified') {
-			meta.addDescriptor('lastModified', descriptor);
+	for (const entry of relations) {
+		const { property, ...descriptor } = entry || {};
+		if (property) {
+			meta.addDescriptor(property, descriptor);
 		}
 	}
 };
