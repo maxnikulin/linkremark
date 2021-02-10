@@ -21,7 +21,7 @@
  * - selection if any.
  *
  * Injected using tabs.executeScript().
- * Produces a key-value object.
+ * Produces array of property descriptors.
  */
 "use strict";
 
@@ -75,8 +75,10 @@
 		return self;
 	}
 
-	const warnings = [];
-	const response = { warnings };
+	function pushWarning(result, error) {
+		result.push({ property: "warning", value: lrToObject(error) });
+	}
+
 	try {
 		const DEFAILT_SIZE_LIMIT = 1000;
 		const TEXT_SIZE_LIMIT = 4000;
@@ -119,6 +121,9 @@
 				retval.error = lrToObject(ex);
 			}
 			if (retval.hasOwnProperty("value") || retval.error != null) {
+				if (props.property) {
+					retval.property = props.property;
+				}
 				array.push(retval);
 			}
 		}
@@ -170,6 +175,7 @@
 
 					const item = {
 						key: "window.getSelection.range",
+						property: "selection",
 					};
 					if (text.length > available) {
 						item.error = new LrOverflowError(text.length);
@@ -187,7 +193,7 @@
 					oldEndOffset = range.endOffet;
 				}
 			} catch (ex) {
-				warnings.push(lrToObject(ex));
+				pushWarning(result, ex);
 			}
 			selection.removeAllRanges();
 			for (const range of rangeArray) {
@@ -203,6 +209,7 @@
 		function pushSelectionWhole(selection, result) {
 			const item = {
 				key: "window.getSelection.text",
+				property: "selection",
 			};
 			const text = selection && !selection.isCollapsed && selection.toString().trim();
 			if (text.length > TEXT_SIZE_LIMIT) {
@@ -222,7 +229,7 @@
 					return pushSelectionByRanges(selection, result);
 				}
 			} catch (ex) {
-				warnings.push(lrToObject(ex));
+				pushWarning(result, ex);
 			}
 			return pushSelectionWhole(selection, result);
 		}
@@ -253,38 +260,27 @@
 		}
 
 		const properties = [
-			[ lrDocumentTitle, "document.title" ],
-			[ lrWindowLocation, "window.location" ],
+			{ getter: lrDocumentTitle, property: "title", key: "document.title" },
+			{ getter: lrWindowLocation, property: "url", key: "window.location" },
 		];
 		const result = [];
-		for (const item of properties) {
+		for (const { getter, ...descriptor } of properties) {
 			try {
-				const [getter, key] = item;
-				lrPushProperty(result, getter, { key: key });
+				lrPushProperty(result, getter, descriptor);
 			} catch (ex) {
-				if (item && item.key) {
-					result.push({ key: item.key, error: lrToObject(ex) });
-				} else {
-					console.error("LR: %o", item);
-					warnings.push(lrToObject(ex));
-				}
+				descriptor.error = lrToObject(ex);
+				result.push(descriptor);
 			}
 		}
 		try {
 			pushSelection(config, result);
 		} catch (ex) {
-			result.push({ key: "window.getSelection.text", error: lrToObject(ex) });
+			result.push({ property: "selection", key: "window.getSelection.text", error: lrToObject(ex) });
 		}
 
-		response.result = result;
-		return response;
+		return { result };
 	} catch (ex) {
-		response.error = lrToObject(ex);
-		return response;
-	} finally {
-		if (warnings.length === 0) {
-			delete response.warnings;
-		}
+		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: capture.js: should not reach end of the function" };
 })();

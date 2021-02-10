@@ -437,22 +437,14 @@ lr_meta.mergeContent = function(frameInfo, meta) {
 		return;
 	}
 	const selectionFragments = [];
-	for (const descriptor of content) {
-		switch (descriptor.key) {
-			case 'window.location':
-				meta.addDescriptor('url', descriptor);
-				break;
-			case 'document.title':
-				meta.addDescriptor('title', descriptor);
-				break;
-			case 'window.getSelection.text':
-				meta.addDescriptor('selection', descriptor);
-				break;
-			case 'window.getSelection.range':
-				selectionFragments.push(descriptor);
-				break;
-			default:
-				console.warn("lr_meta.mergeContent: unsupported property %o", descriptor);
+	for (const entry of content) {
+		const { property, ...descriptor } = entry || {};
+		if (descriptor.key === 'window.getSelection.range') {
+			selectionFragments.push(descriptor);
+		} else if (property) {
+			meta.addDescriptor(property, descriptor);
+		} else {
+			console.warn("lr_meta.mergeContent: unspecified property %o", descriptor);
 		}
 	}
 	if (selectionFragments.length === 1) {
