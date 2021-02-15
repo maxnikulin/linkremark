@@ -17,6 +17,326 @@
 
 "use strict";
 
+var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function lr_format_org() {
+	function* valueFromDescriptor(iterable) {
+		if (!iterable) {
+			return;
+		}
+		for (const descriptor of iterable) {
+			if (descriptor.value && typeof descriptor.value === 'string') {
+				yield descriptor.value;
+			}
+		}
+	}
+
+	function first(iterable, fallback) {
+		if (iterable) {
+			for (const variant of iterable) {
+				if (variant) {
+					return variant;
+				}
+			}
+		}
+		return fallback;
+	}
+
+	function* preferShort(descriptorIterator) {
+		if (!descriptorIterator) {
+			return;
+		}
+		const descriptorArray = Array.from(descriptorIterator).filter(
+			variant => variant.value && typeof variant.value === 'string');
+		function compareShort(a, b) {
+			if (!!a.error === !!b.error) {
+				return a.value.length - b.value.length;
+			}
+			return a.error ? 1 : -1;
+		}
+		descriptorArray.sort(compareShort);
+		yield* descriptorArray;
+	}
+
+	function* titleCandidatesIterator(meta) {
+		yield* valueFromDescriptor(preferShort(meta.get('title')));
+		yield* valueFromDescriptor(preferShort(meta.get('description')));
+		const selectionFragments = meta.selectionTextFragments && meta.selectionTextFragments.value;
+		const hasText = selectionFragments && Array.isArray(selectionFragments)
+			&& selectionFragments.some(x => x && x.value);
+		if (hasText) {
+			yield selectionFragments.filter(x => x && x.value).join(" … ").replace(/\s+/g, " ");
+			return;
+		}
+		const capturedSelection = meta.get('selection', 'window.getSelection.text')
+			|| meta.get('selection', 'clickData.selectionText');
+		if (capturedSelection) {
+			yield capturedSelection;
+		}
+		// site_name is not here since it will be stripped anyway,
+		// so it may be added at a later step.
+	}
+
+	function cleanupTitleVariant(text, toRemoveIterable) {
+		let removed;
+		do {
+			removed = false;
+			for (const toRemove of toRemoveIterable) {
+				const index = text.indexOf(toRemove);
+				if (!(index >= 0)) {
+					continue;
+				}
+				if (index < 5) {
+					text = text.substring(index + toRemove.length)
+						.replace(/^[.,;:'´"»]\s*|^\s*(?:[-|—/]|::)\s*/, '');
+					removed = true;
+					break;
+				} else if (index >= text.length - toRemove.length - 5 || index > 64) {
+					text = text.substring(0, index)
+						.replace(/[.,;:'`"«]\s*$|\s*(?:[-|—/]|::)\s*$/, '');
+					removed = true;
+					break;
+				}
+			}
+		} while (removed);
+		return text;
+	}
+
+	function* valuesFromDescriptors(iterable) {
+		for (const descriptor of iterable || []) {
+			if (descriptor && descriptor.value && typeof descriptor.value === 'string') {
+				yield descriptor.value;
+			}
+		}
+	}
+
+	function prependUnique(prefix, text) {
+		if (!prefix || text.indexOf(prefix) >= 0) {
+			return text;
+		}
+		return [ prefix, text ].join(' — ');
+	}
+
+	class LrString extends String {
+	}
+
+	function truncate(text, min, target, max) {
+		if (!text || min == null) {
+			return text;
+		}
+		if (target == null) {
+			target = max = min;
+		} else if (max == null) {
+			max = target;
+		}
+		if (text.length <= target) {
+			return text;
+		}
+		// capture next char that could be a space
+		let retval = text.substring(0, max + 1);
+		let leftSpread = Math.abs(target - min);
+		leftSpread = leftSpread < 1 ? 1 : leftSpread;
+		let rightSpread = Math.abs(max - target);
+		rightSpread = rightSpread < 1 ? 1 : rightSpread;
+
+		function splitByRegExp(str, re) {
+			const splitVariants = [];
+			for (const match of str.matchAll(re)) {
+				const index = match.index;
+				if (index < min) {
+					continue;
+				}
+				splitVariants.push({
+					index,
+					penalty: (index <= target ? rightSpread : -leftSpread)*(target - index),
+				});
+			}
+			splitVariants.sort((a, b) => a.penalty - b.penalty);
+			const best = first(splitVariants);
+			return best && best.index;
+		}
+
+		function truncated(str, index) {
+			const retval = new LrString(str.substring(0, index));
+			retval.lr_truncated = true;
+			return retval;
+		}
+		const bySpace = splitByRegExp(retval, /\s+/g);
+		if (bySpace != null) {
+			return truncated(retval, bySpace);
+		}
+		if (text.length <= max) {
+			return text;
+		}
+
+		const byPunct = splitByRegExp(retval, /[-!?,.;:\$#«„`\[({|\\\/<>@~*&+=—]/g);
+		if (byPunct != null) {
+			return truncated(retval, byPunct);
+		}
+		const byClosing = splitByRegExp(retval, /[\]})»']/g);
+		if (byClosing != null) {
+			return truncated(retval, byClosing + 1);
+		}
+		return truncated(retval, target);
+	}
+
+	function preferredPageTitle(meta) {
+		try {
+			let candidate = null;
+			const toRemove = [
+				...valuesFromDescriptors(meta.get("author")),
+				...valuesFromDescriptors(meta.get("site_name")),
+			];
+			for (candidate of titleCandidatesIterator(meta)) {
+				candidate = cleanupTitleVariant(candidate, toRemove);
+				if (candidate) {
+					break;
+				}
+			}
+			const titleComponents = [
+				{
+					value: first(valuesFromDescriptors(preferShort(meta.get("author")))),
+					min: 16,
+					target: 24,
+					stiff: 24,
+					flexThreshold: 24,
+				},
+				{
+					value: candidate,
+					min: 30,
+					target: 48,
+					stiff: 48,
+					flexThreshold: 48,
+				},
+				{
+					value: first(valuesFromDescriptors(preferShort(meta.get("site_name")))),
+					min: 8,
+					target: 24,
+					stiff: 0,
+					flexThreshold: 8,
+				}
+			];
+			truncated = limitComponentsLength(titleComponents);
+			if (truncated && truncated.length > 0) {
+				return truncated.map(x => (x.lr_truncated ? x + "…" : x)).join(" — ");
+			}
+		} catch (ex) {
+			console.error(ex);
+		}
+		return [ "Web Page — ", new Date() ];
+	}
+
+	function limitComponentsLength(titleComponents) {
+		return limitComponentsLengthHelper(titleComponents).filter(c => c.value)
+			.map(c => c.truncate ? truncate(c.value, c.min, c.truncate) : c.value);
+	}
+
+	function limitComponentsLengthHelper(titleComponents) {
+		let targetSum = 0;
+		let unprocessed = titleComponents.filter(c => {
+			targetSum += c.target;
+			if (!c.value) {
+				return false;
+			}
+			return true;
+		});
+
+		let excess = -targetSum;
+		unprocessed = unprocessed.filter(c => {
+			c.truncate = Math.min(c.value.length, targetSum);
+			excess += c.truncate;
+			return c.truncate > c.flexThreshold;
+		});
+		if (excess <= 0) {
+			return titleComponents;
+		}
+		for (let i = unprocessed.length; i-- > 0; ) {
+			const invStiff0 = unprocessed.reduce((invStiff, c) => {
+				return invStiff + (c.stiff ? 0 : 1./c.target);
+			}, 0);
+			if (!(invStiff0 > 0)) {
+				break;
+			}
+			const strain = excess/invStiff0;
+			let constrain = false;
+			[ unprocessed, constrain ] = unprocessed.reduce(([res, cons], c) => {
+				if (!c.stiff && c.truncate - Math.ceil(strain/c.target) <= c.min) {
+					cons = true;
+					excess -= c.truncate - c.min;
+					c.truncate = c.min
+				} else {
+					res.push(c);
+				}
+				return [ res, cons ];
+			}, [ [], constrain ]);
+			if (constrain === true) {
+				continue;
+			}
+			unprocessed = unprocessed.filter(c => {
+				if (c.stiff) {
+					return true;
+				}
+				const delta = Math.ceil(strain/c.target);
+				c.truncate -= delta;
+				console.assert(c.truncate >= c.min, "zero strain component min", c, strain, delta);
+				excess -= delta;
+				return false;
+			});
+		}
+		if (excess <= 0) {
+			return titleComponents;
+		}
+		for (let i = unprocessed.length; i-- > 0; ) {
+			const invStiff = unprocessed.reduce((invStiff, c) => {
+				console.assert(c.stiff > 0, "only positive stiff component should here", c);
+				return invStiff + 1/c.stiff;
+			}, 0);
+			if (!(invStiff > 0)) {
+				break;
+			}
+			const strain = excess/invStiff;
+			let constrain = false;
+			[ unprocessed, constrain ] = unprocessed.reduce(([res, cons], c) => {
+				if (c.truncate - Math.ceil(strain/c.stiff) < c.min) {
+					cons = true;
+					excess -= c.truncate - c.min;
+					c.truncate = c.min
+				} else {
+					res.push(c);
+				}
+				return [ res, cons ];
+			}, [ [], constrain ]);
+			if (constrain === true) {
+				continue;
+			}
+			for (const c of unprocessed) {
+				console.assert(c.stiff > 0, "Stiffness of remained components should be positive");
+				const delta = Math.ceil(strain/c.stiff);
+				c.truncate -= delta;
+				console.assert(c.truncate >= c.min, "strain component min", c, strain);
+				excess -= delta;
+			}
+			unprocessed = [];
+			break;
+		}
+		console.assert(excess <= 0, "excess should be eliminated", excess, titleComponents);
+		console.assert(unprocessed.length === 0, "no entries should remain unprocessed", unprocessed);
+		return titleComponents;
+	}
+
+	Object.assign(this, {
+		preferredPageTitle,
+		truncate,
+		limitComponentsLength,
+		internal: {
+			first,
+			preferShort,
+			titleCandidatesIterator,
+			cleanupTitleVariant,
+			valuesFromDescriptors,
+		},
+	});
+	return this;
+});
+
 var lr_url_src_weight = new Map([
 	['link.canonical', 1000],
 	['meta.property.og:url', 100],
@@ -51,7 +371,7 @@ function lr_sorted_title(meta) {
 	}
 	const titleVariants = meta.get('title') || [];
 	const valueVariants = titleVariants.map(entry => entry.value);
-	valueVariants.sort((a, b) => b.length - b.length);
+	valueVariants.sort((a, b) => a.length - b.length);
 	return valueVariants;
 }
 
