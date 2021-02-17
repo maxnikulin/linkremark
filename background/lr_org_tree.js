@@ -29,6 +29,13 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		return lr_util.replaceSpecial(buffer.out.join("\n"));
 	};
 
+	function toPlainText(...elements) {
+		const buffer = new lr_org_buffer.LrOrgBuffer({textPlain: true});
+		toOrgRecursive(buffer, elements);
+		buffer.flush();
+		return lr_util.replaceSpecial(buffer.out.join("\n"));
+	};
+
 	function toOrgRecursive(buffer, element) {
 		if (buffer.formatterState.depth > 128) {
 			const prototype = Object.getPrototypeOf(element);
@@ -239,10 +246,19 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 				if (description.length === 0) {
 					const readableUrl = lr_org_buffer.readableUrl(href, lengthLimit);
 					if (readableUrl === safeUrl) {
+						if (buffer.options && buffer.options.textPlain) {
+							return LrOrgNobreak(null, LrOrgMarkup(safeUrl));
+						} else {
 							return LrOrgNobreak(null, LrOrgMarkup(`[[${safeUrl}]]`));
+						}
 					} else {
-						return LrOrgNobreak(
-							null, LrOrgMarkup(`[[${safeUrl}][${readableUrl}]]`));
+						if (buffer.options && buffer.options.textPlain) {
+							return LrOrgNobreak(
+								null, LrOrgMarkup(readableUrl));
+						} else {
+							return LrOrgNobreak(
+								null, LrOrgMarkup(`[[${safeUrl}][${readableUrl}]]`));
+						}
 					}
 				} else {
 					return LrOrgNobreak(
@@ -302,6 +318,7 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		LrOrgQuote,
 		LrOrgStateScope,
 		toText,
+		toPlainText,
 		internal: {
 			LrOrgContainerT,
 			LrOrgHeadingMarker,

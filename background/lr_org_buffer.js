@@ -344,7 +344,7 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 	}
 
 	class LrOrgBuffer {
-		constructor() {
+		constructor(options) {
 			this.out = [];
 			this.line = [];
 			this.unsafeText = [];
@@ -353,6 +353,7 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 				textIndent: 0,
 				depth: 0,
 			};
+			this.options = options || {};
 			this.stateTranstions = new LrOrgBufferState();
 			this.outputState = this.stateTranstions.initial;
 		};
