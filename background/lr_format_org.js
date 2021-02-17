@@ -179,6 +179,8 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 	}
 
 	function preferredPageTitle(meta) {
+		const fallbackTitle = "Web Page"; // TODO i18n
+		const componentSeparator = " — "; // First whitespace in unbreakable.
 		try {
 			let candidate = null;
 			const toRemove = [
@@ -214,14 +216,19 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 					flexThreshold: 8,
 				}
 			];
-			truncated = limitComponentsLength(titleComponents);
+			const truncated = limitComponentsLength(titleComponents);
 			if (truncated && truncated.length > 0) {
-				return truncated.map(x => (x.lr_truncated ? x + "…" : x)).join(" — ");
+				return truncated.map(x => (x.lr_truncated ? x + "…" : x)).join(componentSeparator);
+			}
+			const href = first(valuesFromDescriptors(urlVariants(meta)));
+			if (href) {
+				const link = lr_org_tree.LrOrgLink({ lengthLimit: 75 - fallbackTitle.length, href });
+				return [ fallbackTitle, componentSeparator, link ];
 			}
 		} catch (ex) {
 			console.error(ex);
 		}
-		return [ "Web Page — ", new Date() ];
+		return [ fallbackTitle, componentSeparator, new Date() ];
 	}
 
 	function limitComponentsLength(titleComponents) {
