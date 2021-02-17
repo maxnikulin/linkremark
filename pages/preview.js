@@ -79,6 +79,7 @@ async function lrFetchCachedResult() {
 	lrNotFatal(setCaptureResult)(result);
 	const activeMethod = lrPreviewBind(result && result.transport);
 	byId("dump").innerText = JSON.stringify(debugInfo, null, "  ");
+	await lrNotFatal(fillFromSettings)();
 	if (!activeMethod || (result && result.error)) {
 		expandDebugInfo();
 	}
@@ -86,11 +87,14 @@ async function lrFetchCachedResult() {
 		const message = result.error.message || "Some error happened"
 		throw new Error(message);
 	} else if (!activeMethod) {
-		const message = result ? "Capture is not completely successful"
-			: "No capture result";
-		throw new Error(message);
+		let message;
+		if (result) {
+			const method = result && result.transport && result.transport.method;
+			message = method ? "Unsupported method is configured: " + method
+				: "Capture is not completely successful";
+		}
+		throw new Error(message || "No capture result");
 	}
-	await lrNotFatal(fillFromSettings)();
 	return activeMethod;
 }
 
@@ -122,7 +126,6 @@ class LrPreviewTransportAction {
 		}
 	}
 	activate() {
-		byId("detailsCapture").open = true;
 		this.section.open = true;
 		this.execCloseButton.focus();
 		return true;
@@ -270,9 +273,6 @@ function lrPreviewBind(transport) {
 				form.body.rows = height;
 			})();
 		}
-	}
-	if (!active) {
-		throw new Error("Unsupported method is configured: " + method);
 	}
 	return active;
 }
