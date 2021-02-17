@@ -322,48 +322,48 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		return titleComponents;
 	}
 
+	var urlWeightMap = new Map([
+		['link.canonical', 1000],
+		['meta.property.og:url', 100],
+		['clickData.srcUrl', 10],
+	]);
+
+	function urlWeight(url_src) {
+		const weight = urlWeightMap.get(url_src);
+		return weight != null ? weight : 1;
+	}
+
+	function* urlVariants(meta) {
+		if (!meta) {
+			return;
+		}
+		const urlVariants = meta.get('url') || [];
+		const weightedVariants = urlVariants
+			.filter(x => x.value)
+			.map(entry => ({
+				value: entry.value, weight: entry.keys.map(urlWeight).reduce((a, b) => a + b, 0)
+			}));
+		weightedVariants.sort((a, b) => b.weight - a.weight);
+		yield* weightedVariants;
+	}
+
 	Object.assign(this, {
 		preferredPageTitle,
 		truncate,
 		limitComponentsLength,
+		urlVariants,
 		internal: {
 			first,
 			preferShort,
 			titleCandidatesIterator,
 			cleanupTitleVariant,
 			valuesFromDescriptors,
+			urlWeightMap,
+			urlWeight,
 		},
 	});
 	return this;
 });
-
-var lr_url_src_weight = new Map([
-	['link.canonical', 1000],
-	['meta.property.og:url', 100],
-	['clickData.srcUrl', 10],
-]);
-
-function lr_url_weight(url_src) {
-	const weight = lr_url_src_weight.get(url_src);
-	return weight != null ? weight : 1;
-}
-
-function lr_sorted_url(meta) {
-	if (!meta) {
-		return null;
-	}
-	const urlVariants = meta.get('url') || [];
-	const weightedVariants = urlVariants.map(entry => ({
-		value: entry.value, weight: entry.keys.map(lr_url_weight).reduce((a, b) => a + b, 0)
-	}));
-	weightedVariants.sort((a, b) => b.weight - a.weight);
-	return weightedVariants.map(x => x.value);
-}
-
-function lr_preferred_url(frame) {
-	const urlVariants = lr_sorted_url(frame);
-	return urlVariants && urlVariants.length > 0 ? urlVariants[0] : null;
-}
 
 function lr_sorted_title(meta) {
 	if (!meta) {
@@ -492,10 +492,10 @@ function lr_format_org_frame(frame, options = {}) {
 		LrOrgDefinitionItem, LrOrgHeading, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgLink,
 	} = lr_org_tree;
 	const body = [];
-	for (let variant of lr_sorted_url(frame) || []) {
-		body.push(LrOrgDefinitionItem({ term: "URL" }, LrOrgLink({ href: variant })));
+	for (let variant of lr_format_org.urlVariants(frame) || []) {
+		body.push(LrOrgDefinitionItem({ term: "URL" }, LrOrgLink({ href: variant.value })));
 		if (url == null) {
-			url = variant;
+			url = variant.value;
 		}
 	}
 	for (const titleVariant of lr_sorted_title(frame)) {
