@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Metadata: &lt;HTML&gt; &mdash;&nbsp;Entities</title>
+    <meta name="description" content="&amp;Ampersand &">
+    <script type="application/ld+json">{
+      "@context": "http://schema.org",
+      "@type": "Article",
+      "headline": "LR Test: Metadata: &lt;HTML&gt; &mdash;&nbsp;Entities"
+    }</script>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Metadata</a>
+      <a href="no-title.html">No meta</a>
+    </nav>
+    <h1>LinkRemark Test: Metadata: HTML Entities</h1>
+    <p>Browser decodes entities in <code>&lt;title&gt;</code> text
+    and <code>&lt;meta&gt;</code> attributes but values in
+    <code>&lt;script type="application/ld+json"&gt;</code> text
+    should be decoded by the extension.</p>
+  </body>
+</html>
