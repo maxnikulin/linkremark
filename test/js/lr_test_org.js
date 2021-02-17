@@ -115,6 +115,36 @@ var lr_test_org = lr_util.namespace("lr_test_org", lr_test_org, function() {
 			lr_test.assertEq(lr_org_buffer.readableUrl(url), readable);
 		});
 
+	this.casesLengthLimit = [
+		[
+			"https://some.long.host.name.with-a-lot-of.components.com/",
+			15,
+			"https://s….com/",
+		],
+		[
+			"ftp://te.st/long/path/to/the/file.txt",
+			20,
+			"ftp://te.st/…ile.txt",
+		],
+		[
+			"ftp://te.st/long/path/to/the/file.txt",
+			19,
+			"ftp://te.st/…le.txt",
+		],
+		[
+			"<ftp://te.st/long/path/to/the/file.txt>",
+			19,
+			"<ftp://te.st…e.txt>",
+		],
+	];
+	this.test_readableUrlLength = lr_test.parametrize(
+		this.casesLengthLimit,
+		function test_readableUrlLength(url, lengthLimit, expectation) {
+			const result = lr_org_buffer.readableUrl(url, lengthLimit);
+			lr_test.assertEq(expectation, result);
+			lr_test.assertEq(result.length, lengthLimit);
+		});
+
 	lr_test.suites.push(this);
 	return this;
 });
