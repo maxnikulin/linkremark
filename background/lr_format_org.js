@@ -576,9 +576,10 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 
 	const description = [];
 	for (const [property, name] of [["srcUrl", "image URL"], ["imageAlt", "alt"], ["imageTitle", "title"]]) {
-		const variants = lr_property_variants(meta, property);
+		const variants = lr_property_variants(meta, property) || [];
 		for (let v of variants) {
-			description.push(LrOrgDefinitionItem({ term: name }, LrOrgLink({ href: v.value })));
+			const body = property === "srcUrl" ? LrOrgLink({ href: v.value }) : v.value;
+			description.push(LrOrgDefinitionItem({ term: name }, body));
 		}
 	}
 	const config = { title, url, properties, baseProperties, description };
