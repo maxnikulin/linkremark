@@ -121,6 +121,7 @@ var lr_test = lr_util.namespace("lr_test", lr_test, function(){
 			for (arg of iterable) {
 				lr_util.setFuncName(call, `${func.name}[${i}: ${arg}]`);
 				yield call;
+				++i;
 			}
 		};
 		lr_util.setFuncName(retval, func.name);
