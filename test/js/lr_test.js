@@ -151,6 +151,24 @@ var lr_test = lr_util.namespace("lr_test", lr_test, function(){
 		return true;
 	};
 
+	this.assertIterablesEq = function(a, b) {
+		const itB = b[Symbol.iterator]();
+		for (const eA of a) {
+			const { value, done } = itB.next();
+			if (done) {
+				throw new LrAssertionError(`B exhausted ${eA}: ${a}, ${b}`);
+			}
+			if (eA != value) {
+				throw new LrAssertionError(`${eA} != ${value} in [${a}], [${b}]`);
+			}
+		}
+		const { value, done } = itB.next();
+		if (!done) {
+			throw new LrAssertionError(`A exhausted ${value}: ${a}, ${b}`);
+		}
+		return true;
+	}
+
 	this.assertEq = function(a, b, msg) {
 		try {
 			for (const comparator of [this.assertEqSet]) {
