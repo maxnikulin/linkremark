@@ -491,7 +491,7 @@ function lr_format_org_selection(frame) {
 }
 
 function lr_format_org_frame(frame, options = {}) {
-	const title = lr_preferred_title(frame);
+	const title = lr_format_org.preferredPageTitle(frame);
 	let url = null;
 	const properties = options.baseProperties && options.baseProperties.slice() || [];
 	lrOrgCollectProperties(properties, frame);
@@ -538,8 +538,7 @@ function lr_format_org_frame(frame, options = {}) {
 	if (options.body) {
 		body.push(LrOrgSeparatorLine, ...options.body);
 	}
-	const heading = title || ( url ? LrOrgLink({ href: url }) : "No title" ); // TODO i18n
-	return { title: title || url, url, tree: LrOrgHeading({ heading, properties }, ...body) };
+	return { title, url, tree: LrOrgHeading({ heading: title, properties }, ...body) };
 }
 
 // FIXME: add wrapper to catch exceptions
@@ -632,7 +631,7 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 
 function lr_format_frame_chain_with_target(frameChain, target, config) {
 	const { title, url, description, properties, baseProperties } = config;
-	const { LrOrgHeading, LrOrgSeparatorLine, toText } = lr_org_tree;
+	const { LrOrgHeading, LrOrgSeparatorLine } = lr_org_tree;
 	description.push(LrOrgSeparatorLine);
 	description.push(...lr_format_org_selection(frameChain[0]));
 	description.push(LrOrgSeparatorLine);
@@ -648,7 +647,7 @@ function lr_format_frame_chain_with_target(frameChain, target, config) {
 		...description,
 		...sourceFrames,
 	);
-	return { title: toText(title), url, tree };
+	return { title, url, tree };
 }
 
 function lr_format_org_frame_chain(frameChain, target, baseProperties) {
@@ -698,7 +697,7 @@ function lr_format_org(frameChain, target) {
 	const { url, title, tree } = result;
 	return {
 		url,
-		title: lr_util.replaceSpecial(title),
+		title: lr_org_tree.toPlainText(title),
 		body: lr_org_tree.toText(tree),
 	};
 }
