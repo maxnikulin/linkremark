@@ -390,7 +390,7 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 				line = line.replace(/\s*$/, "");
 			}
 			if (this.line.length === 0) {
-				if (/\s*(?:#\+|:\w)/.test(line) || (this.formatterState.textIndent === 0 && /^\*+\s/.test(line))) {
+				if (/^\s*(?:#\+|:\w)/.test(line) || (this.formatterState.textIndent === 0 && /^\*+\s/.test(line))) {
 					line = ',' + line
 				}
 			} else if (/\]$/.test(this.line[this.line.length - 1])) {
