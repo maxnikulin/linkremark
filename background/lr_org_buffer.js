@@ -133,26 +133,36 @@ var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function()
 	 *
 	 * TODO punycode.js for hostname
 	 */
-	function readableUrl(url) {
+	function readableUrl(url, lengthLimit) {
 		if (!url) {
 			return url;
 		}
 		let result = "" + url;
 		try {
 			result = decodeURI(url);
+			if (lengthLimit && result.length > lengthLimit) {
+				const head = result.substring(0, (lengthLimit - 1)*2/3);
+				const tail = result.substring(result.length - (lengthLimit - head.length - 1));
+				result = [ head, tail ].join("…");
+			}
 		} catch (ex) {
 			console.warn("lr_org_buffer.readableUrl %o %o", url, ex);
 		}
-		return safeLinkDescription(result);
+		return safeLinkDescription(result, lengthLimit);
 	}
 
 	/**
 	 * Org mode 9.1 does not allow brackets in link text.
 	 * 9.3 just suggests to add zero width space between "]]".
 	 */
-	function safeLinkDescription(description) {
+	function safeLinkDescription(description, lengthLimit) {
 		if (!description) {
 			return description;
+		}
+		if (lengthLimit && description.length > lengthLimit) {
+			const head = description.substring(0, (lengthLimit - 1)*2/3);
+			const tail = description.substring(description.length - (lengthLimit - head.length - 1));
+			description = [ head, tail ].join("…");
 		}
 		return ("" + description).replace(/\s+/g, " ").replace(/(])(]|$)/g, "$1\u200B$2");
 	}

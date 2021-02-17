@@ -215,39 +215,57 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		return LrOrgDrawer({ name: "PROPERTIES" }, children);
 	}
 
-	function LrOrgLink({ href, descriptor }, ...description) {
-		href = href || (descriptor && descriptor.value);
-		if (!href) {
-			console.warn("LrOrgLink: no href");
-			return description;
+	class LrOrgLinkT {
+		constructor({ href, descriptor, lengthLimit }, ...description) {
+			this.href = href;
+			this.descriptor = descriptor;
+			this.lengthLimit = lengthLimit;
+			this.description = description;
 		}
-		if (descriptor && descriptor.error) {
-			const errorText = lr_meta.errorText(descriptor.error);
-			return [ `(${errorText}!)`, LrOrgWordSeparator, href, LrOrgWordSeparator, ...description ];
-		}
-		/* Sometimes pages have invalid URLs e.g. due to errors in web applications */
-		try {
-			const safeUrl = lr_org_buffer.safeUrl(href);
-			if (description.length === 0) {
-				const readableUrl = lr_org_buffer.readableUrl(href);
-				if (readableUrl === safeUrl) {
-					return LrOrgNobreak(null, LrOrgMarkup(`[[${safeUrl}]]`));
+		toOrg(buffer) {
+			let { href, descriptor, lengthLimit, description } = this;
+			href = href || (descriptor && descriptor.value);
+			if (!href) {
+				console.warn("LrOrgLink: no href");
+				return description;
+			}
+			if (descriptor && descriptor.error) {
+				const errorText = lr_meta.errorText(descriptor.error);
+				return [ `(${errorText}!)`, LrOrgWordSeparator, href, LrOrgWordSeparator, ...description ];
+			}
+			/* Sometimes pages have invalid URLs e.g. due to errors in web applications */
+			try {
+				const safeUrl = lr_org_buffer.safeUrl(href);
+				if (description.length === 0) {
+					const readableUrl = lr_org_buffer.readableUrl(href, lengthLimit);
+					if (readableUrl === safeUrl) {
+							return LrOrgNobreak(null, LrOrgMarkup(`[[${safeUrl}]]`));
+					} else {
+						return LrOrgNobreak(
+							null, LrOrgMarkup(`[[${safeUrl}][${readableUrl}]]`));
+					}
 				} else {
 					return LrOrgNobreak(
-						null, LrOrgMarkup(`[[${safeUrl}][${readableUrl}]]`));
+						null,
+						LrOrgMarkup(`[[${safeUrl}][`),
+						...description,
+						LrOrgMarkup("]]"),
+					);
 				}
-			} else {
+			} catch (ex) {
+				console.error(ex);
+				if (href && href.substring && lengthLimit) {
+					href = href.substring(lengthLimit - 4);
+				}
 				return LrOrgNobreak(
 					null,
-					LrOrgMarkup(`[[${safeUrl}][`),
-					...description,
-					LrOrgMarkup("]]"),
-				);
+					[ "(!)", LrOrgWordSeparator, href, LrOrgWordSeparator, ...description ]);
 			}
-		} catch (ex) {
-			console.error(ex);
-			return [ "(!)", LrOrgWordSeparator, href, LrOrgWordSeparator, ...description ];
 		}
+	}
+
+	function LrOrgLink(attrs, ...children) {
+		return new LrOrgLinkT(attrs, ...children);
 	}
 
 	function LrOrgQuote(_attrs, ...children) {
