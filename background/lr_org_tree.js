@@ -232,13 +232,16 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 		toOrg(buffer) {
 			let { href, descriptor, lengthLimit, description } = this;
 			href = href || (descriptor && descriptor.value);
+			if (descriptor && descriptor.error) {
+				const errorText = lr_meta.errorText(descriptor.error);
+				return [
+					`(${errorText}!)`, LrOrgWordSeparator,
+					...(href ? [href] : []),
+					LrOrgWordSeparator, ...description ];
+			}
 			if (!href) {
 				console.warn("LrOrgLink: no href");
 				return description;
-			}
-			if (descriptor && descriptor.error) {
-				const errorText = lr_meta.errorText(descriptor.error);
-				return [ `(${errorText}!)`, LrOrgWordSeparator, href, LrOrgWordSeparator, ...description ];
 			}
 			/* Sometimes pages have invalid URLs e.g. due to errors in web applications */
 			try {
