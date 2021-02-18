@@ -61,9 +61,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		yield* descriptorArray;
 	}
 
-	function* titleCandidatesIterator(meta) {
-		yield* valueFromDescriptor(preferShort(meta.get('title')));
-		yield* valueFromDescriptor(preferShort(meta.get('description')));
+	function* selectionLineGen(meta) {
 		const selectionFragments = meta.selectionTextFragments && meta.selectionTextFragments.value;
 		const hasText = selectionFragments && Array.isArray(selectionFragments)
 			&& selectionFragments.some(x => x && x.value);
@@ -76,6 +74,12 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		if (capturedSelection) {
 			yield capturedSelection;
 		}
+	}
+
+	function* titleCandidatesIterator(meta) {
+		yield* valueFromDescriptor(preferShort(meta.get('title')));
+		yield* valueFromDescriptor(preferShort(meta.get('description')));
+		yield* selectionLineGen(meta);
 		// site_name is not here since it will be stripped anyway,
 		// so it may be added at a later step.
 	}
