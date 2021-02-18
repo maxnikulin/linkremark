@@ -29,15 +29,20 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		}
 	}
 
-	function first(iterable, fallback) {
-		if (iterable) {
+	function first(...args) {
+		for (const iterable of args) {
+			if (iterable == null) {
+				continue;
+			} else if (typeof iterable === "string" || !iterable[Symbol.iterator]) {
+				return iterable;
+			}
+
 			for (const variant of iterable) {
 				if (variant) {
 					return variant;
 				}
 			}
 		}
-		return fallback;
 	}
 
 	function* preferShort(descriptorIterator) {
