@@ -3,6 +3,15 @@
   <head>
     <meta charset="utf-8">
     <title>LR Test: Image variants</title>
+<style type="text/css">
+.broken {
+  border: 2px solid #800000;
+  background-color: #ff8080;
+  padding: 1ex;
+  margin: 1ex;
+  display: inline-block;
+}
+</style>
   </head>
   <body>
     <nav>
@@ -10,16 +19,32 @@
       <a href="index.html">Images</a>
     </nav>
     <h1>LinkRemark Test: Image variants</h1>
+    <p>Images with invalid <code>src</code> attribute are styled
+    with reddish background and border to avoid confusion
+    ordinary text comments and <code>alt</code> attribute value.
+    </p>
     <ul>
-      <li>Relative src <img src="lr-128.png" alt="Alt text" title="Title text"></li>
+      <li>Relative src with alt and title
+        <div><img src="lr-128.png" alt="Alt text" title="Title text"></div></li>
+      <li>No alt or title <img src="lr-128.png" width="32"></li>
+      <li>Long URL
+        <img width="32"
+          src="lr-128.png?parameter_1=Long+value+1&parameter_2=Long+value+2&parapeter_3=Long+value+3&parameter_4=Long+value+5"
+          ></li>
+      <li>Long alt text
+        <img src="lr-128.png" width="32"
+          alt="This is long and dumb alternative text for an image element to test if is properly truncated for heading title"
+          ></li>
       <li>Data URL
         <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAGNSURBVDiNpY8xixNRFIW/e2fkkXnzTDMYDClEsLAQVGQLS1e2sNDGRgv/gf9ARLRV7IUtttpGEC1FsBFB2MLWwsVKiwTdmewk2Z3sexbJDCK62eht3uXc+75zD/xnCUCaurch8AXkdVkWm78vdTodOxqNbgKrIXAqBD7HsT7K83xbAURwqqyrhi6AtW691WqtzHq7WpbjF8DdueFUlXPTqb/XODjntn51dM5t1VrdW2vPA7Tb7dNz7R2AHjVrWZYfAbz3xezl+1KAukLQK7PY4cPSgCzLnIi/A+xHUbS5FKDX67XG48lD4IT3/kGe59sNwBhzfRFgZ6fYUJUV73kjIvu1rgCDweDrEY44EJHnqnJBRB5ba9cagLXuVZZl3cN+7+4Wt4qieOr9wRMAEbnRAFTpTiZ795MkO7noDGPMp/nxZwDieiDCpSjae2lt+v4wQBRFP6qqQiSkDUBE1qoqnI1jLovoVQh/BfT7/dI5d9sY8204HP5x51iSHL9mrdsASFP3LEmSi4ui/XP9BKgAeuLbXpGiAAAAAElFTkSuQmCC">
       </li>
-      <li>Empty src <img src="" alt="Empty src"></li>
-      <li>No src <img alt="No src"></li>
+      <li>Empty src <img class="broken" src="" alt="Empty src"></li>
+      <li>No src <img class="broken" alt="No src"></li>
       <li>javascript:
-        <img src="javascript:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAGNSURBVDiNpY8xixNRFIW/e2fkkXnzTDMYDClEsLAQVGQLS1e2sNDGRgv/gf9ARLRV7IUtttpGEC1FsBFB2MLWwsVKiwTdmewk2Z3sexbJDCK62eht3uXc+75zD/xnCUCaurch8AXkdVkWm78vdTodOxqNbgKrIXAqBD7HsT7K83xbAURwqqyrhi6AtW691WqtzHq7WpbjF8DdueFUlXPTqb/XODjntn51dM5t1VrdW2vPA7Tb7dNz7R2AHjVrWZYfAbz3xezl+1KAukLQK7PY4cPSgCzLnIi/A+xHUbS5FKDX67XG48lD4IT3/kGe59sNwBhzfRFgZ6fYUJUV73kjIvu1rgCDweDrEY44EJHnqnJBRB5ba9cagLXuVZZl3cN+7+4Wt4qieOr9wRMAEbnRAFTpTiZ795MkO7noDGPMp/nxZwDieiDCpSjae2lt+v4wQBRFP6qqQiSkDUBE1qoqnI1jLovoVQh/BfT7/dI5d9sY8204HP5x51iSHL9mrdsASFP3LEmSi4ui/XP9BKgAeuLbXpGiAAAAAElFTkSuQmCC'">
+        <img class="broken"
+        src="javascript:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAGNSURBVDiNpY8xixNRFIW/e2fkkXnzTDMYDClEsLAQVGQLS1e2sNDGRgv/gf9ARLRV7IUtttpGEC1FsBFB2MLWwsVKiwTdmewk2Z3sexbJDCK62eht3uXc+75zD/xnCUCaurch8AXkdVkWm78vdTodOxqNbgKrIXAqBD7HsT7K83xbAURwqqyrhi6AtW691WqtzHq7WpbjF8DdueFUlXPTqb/XODjntn51dM5t1VrdW2vPA7Tb7dNz7R2AHjVrWZYfAbz3xezl+1KAukLQK7PY4cPSgCzLnIi/A+xHUbS5FKDX67XG48lD4IT3/kGe59sNwBhzfRFgZ6fYUJUV73kjIvu1rgCDweDrEY44EJHnqnJBRB5ba9cagLXuVZZl3cN+7+4Wt4qieOr9wRMAEbnRAFTpTiZ795MkO7noDGPMp/nxZwDieiDCpSjae2lt+v4wQBRFP6qqQiSkDUBE1qoqnI1jLovoVQh/BfT7/dI5d9sY8204HP5x51iSHL9mrdsASFP3LEmSi4ui/XP9BKgAeuLbXpGiAAAAAElFTkSuQmCC'">
       </li>
+      <li>Src is just hash <img class="broken" src="#" alt="This element has # as src"></li>
     </ul>
   </body>
 </html>
