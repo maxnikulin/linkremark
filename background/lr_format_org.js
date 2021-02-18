@@ -115,9 +115,6 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		return [ prefix, text ].join(' — ');
 	}
 
-	class LrString extends String {
-	}
-
 	function truncate(text, min, target, max) {
 		if (!text || min == null) {
 			return text;
@@ -155,9 +152,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		}
 
 		function truncated(str, index) {
-			const retval = new LrString(str.substring(0, index));
-			retval.lr_truncated = true;
-			return retval;
+			return str.substring(0, index) + "…";
 		}
 		const bySpace = splitByRegExp(retval, /\s+/g);
 		if (bySpace != null) {
@@ -218,7 +213,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 			];
 			const truncated = limitComponentsLength(titleComponents);
 			if (truncated && truncated.length > 0) {
-				return truncated.map(x => (x.lr_truncated ? x + "…" : x)).join(componentSeparator);
+				return truncated.join(componentSeparator);
 			}
 			const href = first(valuesFromDescriptors(urlVariants(meta)));
 			if (href) {

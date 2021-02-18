@@ -21,15 +21,15 @@ var lr_test_format_org = lr_util.namespace("lr_test_format_org", lr_test_format_
 	const cases_limitSimple = [
 		[ [ "author", "title", "site" ], [ "author", "title", "site" ] ],
 		[
-			[ "author", "very long title", "site with very" ],
+			[ "author", "very long title", "site with very…" ],
 			[ "author", "very long title", "site with very long name as well" ],
 		],
 		[
-			[ "Site with empty page title and the" ],
+			[ "Site with empty page title and the…" ],
 			[ null, null, "Site with empty page title and the author" ],
 		],
 		[
-			[ "Only long author is specified on" ],
+			[ "Only long author is specified on…" ],
 			[ "Only long author is specified on this page", "", "" ],
 		],
 		[
@@ -37,11 +37,11 @@ var lr_test_format_org = lr_util.namespace("lr_test_format_org", lr_test_format_
 			[ null, "", null],
 		],
 		[
-			[ "The page with no metadata and only" ],
+			[ "The page with no metadata and only…" ],
 			[ null, "The page with no metadata and only the title is specified", null ],
 		],
 		[
-			[ "Author With A", "Title With a", "Even s" ],
+			[ "Author With A…", "Title With a…", "Even s…" ],
 			[
 				"Author With A Lot Of Names",
 				"Title With a Lot of Words",
@@ -118,17 +118,17 @@ var lr_test_format_org = lr_util.namespace("lr_test_format_org", lr_test_format_
 
 	const cases_truncate = [
 		[ 'very long title', 'very long title', 6, 15, 15 ],
-		[ 'Abcdefghij', 'Abcdefghijklmn', 8, 10, 12 ],
+		[ 'Abcdefghij…', 'Abcdefghijklmn', 8, 10, 12 ],
 		[ 'Abcdefghijklmn', 'Abcdefghijklmn', 8, 10, 15 ],
-		[ 'Abcdefgh', 'Abcdefgh ijklmn', 8, 10, 12 ],
-		[ 'Abcdefg hij', 'Abcdefg hij klmn', 6, 10, 14 ],
-		[ 'Abcdefgh', 'Abcdefgh ijkl mn', 6, 10, 14 ],
-		[ 'Ab defgh', 'Ab defgh.ijkl.mn', 6, 10, 14 ],
-		[ '(b defgh)', '(b defgh)ijklmn', 6, 10, 14 ],
+		[ 'Abcdefgh…', 'Abcdefgh ijklmn', 8, 10, 12 ],
+		[ 'Abcdefg hij…', 'Abcdefg hij klmn', 6, 10, 14 ],
+		[ 'Abcdefgh…', 'Abcdefgh ijkl mn', 6, 10, 14 ],
+		[ 'Ab defgh…', 'Ab defgh.ijkl.mn', 6, 10, 14 ],
+		[ '(b defgh)…', '(b defgh)ijklmn', 6, 10, 14 ],
 	];
 
 	var test_truncate = lr_test.parametrize(cases_truncate, function test_truncate(expected, ...args) {
-		lr_test.assertEq(expected, "" + lr_format_org.truncate(...args));
+		lr_test.assertEq(expected, lr_format_org.truncate(...args));
 	});
 
 	Object.assign(this, {
