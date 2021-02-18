@@ -646,10 +646,13 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 	const description = [];
 	let url;
 	for (const variant of linkUrlVariants) {
+		if (!variant.value && !variant.error) {
+			continue;
+		}
 		if (url == null) {
 			url = variant.value;
 		}
-		description.push(LrOrgDefinitionItem({ term: "Link URL" }, LrOrgLink({ href: variant.value })));
+		description.push(LrOrgDefinitionItem({ term: "Link URL" }, LrOrgLink({ descriptor: variant })));
 	}
 	for (const variant of (linkTextVariants || [])) {
 		description.push(LrOrgDefinitionItem({ term: "Link text" }, variant.value));
