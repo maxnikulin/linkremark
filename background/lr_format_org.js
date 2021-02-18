@@ -354,6 +354,27 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		return components;
 	}
 
+	function makeLinkTitle(meta) {
+		const { LrOrgWordSeparator, LrOrgLink } = lr_org_tree;
+		const components = [ 'Link:' ]; // TODO i18n
+		let text = first(
+			valuesFromDescriptors(meta.get('linkText')),
+			valuesFromDescriptors(meta.get('linkTitle')),
+			selectionLineGen(meta),
+		);
+		if (text) {
+			components.push(LrOrgWordSeparator, truncate(text, 30, 72, 80));
+		}
+		const remaining = components.reduce((r, c) => r - c.length, 82);
+		if (remaining > 25) {
+			const descriptor = first(meta.get('linkUrl'));
+			if (descriptor) {
+				components.push(LrOrgWordSeparator, LrOrgLink({ descriptor, lengthLimit: remaining }));
+			}
+		}
+		return components;
+	}
+
 	var urlWeightMap = new Map([
 		['link.canonical', 1000],
 		['meta.property.og:url', 100],
@@ -382,6 +403,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 	Object.assign(this, {
 		preferredPageTitle,
 		makeImageTitle,
+		makeLinkTitle,
 		truncate,
 		limitComponentsLength,
 		urlVariants,
@@ -621,16 +643,6 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 	const { LrOrgLink, LrOrgDefinitionItem, LrOrgWordSeparator } = lr_org_tree;
 
 	const linkTextVariants = meta.get("linkText");
-	const linkText0 = linkTextVariants && linkTextVariants[0].value;
-	// TODO try selection text if it short enough
-	// especially if it contains link text
-	const title = ["Link:"]; // TODO i18n
-	if (linkText0) {
-		title.push(LrOrgWordSeparator, linkText0);
-	}
-	if (!(linkText0 && linkText0.length > 20)) {
-		title.push(LrOrgWordSeparator, LrOrgLink({ href: linkUrlVariants[0].value }));
-	}
 	const description = [];
 	let url;
 	for (const variant of linkUrlVariants) {
@@ -650,6 +662,7 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 			description.push(LrOrgDefinitionItem({ term: name }, vairant.value));
 		}
 	}
+	const title = lr_format_org.makeLinkTitle(meta);
 	const config = { title, url, properties: baseProperties, baseProperties, description };
 	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
