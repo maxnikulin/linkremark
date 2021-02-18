@@ -333,6 +333,27 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		return titleComponents;
 	}
 
+	function makeImageTitle(meta) {
+		const { LrOrgWordSeparator, LrOrgLink } = lr_org_tree;
+		const components = [ 'Image:' ]; // TODO i18n
+		let text = first(
+			valuesFromDescriptors(meta.get('imageAlt')),
+			valuesFromDescriptors(meta.get('imageTitle')),
+			selectionLineGen(meta),
+		);
+		if (text) {
+			components.push(LrOrgWordSeparator, truncate(text, 30, 72, 80));
+		}
+		const remaining = components.reduce((r, c) => r - c.length, 82);
+		if (remaining > 25) {
+			const href = first(valuesFromDescriptors(meta.get('srcUrl')));
+			if (href) {
+				components.push(LrOrgWordSeparator, LrOrgLink({ href, lengthLimit: remaining }));
+			}
+		}
+		return components;
+	}
+
 	var urlWeightMap = new Map([
 		['link.canonical', 1000],
 		['meta.property.og:url', 100],
@@ -360,6 +381,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 
 	Object.assign(this, {
 		preferredPageTitle,
+		makeImageTitle,
 		truncate,
 		limitComponentsLength,
 		urlVariants,
@@ -570,9 +592,6 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 
 	const { LrOrgLink, LrOrgDefinitionItem } = lr_org_tree;
 	const url = meta.getAnyValue('srcUrl');
-	// FIXME limit text length
-	const imgTitle = meta.getAnyValue('imageAlt') || meta.getAnyValue('imageTitle') || LrOrgLink({ href: url });
-	const title = ["Image: ", imgTitle]; // TODO i18n
 	const properties = baseProperties.slice();
 	for (const url of lr_property_variants(meta, "srcUrl")) {
 		properties.push(["URL_IMAGE", url.value]);
@@ -586,6 +605,7 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 			description.push(LrOrgDefinitionItem({ term: name }, body));
 		}
 	}
+	const title = lr_format_org.makeImageTitle(meta);
 	const config = { title, url, properties, baseProperties, description };
 	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
