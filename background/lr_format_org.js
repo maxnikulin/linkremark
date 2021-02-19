@@ -346,9 +346,9 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		}
 		const remaining = components.reduce((r, c) => r - c.length, 82);
 		if (remaining > 25) {
-			const href = first(valuesFromDescriptors(meta.get('srcUrl')));
-			if (href) {
-				components.push(LrOrgWordSeparator, LrOrgLink({ href, lengthLimit: remaining }));
+			const descriptor = first(meta.get('srcUrl'));
+			if (descriptor) {
+				components.push(LrOrgWordSeparator, LrOrgLink({ descriptor, lengthLimit: remaining }));
 			}
 		}
 		return components;
@@ -616,14 +616,16 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 	const url = meta.getAnyValue('srcUrl');
 	const properties = baseProperties.slice();
 	for (const url of lr_property_variants(meta, "srcUrl")) {
-		properties.push(["URL_IMAGE", url.value]);
+		if (url.value && !url.error) {
+			properties.push(["URL_IMAGE", url.value]);
+		}
 	}
 
 	const description = [];
 	for (const [property, name] of [["srcUrl", "image URL"], ["imageAlt", "alt"], ["imageTitle", "title"]]) {
 		const variants = lr_property_variants(meta, property) || [];
 		for (let v of variants) {
-			const body = property === "srcUrl" ? LrOrgLink({ href: v.value }) : v.value;
+			const body = property === "srcUrl" ? LrOrgLink({ descriptor: v }) : v.value;
 			description.push(LrOrgDefinitionItem({ term: name }, body));
 		}
 	}
