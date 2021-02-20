@@ -2,6 +2,7 @@
 body {
 	font-family: sans-serif;
 	background-color: white;
+	overflow-wrap: anywhere
 }
 
 @media all and (min-width: 42em) {
@@ -51,7 +52,6 @@ textarea {
 }
 pre {
 	white-space: pre-wrap;
-	overflow-wrap: anywhere
 }
 .success {
 	background-color: #a0ffa0;
