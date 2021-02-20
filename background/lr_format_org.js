@@ -607,7 +607,10 @@ function lr_format_org_referrer(frame) {
 function lr_format_org_image(frameChain, target, baseProperties) {
 	const meta = frameChain[0];
 
-	if (meta.get('srcUrl') == null && meta.get('imageAlt') == null && meta.get('imageTitle') == null) {
+	if (target !== 'image' || (
+		meta.get('srcUrl') == null && meta.get('imageAlt') == null
+		&& meta.get('imageTitle') == null
+	)) {
 		console.error("No image captured"); // TODO report to error collector
 		return;
 	}
@@ -637,7 +640,7 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 function lr_format_org_link (frameChain, target, baseProperties) {
 	const meta = frameChain[0];
 	const linkUrlVariants = meta.get("linkUrl");
-	if (linkUrlVariants == null) {
+	if (target !== 'link' || linkUrlVariants == null) {
 		console.error("No link captured"); // TODO report to error collector
 		return
 	}
@@ -704,12 +707,13 @@ function lr_format_org_frame_chain(frameChain, target, baseProperties) {
 	).tree);
 }
 
-function lr_format_org(frameChain, target) {
+function lr_format_org(frameChain) {
 	if (!frameChain) {
 		throw new Error("Capture failed");
 	}
 	const baseProperties = [["DATE_ADDED", new Date()]];
 	let result = null;
+	const target = frameChain[0] && frameChain[0].target;
 	switch (target) {
 		case "image":
 			result = lr_format_org_image(frameChain, target, baseProperties);

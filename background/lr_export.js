@@ -47,9 +47,7 @@ var lr_export = function() {
 				throw new Error('No result in "object" format');
 			}
 			const frame = result.object[0];
-			result.org = lr_format_org(
-				result.object,
-				frame && frame.target);
+			result.org = lr_format_org(result.object);
 			return result.org;
 		});
 
