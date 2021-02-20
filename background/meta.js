@@ -200,28 +200,22 @@ class LrMetaVariants {
 			console.warn("LrMetaVariants.addDescriptor: empty argument");
 			return false;
 		}
-		const { key, value, ...attributes } = descriptor;
+		const { key, keys, value, ...attributes } = descriptor;
 		// FIXME allow multiple values with the same key
-		const keyEntry = this.keyMap.get(key);
-		if (keyEntry != null) {
-			if (keyEntry.value === value) {
-				return;
-			}
-			const keyIndex = keyEntry.keys.indexOf(key);
-			if (keyIndex >= 0) {
-				keyEntry.keys.splice(keyIndex, 1);
-				if (keyEntry.keys.length === 0) {
-					this.valueMap.delete(keyEntry.value);
-					this.keyMap.delete(key);
-					this.array.splice(this.array.indexOf(keyEntry), 1);
-				}
-			}
+		const keyVariants = [];
+		if (key) {
+			keyVariants.push(key);
+		}
+		if (keys) {
+			keyVariants.push(...keys);
+		}
+		if (!(keyVariants.length > 0)) {
+			console.error("LrMetaVariants: no keys %s", keyVariants);
+			return false;
 		}
 		let valueEntry = this.valueMap.get(value);
-		if (valueEntry != null) {
-			valueEntry.keys.push(key);
-		} else {
-			valueEntry = { value, keys: [key] };
+		if (valueEntry == null) {
+			valueEntry = { value, keys: [] };
 			this.array.push(valueEntry);
 			this.valueMap.set(value, valueEntry);
 		}
@@ -233,7 +227,27 @@ class LrMetaVariants {
 			}
 			valueEntry[attrKey] = attrValue;
 		}
-		this.keyMap.set(key, valueEntry);
+
+		for (const keyItem of keyVariants) {
+			const keyEntry = this.keyMap.get(keyItem);
+			if (keyEntry != null) {
+				if (keyEntry.value === value) {
+					continue;
+				}
+				const keyIndex = keyEntry.keys.indexOf(keyItem);
+				if (keyIndex >= 0) {
+					keyEntry.keys.splice(keyIndex, 1);
+					if (keyEntry.keys.length === 0) {
+						this.valueMap.delete(keyEntry.value);
+						this.keyMap.delete(keyItem);
+						this.array.splice(this.array.indexOf(keyEntry), 1);
+					}
+				}
+			}
+			valueEntry.keys.push(keyItem);
+			this.keyMap.set(keyItem, valueEntry);
+		}
+		return true;
 	}
 	getValueByKey(key) {
 		const entry = this.keyMap.get(key);
@@ -278,6 +292,7 @@ class LrMetaVariants {
 			this.keyMap.delete(key);
 		}
 		this.array.splice(this.array.indexOf(entry), 1);
+		return true;
 	};
 	get size() { return this.array.length; };
 }
@@ -308,12 +323,7 @@ class LrMeta {
 		if (value == null) {
 			return false;
 		}
-		if (!this.propertyMap.has(property)) {
-			const array = [];
-			this[property] = array;
-			this.propertyMap.set(property, new LrMetaVariants(array));
-		}
-		this.propertyMap.get(property).set(value, "" + key);
+		this.ensureVariants(property).set(value, "" + key);
 		return true;
 	};
 	addDescriptor(property, descriptor) {
@@ -328,13 +338,21 @@ class LrMeta {
 			console.error("LrMeta.addDescriptor: descriptor is not an object: %o %o", property, descriptor);
 			return false;
 		}
-		let { key, value, error, ...other } = descriptor;
+		let { value, error, ...other } = descriptor;
 		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
 		const sanitizedResult = sanitizer(value, error);
-		if (!key) {
+		const keyObject = {};
+		if (!descriptor.key && !descriptor.keys) {
 			console.error("LrMeta.addDescriptor: missed key: %o %o", property, descriptor);
-			key = "unspecified." + property;
+			keyObject.key = "unspecified." + property;
 		}
+		const variants = this.ensureVariants(property);
+		// Value is added only if sanitizer set it
+		variants.addDescriptor({...other, error, ...sanitizedResult, ...keyObject});
+		return true;
+	}
+
+	ensureVariants(property) {
 		let variants = this.propertyMap.get(property);
 		if (!variants) {
 			const array = [];
@@ -342,9 +360,35 @@ class LrMeta {
 			variants = new LrMetaVariants(array);
 			this.propertyMap.set(property, variants);
 		}
-		// Value is added only if sanitizer set it
-		variants.addDescriptor({...other, error, ...sanitizedResult, key});
-		return true;
+		return variants;
+	}
+
+	move(descriptor, fromProperty, toProperty) {
+		const argErrors = [];
+		if (!fromProperty || typeof fromProperty !== "string") {
+			argErrors.push("fromProperty not a string or empty");
+		}
+		if (!toProperty || typeof toProperty !== "string") {
+			argErrors.push("toProperty not a string or empty");
+		}
+		if (!descriptor || typeof descriptor !== "object") {
+			argErrors.push("descriptor is not an object or empty");
+		}
+		if (argErrors.length !== 0) {
+			console.error(
+				"LrMeta.move(%o, %o, %o): %o",
+				descriptor, fromProperty, toProperty, argErrors);
+			return false;
+		}
+		const deleted = this.deleteValue(fromProperty, descriptor.value);
+		const sanitizer = this.sanitizerMap.get(toProperty);
+		if (!deleted || this.sanitizerMap.get(fromProperty) !== sanitizer) {
+			const message = deleted ? "source and target sanitizers differ"
+				: "no descriptor in fromProperty";
+			console.warn("LrMeta.move: %s: %o %o", message, fromProperty, toProperty);
+			return this.addDescriptor(toProperty, descriptor);
+		}
+		return this.ensureVariants(toProperty).addDescriptor(descriptor);
 	}
 
 	addStructure(property, descriptor) {
@@ -387,11 +431,15 @@ class LrMeta {
 	};
 	deleteValue(property, value) {
 		const variants = this.propertyMap.get(property);
-		variants.deleteValue(value);
+		if (!variants) {
+			return false;
+		}
+		const retval = !!variants.deleteValue(value);
 		if (!(variants.size > 0)) {
 			this.propertyMap.delete(property);
 			delete this[property];
 		}
+		return retval;
 	};
 };
 
@@ -583,10 +631,7 @@ lr_meta.removeDescriptionDuplicate = function(metaMap) {
 	for (let description of descriptionVariants) {
 		if (titleSet.has(description.value)) {
 			console.debug("LR clean meta: remove description similar to title %o", description);
-			metaMap.deleteValue('description', description.value);
-			for (const key of description.keys) {
-				lr_meta.copyProperty(description.value, metaMap, 'title', key);
-			}
+			metaMap.move(description, 'description', 'title');
 		}
 	}
 };
@@ -600,10 +645,7 @@ lr_meta.removeTextLinkDuplicate = function(metaMap) {
 	for (const entry of linkTextVariants) {
 		if (linkUrlSet.has(entry.value)) {
 			console.debug("LR clean meta: remove linkText similar to linkUrl %o", entry);
-			metaMap.deleteValue('linkText', entry.value);
-			for (const key of entry.keys) {
-				lr_meta.copyProperty(entry.value, metaMap, 'linkUrl', key);
-			}
+			metaMap.move(entry, 'linkText', 'linkUrl');
 		}
 	}
 };
