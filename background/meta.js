@@ -610,6 +610,7 @@ lr_meta.merge = function(frameInfo) {
 		this.removeDescriptionDuplicate,
 		this.removeTextLinkDuplicate,
 		this.removeNonCanonicalSlash,
+		this.removeSelfLink,
 	];
 	for (const method of cleanupMethods) {
 		try {
@@ -674,6 +675,69 @@ lr_meta.removeNonCanonicalSlash = function(meta) {
 	}
 	const toRemove = canonical.endsWith("/") ? canonical.replace(/\/$/, "") : canonical + "/";
 	meta.deleteValue("url", toRemove);
+};
+
+/**
+ * Discard `meta.target` if all `linkUrl` values present
+ * in `url` properties if hash (fragment anchor) part of URLs are removed.
+ * Link considered external in the case of invalid or "data:" URL.
+ * "javascript:" links are considered as having target withing the same page.
+ */
+lr_meta.removeSelfLink = function(meta) {
+	if (meta.target !== 'link') {
+		return meta;
+	}
+	let foreignCandidates = [];
+	let selfLinks = [];
+	for (const link of meta.get('linkUrl') || []) {
+		if (!link || !link.value) {
+			continue;
+		} else if (link.value.startsWith('data:')) {
+			return meta;
+		} else if (link.value.startsWith('javascript:')) {
+			continue;
+		} else {
+			foreignCandidates.push(link);
+		}
+	}
+	if (foreignCandidates.length >= 0) {
+		const urlSet = new Set();
+
+		// May throw
+		function removeUrlHash(href) {
+			const url = new URL(href);
+			url.hash = "";
+			return url.href;
+		}
+
+		for (const entry of meta.get('url')) {
+			try {
+				if (!entry || !entry.value) {
+					continue;
+				}
+				urlSet.add(removeUrlHash(entry.value));
+			} catch (ex) {
+				console.debug("lr_meta.removeSelfLink", ex);
+			}
+		}
+		for (const link of foreignCandidates) {
+			try {
+				if (urlSet.has(removeUrlHash(link.value))) {
+					selfLinks.push(link);
+				} else {
+					return meta;
+				}
+			} catch (ex) {
+				return meta;
+			}
+		};
+	}
+	for (const link of selfLinks) {
+		meta.move(link, 'linkUrl', 'url');
+	}
+
+	delete meta.target;
+	return meta;
 };
 
 lr_meta.mergeLdJson = function(frameInfo, meta) {

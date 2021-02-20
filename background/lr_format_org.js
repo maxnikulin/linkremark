@@ -376,6 +376,9 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 	}
 
 	var urlWeightMap = new Map([
+		// links to the same page are sorted first
+		['link.href', 2000],
+		['clickData.linkUrl', 2000],
 		['link.canonical', 1000],
 		['meta.property.og:url', 100],
 		['clickData.srcUrl', 10],
@@ -394,9 +397,17 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		const weightedVariants = urlVariants
 			.filter(x => x.value)
 			.map(entry => ({
-				value: entry.value, weight: entry.keys.map(urlWeight).reduce((a, b) => a + b, 0)
+				value: entry.value,
+				weight: entry.keys.map(urlWeight).reduce((a, b) => a + b, 0),
+				error: entry.error,
 			}));
-		weightedVariants.sort((a, b) => b.weight - a.weight);
+		weightedVariants.sort((a, b) => {
+			if (!a.error === !b.error) {
+				return b.weight - a.weight;
+			} else {
+				return !b.error - !a.error;
+			}
+		});
 		yield* weightedVariants;
 	}
 
@@ -575,6 +586,11 @@ function lr_format_org_frame(frame, options = {}) {
 	if (description) {
 		body.push(LrOrgDefinitionItem({ term: "description" }, description));
 	}
+	if (frame.target !== "link") {
+		// Link to particular part of the same page is not formatted as a link.
+		body.push(...lr_format_org_link_text_properties(frame));
+	}
+
 	body.push(LrOrgSeparatorLine);
 	if (!options.suppressSelection) {
 		body.push(...lr_format_org_selection(frame));
