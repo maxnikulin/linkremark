@@ -637,6 +637,19 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
 
+function* lr_format_org_link_text_properties(meta) {
+	const { LrOrgDefinitionItem } = lr_org_tree;
+	for (const [property, name] of [
+		[ "linkText", "Link text" ],
+		["linkTitle", "Link title"], ["linkHreflang", "Link language"],
+		["linkType", "Link type"], ["linkDownload", "Link file hint"]]
+	) {
+		for (const variant of (meta.get(property) || [])) {
+			yield LrOrgDefinitionItem({ term: name }, variant.value);
+		}
+	}
+}
+
 function lr_format_org_link (frameChain, target, baseProperties) {
 	const meta = frameChain[0];
 	const linkUrlVariants = meta.get("linkUrl");
@@ -647,7 +660,6 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 
 	const { LrOrgLink, LrOrgDefinitionItem, LrOrgWordSeparator } = lr_org_tree;
 
-	const linkTextVariants = meta.get("linkText");
 	const description = [];
 	let url;
 	for (const variant of linkUrlVariants) {
@@ -659,17 +671,7 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 		}
 		description.push(LrOrgDefinitionItem({ term: "Link URL" }, LrOrgLink({ descriptor: variant })));
 	}
-	for (const variant of (linkTextVariants || [])) {
-		description.push(LrOrgDefinitionItem({ term: "Link text" }, variant.value));
-	}
-	for (const [property, name] of [
-		["linkTitle", "Link title"], ["linkHreflang", "Link language"],
-		["linkType", "Link type"], ["linkDownload", "Link file hint"]]
-	) {
-		for (const variant of (meta.get(property) || [])) {
-			description.push(LrOrgDefinitionItem({ term: name }, vairant.value));
-		}
-	}
+	description.push(...lr_format_org_link_text_properties(meta));
 	const title = lr_format_org.makeLinkTitle(meta);
 	const config = { title, url, properties: baseProperties, baseProperties, description };
 	return lr_format_frame_chain_with_target(frameChain, target, config);
