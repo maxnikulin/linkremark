@@ -19,7 +19,7 @@
 
 var gDescriptors = false;
 
-function E(tagName, attrs, child) {
+function E(tagName, attrs, ...children) {
 	const e = document.createElement(tagName);
 	for (const [attr, value] of Object.entries(attrs || {})) {
 		if (attr === "className") {
@@ -28,7 +28,7 @@ function E(tagName, attrs, child) {
 			e.setAttribute(attr, value != null ? value : "");
 		}
 	}
-	if (child) {
+	for (const child of children) {
 		e.append(child);
 	}
 	return e;
@@ -69,24 +69,79 @@ function applyValueObject(form, property) {
 			real.value = realValue || "";
 			break;
 	}
+	try {
+		const def = form[property.name + ".useDefault"];
+		const div = document.getElementById("container." + property.name);
+		if (def.checked) {
+			div.classList.add("defaultValue");
+			div.classList.remove("userValue");
+		} else {
+			div.classList.add("userValue");
+			div.classList.remove("defaultValue");
+		}
+	} catch (ex) {
+		console.error("applyValueObject %o: %o", property, ex);
+	}
+}
+
+function formatInput(property, options) {
+	const isDefault = options && options.isDefault;
+	const inputName = isDefault ? property.name + ".default" : "real." + property.name;
+	switch (getType(property)) {
+		case "boolean":
+			const checkbox = E("input", {
+				type: "checkbox",
+				name: inputName,
+			});
+			if (isDefault) {
+				// readOnly is not supported for non-text inputs
+				checkbox.disabled = true;
+				checkbox.checked = !!property.defaultValue;
+			}
+			return E("label", null, checkbox, "Active");
+			break;
+		case "text":
+			const textarea = E("textarea", { name: inputName });
+			textarea.readOnly = isDefault;
+			return textarea;
+			break;
+		default:
+			const input = E("input", { name: inputName });
+			if (isDefault) {
+				input.readOnly = true;
+				input.value = property.defaultValue != null ? property.defaultValue : "";
+			}
+			return input;
+			break;
+	}
 }
 
 function formatDefault(property) {
-	const span = document.createElement("span");
-	const label = E("label");
+	const attrs = getType(property) === "text" ? null : { className: "flexLineContainer" };
+	const divDefault = E("div", attrs);
+	divDefault.classList.add("defaultInputContainer");
+	divDefault.append(E("input", {
+		type: "hidden",
+		name: property.name + ".date",
+		value: property.value && property.value.date,
+	}));
+	divDefault.append(E("input", {
+		type: "hidden",
+		name: property.name + ".version",
+		value: property.value && property.value.version,
+	}));
+	const label = E("label", { className: "flexFixed" });
 	const checkbox = E("input", {
 		type: "checkbox", name: property.name + ".useDefault",
 	});
 	checkbox.checked = !property.value || property.value.useDefault;
 	label.append(checkbox);
 	label.append("Use default:" + " ");
-	span.append(label);
-	span.append(E("input", {
-		readonly: true,
-		name: property.name + ".default",
-		value: property.defaultValue != null ? property.defaultValue : "",
-	}));
-	return span;
+	divDefault.append(label);
+	const input = formatInput(property, { isDefault: true });
+	input.classList.add("defaultInput");
+	divDefault.append(input);
+	return divDefault;
 }
 
 function getType(property) {
@@ -98,37 +153,20 @@ function getType(property) {
 	return "string";
 }
 
-function formatInput(property) {
-	const div = E("div");
-	const inputName = "real." + property.name;
-	switch (getType(property)) {
-		case "boolean":
-			const label = E("label");
-			label.append(E("input", { type: "checkbox", name: inputName }));
-			label.append(document.createTextNode("Value"));
-			div.append(label);
-			break;
-		case "text":
-			const textDiv = E("div");
-			textDiv.append(E("textarea", { name: inputName }));
-			div.append(textDiv);
-			break;
-		default:
-			div.append(E("input", { name: inputName }));
-			break;
+function formatPropertyInputs(property) {
+	const isText = getType(property) === "text";
+	const input = formatInput(property);
+	input.classList.add("userInput");
+	const inputContainer = E("div", { className: "userInputContainer", }, input);
+	if (!isText) {
+		inputContainer.classList.add("flexLineContainer");
 	}
-	div.append(E("input", {
-		type: "hidden",
-		name: property.name + ".date",
-		value: property.value && property.value.date,
-	}));
-	div.append(E("input", {
-		type: "hidden",
-		name: property.name + ".version",
-		value: property.value && property.value.version,
-	}));
-	div.append(formatDefault(property));
-	return div;
+	const divDefault = formatDefault(property);
+	const attrs = { id: "container." + property.name, };
+	if (!isText) {
+		attrs.className = "flexLineContainer";
+	}
+	return E("div", attrs, inputContainer, divDefault);
 }
 
 async function lrInputChanged(e) {
@@ -162,7 +200,7 @@ async function renderDescriptors() {
 	for (const property of descriptors) {
 		const div = document.createElement("div");
 		div.append(E("h3", null, property.title));
-		div.append(formatInput(property));
+		div.append(formatPropertyInputs(property));
 		div.append(formatDetails(property));
 		form.append(div);
 	}

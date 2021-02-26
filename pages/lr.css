@@ -34,19 +34,127 @@ body {
 	}
 }
 
-.expandable {
-	width: max-content;
-	max-width: 100%;
+/* Make focused element clearly distinguishable.
+ * Firefox does not draw outline on preview page at all,
+ * Chromium adds thick enough black solid line. */
+:focus {
+	outline: none;
+	box-shadow: 0px 0px 2pt 2pt deepskyblue;
 }
+
+/* Emphasize whether user or default value is active by thick underline. */
+div.userValue div.userInputContainer, div.defaultValue div.defaultInputContainer {
+	box-shadow: 0px 5px 0px 0px steelblue;
+}
+
+div.userInputContainer, div.defaultInputContainer {
+	/* Reserve space for shadow cast by active value. */
+	padding-bottom: 2px;
+	margin-bottom: 7px;
+}
+
+div.defaultValue .userInput {
+	opacity: 0.6;
+}
+
+/* Force reset of style of input form elements.
+ * Adjusting some property, e.g. background color
+ * could reset other values from desktop environment defaults
+ * to browser default style.
+ * Chrome defaults are too heavy and black at least on linux.
+ */
+textarea, input:not([type]), input[type="text"] {
+	border-color: lightsteelblue;
+}
+
+textarea, input:not([type]), input[type="text"], button {
+	border-style: solid;
+	border-width: thin;
+	border-radius: 2pt;
+}
+
+textarea:read-only, input:not([type]):read-only, input[type="text"]:read-only {
+	border-style: solid;
+	background-color: gainsboro;
+	border-color: gray;
+}
+
+button {
+	padding: 1ex;
+	margin: 0.75ex;
+	border-color: darkgray;
+}
+
+/* Group of form fields that occupy single or two lines */
+.flexLineContainer {
+	display: flex;
+	flex-wrap: wrap;
+	flex-grow: 1;
+	align-items: baseline;
+}
+
+.flexLineContainer > * {
+	flex-grow: 1;
+}
+
+.flexLineContainer > .flexFixed {
+	flex-grow: 0;
+}
+
+/* Gaps between columns of form fields */
+.flexLineContainer {
+	margin-inline: -0.25ex;
+}
+
+.flexLineContainer > * {
+	margin-inline: 0.25ex;
+}
+
+/* Align checkbox to the left content edge in two-line layout */
+input[type="checkbox"] {
+	margin-left: 0px;
+}
+
+button {
+	margin-inline-start: 0px;
+	margin-inline-end: 1.5ex;
+}
+
+input[type="file"] {
+	padding-left: 0px;
+}
+
+/* Align right textarea to right edge of content */
+textarea {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+button {
+	min-width: 18ex;
+}
+
+/* Attempt to avoid grid layout with media queries.
+ * Ensure that input labels have the same size on the preview page. */
+div.fixed {
+	min-width: 5ex;
+}
+
+/* Set minimum width but allow to shrink in narrow window. */
+input.long {
+	width: 25em;
+}
+
 
 h1 {
 	font-size: 1.5em;
 }
 
-textarea {
-	max-width: 100%;
-	outline-offset: 0.25ex;
+* > h1:first-child {
+	/* Remove space at the top of the page */
+	margin-top: 0px;
 }
+
 .error {
 	background-color: #ffa0a0;
 }
@@ -68,35 +176,16 @@ ul {
 	padding-left: 0px;
 }
 
-/* Firefox does not draw outline on preveiw page at all,
- * Chromium adds thich enough black solid line. */
-:focus {
-	outline: #4040c0 dotted medium;
-}
-
-input {
+input, textarea {
 	padding-top: 0.25ex;
 	padding-bottom: 0.25ex;
+	padding-inline: 0.5ex;
 	margin-top: 0.75ex;
 	margin-bottom: 0.75ex;
 }
 
-button {
-	padding: 0.25ex;
-	margin: 0.75ex;
-}
-
-button, input {
-	outline-offset: 0.25ex;
-}
-
-button {
-	min-width: 15ex;
-}
-
 details {
 	margin-top: 1ex;
-	outline-offset: 0.25ex;
 }
 
 details.section[open] > summary, details[open] > summary .wrappedSection {
@@ -105,22 +194,6 @@ details.section[open] > summary, details[open] > summary .wrappedSection {
 }
 
 div.p {
-	margin-top: 0.5ex;
-	margin-bottom: 0.5ex;
-	padding: 0.5ex;
-}
-
-label.half {
-	display: inline-block;
-	min-width: 45%;
-}
-
-input.long {
-	max-width: 100%;
-	box-sizing: border-box;
-}
-
-span.fixed {
-	display: inline-block;
-	min-width: 5ex;
+	margin-top: 1ex;
+	margin-bottom: 1ex;
 }

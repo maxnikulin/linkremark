@@ -27,18 +27,22 @@
               <button id="orgProtocolLaunchClose">Launch and Close</button>
               <button id="orgProtocolLaunch">Launch Handler</button>
             </div>
-            <div>
-              <label>Template in Emacs <input name="template" size="3"></label>
-            </div>
-            <div>
-              <label><span class="fixed">Title</span> <input class="long" name="title" size="57"></label>
-            </div>
-            <div>
-              <label><span class="fixed">Url</span> <input class="long" name="url" size="57"></label>
-            </div>
-            <div>
-              <label class="half"><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
-              <label class="half"><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
+            <label class="flexLineContainer">
+              <div class="flexFixed fixed">Key</div>
+              <input name="template" size="3" class="flexFixed">
+              <div class="flexFixed">(name of template in Emacs)</div>
+            </label>
+            <label class="flexLineContainer">
+              <div class="flexFixed fixed">Title</div>
+              <input class="long" name="title">
+            </label>
+            <label class="flexLineContainer">
+              <div class="flexFixed fixed">Url</div>
+              <input class="long" name="url">
+            </label>
+            <div class="flexLineContainer">
+              <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
+              <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
             </div>
           </details>
           <ul id="actionResult">
