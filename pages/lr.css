@@ -2,12 +2,17 @@
 /* Limit content width and add optional margin color on wide screens */
 
 body {
-	font-family: sans-serif;
+	/* Injected CSS (desktop theme?) could cause 1em smaller
+	 * for body than for html element and result in inconsistent
+	 * margins.
+	 *
+	 * Do not use `font-size` since it affects monospace font as well. */
+	font: 1rem system-ui, sans-serif;
 	background-color: white;
 	color: black;
 	margin: 0px auto;
-	padding: 1em;
-	width: 44em;
+	padding: 1rem;
+	width: 44rem;
 	max-width: 100%;
 	box-sizing: border-box;
 	overflow-wrap: anywhere;
@@ -18,23 +23,23 @@ body.expandable {
 	 * Reserve 1em for scrollbar, so effective right padding with scrollbar is 0.5em,
 	 * and the same padding without scrollbar is 0.5em.
 	 * On narrow screen there is no room for html margin, so use body padding. */
-	padding-inline-end: calc(1.5em + 100% - 100vw);
+	padding-inline-end: calc(1.5rem + 100% - 100vw);
 	/* Redundant due to max-width and the following media query. */
-	width: 44.5em;
+	width: 44.5rem;
 }
 
-@media all and (min-width: 44.5em) {
+@media all and (min-width: 44.5rem) {
 	/* Fix base body width, so transfer scrollbar width
 	 * from body padding to html margin.
 	 * There is still no space for regular body padding.
 	 * Body margins (auto) start growing. */
 	html.expandable {
-		margin-inline-start: 1em;
-		margin-inline-end: calc(1.5em + 100% - 100vw);
+		margin-inline-start: 1rem;
+		margin-inline-end: calc(1.5rem + 100% - 100vw);
 	}
 	body.expandable {
 		padding-inline: 0px;
-		width: 42em;
+		width: 42rem;
 	}
 
 	/* Indent for collapsible details sections */
@@ -49,12 +54,12 @@ body.expandable {
 	/* Content inside body.expandable that should not occupy whole width
 	 * on wide screens. */
 	.limitedWidth {
-		width: 42em;
+		width: 42rem;
 		margin-inline: auto;
 	}
 }
 
-@media all and (min-width: 46.5em) {
+@media all and (min-width: 46.5rem) {
 	/* Wide enough screen to have color margins, set fixed body padding,
 	 * and to allow debug info consume available width.
 	 * Minimal color margin width determined by html element
@@ -64,8 +69,8 @@ body.expandable {
 		background-color: lightblue;
 	}
 	body.expandable {
-		padding-inline: 1em;
-		width: 44em;
+		padding-inline: 1rem;
+		width: 44rem;
 		/* Wide margins on wide screen when debug info is closed */
 		width: max-content;
 	}
@@ -75,8 +80,8 @@ body.expandable {
  * and on smartphones. */
 @media all and (min-height: 800px) {
 	html {
-		margin-top: 1em;
-		margin-bottom: 1em;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
 	}
 }
 
@@ -188,12 +193,12 @@ div.fixed {
 
 /* Set minimum width but allow to shrink in narrow window. */
 input.long {
-	width: 25em;
+	width: 25rem;
 }
 
 
 h1 {
-	font-size: 1.5em;
+	font-size: 1.5rem;
 }
 
 * > h1:first-child {
@@ -206,6 +211,8 @@ h1 {
 }
 pre {
 	white-space: pre-wrap;
+	/* Respect user font size preference despite explicit body font 1rem */
+	font-size: initial;
 }
 .success {
 	background-color: #a0ffa0;
