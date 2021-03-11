@@ -130,6 +130,7 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 				"Added purely for user convenience.",
 				"Do not try to store here something important.",
 			],
+			priority: 100,
 		});
 	};
 
@@ -175,7 +176,67 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 	};
 
 	this.getDescriptors = function() {
-		return Array.from(this.settingsMap.values()).map(param => {
+		const { LrMultiMap } = lr_multimap;
+		const settingsMap = this.settingsMap;
+		const ROOT_NODE = Symbol.for("LrRootNode");
+		function getParentId(descriptor) {
+			const par = descriptor.parent;
+			if (par == null) {
+				return ROOT_NODE;
+			}
+			if (!settingsMap.has(par)) {
+				console.warn("lr_settings.getDescriptors: unknown parent %o", par);
+				return ROOT_NODE;
+			}
+			return par;
+		}
+
+		const settingsTree = new LrMultiMap();
+		for (const descriptor of settingsMap.values()) {
+			settingsTree.set(getParentId(descriptor), descriptor);
+		}
+
+		function* deepFirstSortedTree(tree, cmp) {
+			const unseen = new Set(tree.values());
+			const queue = [];
+			function pushChildren(queue, nodeId) {
+				const children = nodeId && tree.get(nodeId);
+				if (!children) {
+					return;
+				}
+				let next = Array.from(children);
+				if (cmp) {
+					next.sort(cmp);
+				}
+				// reverse to preserve insertion order if priority is not specified
+				queue.push(...next.reverse());
+			}
+			unseen.delete(tree.get(ROOT_NODE));
+			pushChildren(queue, ROOT_NODE);
+			while (unseen.size > 0) {
+				while (queue.length > 0) {
+					const e = queue.pop();
+					if (unseen.delete(e)) {
+						yield e;
+						pushChildren(queue, e.name);
+					}
+				}
+				// take first unset element if there is any
+				for (const cyclic of unseen) {
+					console.warn("LR: cycle in a tree: %o", cyclic);
+					queue.push(cyclic);
+					break;
+				}
+			}
+		}
+
+		function priorityGreater(a, b) {
+			const pa = a && a.priority || 0;
+			const pb = b && b.priority || 0;
+			return pb - pa;
+		}
+
+		return Array.from(deepFirstSortedTree(settingsTree, priorityGreater), param => {
 			const retval = Object.assign({}, param, { value: (this.current || {})[param.name] });
 			if (lr_util.isFunction(retval.description)) {
 				retval.description = retval.description();

@@ -34,6 +34,7 @@ var lr_export = function() {
 					methods
 				].join(" ");
 			},
+			priority: 50,
 		});
 	};
 
