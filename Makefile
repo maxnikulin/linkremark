@@ -54,6 +54,7 @@ firefox-dist: firefox
 		"background/init.js" \
 		"common/bapi.js" \
 		"background/lr_util.js" \
+		"background/lr_multimap.js" \
 		"background/lr_format_org.js" \
 		"background/meta.js" \
 		"background/native.js" \

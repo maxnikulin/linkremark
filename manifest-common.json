@@ -53,6 +53,7 @@
 			"background/init.js",
 			"common/bapi.js",
 			"background/lr_util.js",
+			"background/lr_multimap.js",
 			"background/lr_formatter.js",
 			"background/lr_format_org.js",
 			"background/lr_org_buffer.js",
