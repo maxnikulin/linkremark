@@ -41,8 +41,14 @@ var lr_native_messaging = function() {
 	}
 
 	this.initSync = function () {
+		lr_settings.registerGroup({
+			name: "export.methods.nativeMessaging",
+			title: "Browser native messaging communication channel",
+			priority: 10,
+		});
 		lr_settings.registerOption({
 			name: "export.methods.nativeMessaging.backend",
+			parent: "export.methods.nativeMessaging",
 			defaultValue: null,
 			version: "0.1",
 			title: "Name of native messaging backend application",

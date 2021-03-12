@@ -22,11 +22,16 @@ var lr_export = function() {
 	this.methodMap = new Map();
 
 	this.initAsync = async function() {
+		lr_settings.registerGroup({
+			name: "export",
+			title: "Communication Channel",
+			priority: 50,
+		});
 		lr_settings.registerOption({
 			name: "export.method",
 			defaultValue: "clipboard",
 			version: "0.1",
-			title: "Method how to transfer capture to desktop environment",
+			title: "Method how to pass capture to desktop environment",
 			description: () => {
 				const methods = lr_export.getAvailableMethods().map(x => `"${x}"`).join(" ");
 				return [
@@ -34,7 +39,7 @@ var lr_export = function() {
 					methods
 				].join(" ");
 			},
-			priority: 50,
+			parent: "export",
 		});
 	};
 

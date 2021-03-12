@@ -34,25 +34,25 @@ function E(tagName, attrs, ...children) {
 	return e;
 }
 
-function formatDetails(property) {
+function getDescriptionParagraphs(property) {
 	let text = property && property.description;
 	if (!text) {
-		return "\n";
+		return [];
 	}
 	if (Array.isArray(text)) {
 		text = text.join(" ");
 	}
 	const paragraphs = text.split("\n");
-	const details = E("details", { open: "true" });
+	return paragraphs.map(p => E("p", null, p));
+}
+function formatDetails(property) {
+	const pars = getDescriptionParagraphs(property);
 
-	const pName = E("p");
-	pName.append(E("code", null, property.name));
-	details.append(pName);
-
-	for (const p of paragraphs) {
-		details.append(E("p", null, p));
+	const pName = E("p", null, E("code", null, property.name));
+	if (!pars || !(pars.length > 0)) {
+		return pName;
 	}
-	return details;
+	return E("details", { open: "true" }, pName, ...pars);
 }
 
 function applyValueObject(form, property) {
@@ -199,13 +199,22 @@ async function renderDescriptors() {
 	gDescriptors = new Map(descriptors.map(p => [p.name, p]));
 	for (const property of descriptors) {
 		const div = document.createElement("div");
-		div.append(E("h3", null, property.title));
-		div.append(formatPropertyInputs(property));
-		div.append(formatDetails(property));
-		form.append(div);
+		if ("defaultValue" in property) {
+			div.append(E("h3", null, property.title));
+			div.append(formatPropertyInputs(property));
+			div.append(formatDetails(property));
+			form.append(div);
+		} else {
+			form.append(E("h2", null, property.title));
+			if (property.description) {
+				form.append(E("div", null, ...getDescriptionParagraphs(property)));
+			}
+		}
 	}
 	for (const property of descriptors) {
-		applyValueObject(form, property);
+		if ("defaultValue" in property) {
+			applyValueObject(form, property);
+		}
 	}
 	form.addEventListener("change", lrInputChanged, false);
 }

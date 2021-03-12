@@ -35,7 +35,21 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 		}
 		this.settingsMap.set(details.name, details);
 	};
-	
+
+	this.registerGroup = function(details) {
+		if (details == null) {
+			console.error("lr_settings.registerOption called with argument " + details);
+			return;
+		}
+		/* description is optional */
+		for (const property of ["name", "title"]) {
+			console.assert(
+				details[property] !== undefined,
+				`Settings option ${details.name} should define ${property}`);
+		}
+		this.settingsMap.set(details.name, details);
+	};
+
 	this.getCurrent = function() {
 		return this.current;
 	};
@@ -90,6 +104,20 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 	this.initSync = function() {
 		this.version = bapi.runtime.getManifest().version;
 
+		this.registerGroup({
+			name: "internal",
+			title: "Internal Settings",
+			description: [
+				"Settings in this group should not be modified by users.",
+				"They are exposed for troubleshooting.",
+			],
+			priority: 0,
+		});
+		this.registerGroup({
+			name: "informational",
+			title: "Informational Options",
+			priority: 100,
+		});
 		this.registerOption({
 			name: this.NAME_SETTING,
 			defaultValue: this.EXTENSION_NAME,
@@ -100,6 +128,7 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 				"to load settings from backup created by another extension.",
 				"Do not change this value",
 			],
+			parent: "internal",
 		});
 		this.registerOption({
 			name: "settings.version",
@@ -109,28 +138,30 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 			description: [
 				"In future it might affect effective default values",
 			],
-		});
-		this.registerOption({
-			name: "settings.date",
-			defaultValue: this.date(),
-			title: "Date and time when settings were modified last time",
-			version: "0.1",
-			description: [
-				"Created with hope that it will help to realize",
-				"when settings backup file were created",
-			],
+			parent: "internal",
 		});
 		this.registerOption({
 			name: "settings.comment",
 			defaultValue: null,
-			title: "Some note to describe the state or last chages",
+			title: "Some note to describe the state or last changes",
 			version: "0.1",
 			type: "text",
 			description: [
 				"Added purely for user convenience.",
 				"Do not try to store here something important.",
 			],
-			priority: 100,
+			parent: "informational",
+		});
+		this.registerOption({
+			name: "settings.date",
+			defaultValue: this.date(),
+			title: "Date and time when settings were initialized",
+			version: "0.1",
+			description: [
+				"Created with hope that it will help to realize",
+				"when settings backup file were created",
+			],
+			parent: "internal",
 		});
 	};
 
@@ -237,7 +268,10 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 		}
 
 		return Array.from(deepFirstSortedTree(settingsTree, priorityGreater), param => {
-			const retval = Object.assign({}, param, { value: (this.current || {})[param.name] });
+			const retval = Object.assign({}, param)
+			if ("defaultValue" in param) {
+				Object.assign(retval, { value: (this.current || {})[param.name] });
+			}
 			if (lr_util.isFunction(retval.description)) {
 				retval.description = retval.description();
 			}
