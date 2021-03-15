@@ -118,28 +118,6 @@
 		return { value };
 	}
 
-	function lrPushProperty(array, getter, props) {
-		props = props || {};
-		const retval = { key: props.key || "unspecified." + (getter && getter.name) };
-		try {
-			const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
-			if (value != null || props.forceNull) {
-				retval.value = value;
-			}
-			if (error) {
-				retval.error = error;
-			}
-			if (!props.key) {
-				throw new Error("Missed property key");
-			}
-		} catch (ex) {
-			retval.error = lrToObject(ex);
-		}
-		if (retval.hasOwnProperty("value") || retval.error != null) {
-			array.push(retval);
-		}
-	}
-
 	function lrExtractHeadLinks(array) {
 		const head = document.head;
 		if (head == null) {
