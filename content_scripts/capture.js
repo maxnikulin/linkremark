@@ -82,6 +82,7 @@
 	try {
 		const DEFAILT_SIZE_LIMIT = 1000;
 		const TEXT_SIZE_LIMIT = 4000;
+		const FRAGMENT_COUNT_LIMIT = 50;
 		console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
 		function lrNormalize(value, sizeLimit) {
@@ -95,6 +96,8 @@
 				// [object Object] is obviously useless
 				throw TypeError("Not a string and has no toString");
 			}
+			// Unlike `String(value)` rises `TypeError` for `Symbol`,
+			// and it is more or less intentional.
 			value = "" + value;
 			if (!(value.length <= sizeLimit)) {
 				error = new LrOverflowError(value.length);
@@ -107,15 +110,15 @@
 			props = props || {};
 			const retval = { key: props.key || "unspecified." + (getter && getter.name) };
 			try {
+				if (!props.key) {
+					throw new Error("Missed property key");
+				}
 				const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
 				if (value != null || props.forceNull) {
 					retval.value = value;
 				}
 				if (error) {
 					retval.error = error;
-				}
-				if (!props.key) {
-					throw new Error("Missed property key");
 				}
 			} catch (ex) {
 				retval.error = lrToObject(ex);
@@ -146,9 +149,12 @@
 				rangeArray.push(selection.getRangeAt(i));
 			}
 
+			let error;
+			let hasResult = false;
 			try {
 				let oldEnd = null;
 				let oldEndOffset = null;
+				let count = 0;
 				for (const range of rangeArray) {
 					// Selection property is "isCollapsed" but Range one is just "collapsed"
 					if (range.collapsed) {
@@ -159,6 +165,19 @@
 					const text = selection.toString().trim();
 					if (!text) {
 						continue;
+					}
+					const item = {
+						key: "window.getSelection.range",
+						property: "selection",
+					};
+					++count;
+					if (count > FRAGMENT_COUNT_LIMIT) {
+						item.error = {
+							name: "LrFragmentCountOverflow",
+							size: rangeArray.length,
+						};
+						result.push(item)
+						break;
 					}
 
 					if (oldEnd != null) {
@@ -173,31 +192,36 @@
 						}
 					}
 
-					const item = {
-						key: "window.getSelection.range",
-						property: "selection",
-					};
 					if (text.length > available) {
 						item.error = new LrOverflowError(text.length);
 						if (available >  DEFAILT_SIZE_LIMIT) {
 							item.value = text.substring(text, available);
 						}
 						result.push(item);
+						hasResult = true;
 						break;
 					} else {
 						item.value = text;
 					}
 					result.push(item);
+					hasResult = true;
 					available -= text.length;
 					oldEnd = range.endContainer;
 					oldEndOffset = range.endOffet;
 				}
 			} catch (ex) {
-				pushWarning(result, ex);
+				error = ex;
 			}
 			selection.removeAllRanges();
 			for (const range of rangeArray) {
 				selection.addRange(range);
+			}
+			if (error) {
+				if (hasResult) {
+					pushWarning(result, ex);
+				} else {
+					throw error;
+				}
 			}
 			return result.length > 0 ? result : null;
 		}
@@ -207,20 +231,14 @@
 		 * actually they are joined without any separator at all.
 		 */
 		function pushSelectionWhole(selection, result) {
-			const item = {
+			function lrGetSelection() {
+				return selection && !selection.isCollapsed && selection.toString().trim();
+			}
+			lrPushProperty(result, lrGetSelection, {
 				key: "window.getSelection.text",
 				property: "selection",
-			};
-			const text = selection && !selection.isCollapsed && selection.toString().trim();
-			if (text.length > TEXT_SIZE_LIMIT) {
-				item.value = text.substring(0, TEXT_SIZE_LIMIT);
-				item.error = new LrOverflowError(text.length);
-			} else if (text) {
-				item.value = text;
-			} else {
-				return;
-			}
-			result.push(item);
+				sizeLimit: TEXT_SIZE_LIMIT,
+			});
 		}
 
 		function pushSelectionByRangesOrWhole(selection, result) {
