@@ -86,10 +86,11 @@ var lr_clipboard = function() {
 
 	/* Does not work for privileged content.
 	 * However usually allows to avoid flashing new tab.
+	 * Skip if clipboard API is disabled.
 	 */
 	async function lrClipboardContentScript(capture, options) {
 		const { usePreview, tab } = options || {}
-		if (usePreview) {
+		if (usePreview || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return false;
 		}
 		const tabId = tab != null ? tab.id : null;
@@ -106,12 +107,11 @@ var lr_clipboard = function() {
 	 * chromium-browser: DOMException: Document is not focused.
 	 *
 	 * For Firefox it looks like the best method if clipboard permission
-	 * is requested.
-	 * TODO visual feedback in Firefox.
+	 * is requested. At least unless it is disabled through about:config.
 	 */
 	async function lrClipboardWriteBackground(capture, options) {
 		const { usePreview, skipBackground } = options || {}
-		if (usePreview || skipBackground) {
+		if (usePreview || skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return false;
 		}
 		const format = capture.transport && capture.transport.format;

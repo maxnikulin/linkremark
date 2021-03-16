@@ -133,6 +133,9 @@
 			return true;
 		}
 
+		if (!navigator.clipboard || !navigator.clipboard.writeText) {
+			return { error: lrToObject(new Error("Clipboard is disabled")) };
+		}
 		const promiseId = lrRandomId();
 		// async function does not block execution
 		lrSettleAsyncScriptPromise(promiseId, lrPostResultFromContentScript);

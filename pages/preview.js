@@ -136,6 +136,9 @@ class LrPreviewTransportAction {
 			body.select();
 			const status = document.execCommand("copy");
 			if (!status) {
+				if (!navigator.clipboard || !navigator.clipboard.writeText) {
+					throw new Error("Clipboard API is disabled");
+				}
 				await navigator.clipboard.writeText(body.textContent);
 			}
 		} catch (ex) {
