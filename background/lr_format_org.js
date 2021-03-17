@@ -69,7 +69,11 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 			yield selectionFragments.filter(x => x && x.value).join(" … ").replace(/\s+/g, " ");
 			return;
 		}
-		const capturedSelection = meta.get('selection', 'window.getSelection.text')
+		const capturedSelection =
+			// Selection contains several ranges, first one is too long
+			meta.get('selection', 'window.getSelection.range')
+			// selection with single range
+			|| meta.get('selection', 'window.getSelection.text')
 			|| meta.get('selection', 'clickData.selectionText');
 		if (capturedSelection) {
 			yield capturedSelection;
@@ -537,7 +541,10 @@ function lr_format_org_selection(frame) {
 		}
 	}
 	if (!hasText) {
-		const selectionWhole = frame.getDescriptor("selection", "clickData.selectionText");
+		const selectionWhole =
+			// several ranges selected, first one causes overflow
+			frame.getDescriptor("selection", "window.getSelection.range")
+			|| frame.getDescriptor("selection", "clickData.selectionText");
 		hasText = selectionWhole && selectionWhole.value;
 		if (hasText) {
 			selection = [ selectionWhole ];
