@@ -18,10 +18,42 @@
 "use strict";
 
 var lrOrgProtocol = function() {
-	this.URL_CAPTURE = 'org-protocol://capture';
+	/* It seems it is safer to avoid double slash "org-protocol://"
+	 * and it is better to choose either single or triple slash.
+	 * At least one slash is required by `org-protocol.el`.
+	 * With double slash after the scheme, subprotocols
+	 * "capture" or "store-link" considered as netloc (host name).
+	 * It was a problem with old org-protocol
+	 * syntax with colon after subprotocol
+	 *
+	 *     org-protocol://store-link:/URL/TITLE
+	 *
+	 * Likely kde-open5 and "gio open" drops second ":"
+	 * since it should be followed by port number. Due to absence
+	 * of a valid port, handler was invoked without colon
+	 * leading to an error in emacs.
+	 * Modern Org emits a warning demanding to update handler,
+	 * and with new syntax
+	 *
+	 *     org-protocol:/store-link?url=URL&title=TITLE
+	 *
+	 * it does not matter if subprotocol is considered as host name
+	 * or as path with the following exception.
+	 * In the case of double slash, a slash before "?" might be required
+	 * to separate host name (subprotocol) and query by explicit path "/".
+	 * See commit 928e67df7e in org-mode repository.
+	 *
+	 * Do not quote %u in the ".desktop" file:
+	 * https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables
+	 *
+	 * > Field codes must not be used inside a quoted argument,
+	 * > the result of field code expansion inside a quoted argument is undefined.
+	 *
+	 * Let's try single slash. */
+	this.URL_CAPTURE = 'org-protocol:/capture';
 
 	/* Make URL like
-	 * "org-protocol://capture?template=x&title=Hello&body=World&url=http:%2F%2Fexample.com"
+	 * "org-protocol:/capture?template=x&title=Hello&body=World&url=http:%2F%2Fexample.com"
 	 * from object { template: 'x', title: 'Hello', body: 'World', url: 'http://example.com' }
 	 * `base` is capture or store-link sub-protocol URI base.
 	 *
