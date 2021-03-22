@@ -15,9 +15,13 @@ to the link target. It should reflect connection of the page
 where it is found and the site it points to.
 A site that brought you to the current page (referrer) could later
 help find more information related to the topic.
+Consider it as an element of associative trails described by Vannevar Bush.
+However implementation is hardly approaching ideas developed
+by Douglas Engelbart.
 
-This extension *is experimental so do not be too surprised
-if something does not work*.
+I have not seized experiments with this extension,
+that is why I could not give compatibility promise.
+Unsure if it is reliable enough, personally I find it acceptable.
 
 * Example of link capture
 
@@ -41,20 +45,25 @@ On the page
 * Alternatives
 
 There are some projects that allows to capture URL + page title +
-selection text or URL + text link. I would like to save to my notes
-who and when wrote the text at least for sites that have such fields
-in page metadata.
+selection text or URL + text link. It is not enough for me.
+I would like to save to my notes who and when wrote the text
+at least for sites that have such fields in page metadata.
 
-If you do not need metadata you could find more useful other project:
-- [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension: A Chrome and firefox extension facilitating org-capture in emacs]]
-- [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html: Capture HTML from the browser selection into Emacs as org-mode content]]
-- [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp: A reliable org-capture browser extension for Chrome/Firefox]]
+To capture a minimal bookmark one of the following projects
+could be more convenient:
+- [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension]]:
+  A Chrome and firefox extension facilitating org-capture in emacs.
+- [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html]]:
+  Capture HTML from the browser selection into Emacs as org-mode content.
+- [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp]]:
+  A reliable org-capture browser extension for Chrome/Firefox.
 
-Unlike
-[[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref: Extract bibtex info from captured websites]]
-project, this extension does not have handlers for particular
-websites and do not use BibTeX format. However the goal is quite
-similar.
+If would like to have more details on web pages in you notes then consider
+[[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref]]:
+Extract metadata/bibtex info from websites for org-capture.
+It is suitable if web browser of your choice is Emacs or Qute Browser.
+Unlike this extension, it supports custom handlers for particular
+websites, and has recipes for scientific papers and BibTeX format.
 
 * Install
 
@@ -80,16 +89,17 @@ You could start with a very simple template having "plain" type
 #+begin_example emacs-lisp
   ("c" "Clipboard with tree (plain)"
    plain (file "capture.org")
-   "%(org-get-x-clipboard \'CLIPBOARD)"
+   "%(org-get-x-clipboard 'CLIPBOARD)"
    :empty-lines 1)
 #+end_example
+On the current development stage I do not recommend
+=:immediate-finish= option, it is better to inspect capture result.
 
 Later you likely would decide to setup external protocol handler
 for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]]
 or to create a native messaging backend.
 In the latter case have a look at [[file:examples/backend-python/lr_example.py]]
-for inspiration. On the current development stage I do not recommend
-=:immediate-finish= option, it is better to inspect capture result.
+for inspiration.
 
 If you are not familiar with Org Mode capture feature,
 you could find description of workflow in blogs, e.g.
