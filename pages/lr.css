@@ -1,36 +1,82 @@
 
+/* Limit content width and add optional margin color on wide screens */
+
 body {
 	font-family: sans-serif;
 	background-color: white;
-	overflow-wrap: anywhere
+	color: black;
+	margin: 0px auto;
+	padding: 1em;
+	width: 44em;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
 }
 
-@media all and (min-width: 42em) {
-	html {
-		background-color: lightblue;
-		padding: 1em;
+body.expandable {
+	/* Avoid jumps of content on debug info open due to appearance of scrollbar.
+	 * Reserve 1em for scrollbar, so effective right padding with scrollbar is 0.5em,
+	 * and the same padding without scrollbar is 0.5em.
+	 * On narrow screen there is no room for html margin, so use body padding. */
+	padding-inline-end: calc(1.5em + 100% - 100vw);
+	/* Redundant due to max-width and the following media query. */
+	width: 44.5em;
+}
+
+@media all and (min-width: 44.5em) {
+	/* Fix base body width, so transfer scrollbar width
+	 * from body padding to html margin.
+	 * There is still no space for regular body padding.
+	 * Body margins (auto) start growing. */
+	html.expandable {
+		margin-inline-start: 1em;
+		margin-inline-end: calc(1.5em + 100% - 100vw);
 	}
-	body {
-		padding: 1em;
-		margin: 0px auto;
-		width: max-content;
-		max-width: 100%;
-		box-sizing: border-box;
+	body.expandable {
+		padding-inline: 0px;
+		width: 42em;
 	}
 
+	/* Indent for collapsible details sections */
 	details.section > summary {
-		margin-left: 0ex;
+		margin-inline-start: 0ex;
 	}
 
 	details.section > *, .leftMargin {
-		margin-left: 2ex;
+		margin-inline-start: 2ex;
 	}
 
+	/* Content inside body.expandable that should not occupy whole width
+	 * on wide screens. */
 	.limitedWidth {
-		width: 38em;
-		max-width: 100%;
-		margin-left: auto;
-		margin-right: auto;
+		width: 42em;
+		margin-inline: auto;
+	}
+}
+
+@media all and (min-width: 46.5em) {
+	/* Wide enough screen to have color margins, set fixed body padding,
+	 * and to allow debug info consume available width.
+	 * Minimal color margin width determined by html element
+	 * and depends on scrollbar presence. They could be wider
+	 * due to body.margin auto. */
+	html {
+		background-color: lightblue;
+	}
+	body.expandable {
+		padding-inline: 1em;
+		width: 44em;
+		/* Wide margins on wide screen when debug info is closed */
+		width: max-content;
+	}
+}
+
+/* Do not add vertical margins on low resolution laptop screens
+ * and on smartphones. */
+@media all and (min-height: 800px) {
+	html {
+		margin-top: 1em;
+		margin-bottom: 1em;
 	}
 }
 
