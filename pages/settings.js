@@ -101,9 +101,13 @@ function formatInput(property, options) {
 			return E("label", null, checkbox, "Active");
 			break;
 		case "text":
-			const textarea = E("textarea", { name: inputName });
+			// - limitedWidth to allow user and default fields have independent width.
+			// - cols to allow resizing by user behind right screen edge.
+			const textarea = E("textarea", {
+				name: inputName, className: "limitedWidth", cols: 132
+			});
 			textarea.readOnly = isDefault;
-			return textarea;
+			return isDefault ? E('div', { className: "scroll" }, textarea) : textarea;
 			break;
 		default:
 			const input = E("input", { name: inputName });
@@ -117,8 +121,8 @@ function formatInput(property, options) {
 }
 
 function formatDefault(property) {
-	const attrs = getType(property) === "text" ? null : { className: "flexLineContainer" };
-	const divDefault = E("div", attrs);
+	const isText = getType(property) === "text";
+	const divDefault = E("div", isText ? null : { className: "flexLineContainer" });
 	divDefault.classList.add("defaultInputContainer");
 	divDefault.append(E("input", {
 		type: "hidden",
@@ -130,7 +134,7 @@ function formatDefault(property) {
 		name: property.name + ".version",
 		value: property.value && property.value.version,
 	}));
-	const label = E("label", { className: "flexFixed" });
+	const label = E("label", { className: "defaultLabel" });
 	const checkbox = E("input", {
 		type: "checkbox", name: property.name + ".useDefault",
 	});
@@ -158,9 +162,7 @@ function formatPropertyInputs(property) {
 	const input = formatInput(property);
 	input.classList.add("userInput");
 	const inputContainer = E("div", { className: "userInputContainer", }, input);
-	if (!isText) {
-		inputContainer.classList.add("flexLineContainer");
-	}
+	inputContainer.classList.add(isText ? "scroll" : "flexLineContainer");
 	const divDefault = formatDefault(property);
 	const attrs = { id: "container." + property.name, };
 	if (!isText) {
@@ -198,10 +200,16 @@ async function renderDescriptors() {
 	const descriptors = await lrSendMessage("settings.descriptors");
 	gDescriptors = new Map(descriptors.map(p => [p.name, p]));
 	for (const property of descriptors) {
-		const div = document.createElement("div");
+		const isText = getType(property) === "text";
+		const attrs = isText ? { className: "textParameter" } : null;
+		const div = E("div", attrs);
 		if ("defaultValue" in property) {
 			div.append(E("h3", null, property.title));
-			div.append(formatPropertyInputs(property));
+			const divInputs = formatPropertyInputs(property)
+			if (isText) {
+				divInputs.classList.add("scrollContainer");
+			}
+			div.append(divInputs);
 			div.append(formatDetails(property));
 			form.append(div);
 		} else {

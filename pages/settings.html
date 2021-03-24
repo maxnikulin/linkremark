@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="expandable">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -9,8 +9,8 @@
     <link rel="icon" sizes="16x16" href="/icons/lr-16.png">
   </head>
   <body>
-    <h1>LinkRemark Settings</h1>
-    <div>
+    <h1 class="limitedWidth">LinkRemark Settings</h1>
+    <div class="limitedWidth">
       <details>
         <summary>Tip: shortcut configuration</summary>
         <p>To setup the a hotkey, visit <strong>about:addons</strong> page
@@ -20,19 +20,19 @@
         </p>
       </details>
     </div>
-    <div class="p">
+    <div class="p limitedWidth">
       Please, <a id="fileSave" href="" download>make backup of current settings</a>.
     </div>
-    <div>
+    <div class="limitedWidth">
       <form>
         <label>Load file from backup:
           <input type="file" id="fileLoad" accept="text/plain,application/json,.txt,.json">
         </label>
       </form>
     </div>
-    <div id="fileReport">
+    <div id="fileReport" class="limitedWidth">
     </div>
-    <form id="formDescriptors">
+    <form id="formDescriptors" class="limitedWidthChildren">
     </form>
   </body>
   <script src="/common/bapi.js"></script>

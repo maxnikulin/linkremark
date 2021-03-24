@@ -1,7 +1,15 @@
 
 /* Limit content width and add optional margin color on wide screens */
 
-body {
+html.expandable {
+	/* Avoid jumps of content on debug info open due to appearance of scrollbar.
+	 * Reserve 1em for scrollbar, so effective right margin with scrollbar is 0.5em,
+	 * and the same margin without scrollbar is 1.5em. */
+	margin-inline-start: 1rem;
+	margin-inline-end: calc(1.5rem + 100% - 100vw);
+}
+
+html.expandable > body {
 	/* Injected CSS (desktop theme?) could cause 1em smaller
 	 * for body than for html element and result in inconsistent
 	 * margins.
@@ -11,78 +19,80 @@ body {
 	background-color: white;
 	color: black;
 	margin: 0px auto;
-	padding: 1rem;
-	width: 44rem;
+	padding-block: 1rem;
+	/* On narrow screen there is no room for html margin, so use body padding. */
+	padding-inline: 0rem;
 	max-width: 100%;
 	box-sizing: border-box;
+	/* Fix width for screens in the range of 44.5...46.5rem */
+	width: 42rem;
 	overflow-wrap: anywhere;
 }
 
-body.expandable {
-	/* Avoid jumps of content on debug info open due to appearance of scrollbar.
-	 * Reserve 1em for scrollbar, so effective right padding with scrollbar is 0.5em,
-	 * and the same padding without scrollbar is 0.5em.
-	 * On narrow screen there is no room for html margin, so use body padding. */
-	padding-inline-end: calc(1.5rem + 100% - 100vw);
-	/* Redundant due to max-width and the following media query. */
-	width: 44.5rem;
-}
-
-@media all and (min-width: 44.5rem) {
-	/* Fix base body width, so transfer scrollbar width
-	 * from body padding to html margin.
-	 * There is still no space for regular body padding.
-	 * Body margins (auto) start growing. */
-	html.expandable {
-		margin-inline-start: 1rem;
-		margin-inline-end: calc(1.5rem + 100% - 100vw);
+@media all and (min-width: 46.5rem) {
+	/* Wide enough screen to add body paddings, so margins could have color.
+	 * Actual margin size depends on content width, e.g. if debug info is open
+	 * or if user made textareas wider. */
+	html {
+		background-color: lightblue;
 	}
-	body.expandable {
-		padding-inline: 0px;
-		width: 42rem;
+	html.expandable > body {
+		padding-inline: 1rem;
+		width: 44rem;
+		/* Allow debug info to consume available width */
+		width: max-content;
 	}
 
 	/* Indent for collapsible details sections */
-	details.section > summary {
-		margin-inline-start: 0ex;
-	}
-
-	details.section > *, .leftMargin {
+	.leftMargin {
 		margin-inline-start: 2ex;
 	}
 
 	/* Content inside body.expandable that should not occupy whole width
-	 * on wide screens. */
-	.limitedWidth {
+	 * on wide screens. Outside of media selector leads to overflow for
+	 * textareas when page is opened. `max-width: 100%` should be avoided
+	 * to allow users to make textarea wider than screen. */
+	.limitedWidth, .limitedWidthChildren > *,
+	.textParameter .defaultLabel, .textParameter > * {
 		width: 42rem;
-		margin-inline: auto;
 	}
+
+	/* When put outside of media selectors causes centering of paragraphs
+	 * at the top of settings page in firefox. */
+	.limitedWidth, .limitedWidthChildren > *,
+	.textParameter, .textParameter .defaultLabel, .textParameter > * {
+		margin-inline: auto;
 }
 
-@media all and (min-width: 46.5rem) {
-	/* Wide enough screen to have color margins, set fixed body padding,
-	 * and to allow debug info consume available width.
-	 * Minimal color margin width determined by html element
-	 * and depends on scrollbar presence. They could be wider
-	 * due to body.margin auto. */
-	html {
-		background-color: lightblue;
-	}
-	body.expandable {
-		padding-inline: 1rem;
-		width: 44rem;
-		/* Wide margins on wide screen when debug info is closed */
-		width: max-content;
-	}
 }
 
 /* Do not add vertical margins on low resolution laptop screens
  * and on smartphones. */
 @media all and (min-height: 800px) {
-	html {
+	html.expandable > body {
 		margin-top: 1rem;
 		margin-bottom: 1rem;
 	}
+}
+
+/* Center textareas if user shrinks it even on narrow screen.
+ * On resize chromium adds element margin 0 property, override it.
+ * It is less convenient to resize centered textarea,
+ * but the alternative is textarea jumping on debug info open/close. */
+textarea.limitedWidth {
+	margin-inline: auto !important;
+}
+
+/* Scroll bar for user-resizable textarea. Reserve some space for focus shadow. */
+.scroll {
+	overflow: auto;
+	margin-inline: -0.25rem;
+	padding-inline: 0.25em;
+	display: flex;
+}
+.scrollContainer, .textParameter {
+	/* Override .limitedWidthChildren > * */
+	width: auto;
 }
 
 /* Make focused element clearly distinguishable.
@@ -148,8 +158,12 @@ button {
 	flex-grow: 1;
 }
 
-.flexLineContainer > .flexFixed {
+.flexLineContainer > .flexFixed, .flexLineContainer > .defaultLabel {
 	flex-grow: 0;
+}
+
+.textParameter .defaultLabel {
+	display: block;
 }
 
 /* Gaps between columns of form fields */
@@ -177,8 +191,10 @@ input[type="file"] {
 
 /* Align right textarea to right edge of content */
 textarea {
+	/* 0.5rem for left and right focus shadow */
 	width: 100%;
 	box-sizing: border-box;
+	display: block;
 }
 
 button {

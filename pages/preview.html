@@ -8,51 +8,59 @@
     <link rel="fluid-icon" sizes="128x128" href="/icons/lr-128.png">
     <link rel="icon" sizes="16x16" href="/icons/lr-16.png">
   </head>
-  <body class="expandable">
-    <div class="limitedWidth">
-      <h1 id="pageTitle">LinkRemark Capture Preview</h1>
-      <details id="detailsCapture" class="section" open>
-        <summary>Capture</summary>
-        <form id="params">
-          <details class="section" id="detailsClipboard">
+  <body>
+    <h1 id="pageTitle" class="limitedWidth">LinkRemark Capture Preview</h1>
+    <details id="detailsCapture" class="section" open>
+      <summary class="limitedWidth">Capture</summary>
+      <form id="params">
+        <div class="limitedWidth">
+          <details class="section leftMargin" id="detailsClipboard">
             <summary>Clipboard</summary>
-            <div>
+            <div class="leftMargin">
               <button id="copyClose" autofocus="true">Copy and Close</button>
               <button id="copy">Copy</button>
             </div>
           </details>
-          <details class="section" id="detailsOrgProtocol">
+          <details class="section leftMargin" id="detailsOrgProtocol">
             <summary>Org protocol</summary>
-            <div>
-              <button id="orgProtocolLaunchClose">Launch and Close</button>
-              <button id="orgProtocolLaunch">Launch Handler</button>
-            </div>
-            <label class="flexLineContainer">
-              <div class="flexFixed fixed">Key</div>
-              <input name="template" size="3" class="flexFixed">
-              <div class="flexFixed">(name of template in Emacs)</div>
-            </label>
-            <label class="flexLineContainer">
-              <div class="flexFixed fixed">Title</div>
-              <input class="long" name="title">
-            </label>
-            <label class="flexLineContainer">
-              <div class="flexFixed fixed">Url</div>
-              <input class="long" name="url">
-            </label>
-            <div class="flexLineContainer">
-              <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
-              <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
+            <div class="leftMargin">
+              <div>
+                <button id="orgProtocolLaunchClose" disabled>Launch and Close</button>
+                <button id="orgProtocolLaunch">Launch Handler</button>
+              </div>
+              <label class="flexLineContainer">
+                <div class="flexFixed fixed">Key</div>
+                <input name="template" size="3" class="flexFixed">
+                <div class="flexFixed">(name of template in Emacs)</div>
+              </label>
+              <label class="flexLineContainer">
+                <div class="flexFixed fixed">Title</div>
+                <input class="long" name="title">
+              </label>
+              <label class="flexLineContainer">
+                <div class="flexFixed fixed">Url</div>
+                <input class="long" name="url">
+              </label>
+              <div class="flexLineContainer">
+                <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
+                <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
+              </div>
             </div>
           </details>
-          <ul id="actionResult">
-          </ul>
-          <textarea name="body" cols="80" rows="10"></textarea>
-        </form>
-        <div class="p">Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
-          to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
         </div>
-      </details>
+        <ul id="actionResult" class="limitedWidth">
+        </ul>
+        <div class="scroll">
+          <!-- cols="132" allows to resize textarea and make it wider on narrow screen
+            but in Firefox-87 shadow at the right side becomes invisible. -->
+            <textarea name="body" rows="5" cols="132" class="limitedWidth"></textarea>
+        </div>
+      </form>
+      <div class="p limitedWidth">Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
+        to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
+      </div>
+    </details>
+    <div class="limitedWidth">
       <div class="p leftMargin">Visit <a href="settings.html">settings</a> page.</div>
     </div>
     <details id="debugInfo">
