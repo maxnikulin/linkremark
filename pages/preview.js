@@ -44,6 +44,15 @@ function setCaptureResult(result) {
 	const title = formattedResult && formattedResult.title;
 	if (body != null) {
 		form.body.textContent = text;
+		lrNotFatal(function lrAdjustTextAreaHeight(textarea) {
+			const maxHeight = 50;
+			const reserve = 2;
+			/* Approach with `getComputedStyle` is less reliable
+			 * due to `lineHeight` may be `normal` and proper factor
+			 * for fontSize is rather uncertain. */
+			const height = Math.ceil(textarea.scrollHeight/(textarea.clientHeight/textarea.rows));
+			textarea.rows = Math.min(maxHeight, height + reserve);
+		})(form.body);
 	}
 	if (typeof title === "string") {
 		setTitle(title);
@@ -268,13 +277,6 @@ function lrPreviewBind(transport) {
 		if (handler.method === method) {
 			active = handler;
 			handler.activate();
-			lrNotFatal(function lrAdjustTextAreaHeight() {
-				const form = byId("params");
-				const style = window.getComputedStyle(form.body);
-				const line = parseFloat(style.lineHeight) || 1.2*(parseFloat(style.fontSize) || 12);
-				const height = Math.min(50, form.body.scrollHeight / line);
-				form.body.rows = height;
-			})();
 		}
 	}
 	return active;
