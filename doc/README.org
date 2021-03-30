@@ -91,6 +91,9 @@ in [[https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy][
 Browser policy could evolve in time as it happens with
 [[https://blog.mozilla.org/security/2018/01/31/preventing-data-leaks-by-stripping-path-information-in-http-referrers/][private browsing mode in Firefox 59]]
 when stripping of path and query URL parts was applied.
+Starting from Firefox 87 (released on [2021-03-23 Tue])
+[[https://blog.mozilla.org/security/2021/03/22/firefox-87-trims-http-referrers-by-default-to-protect-user-privacy/][default policy changed to =strict-origin-when-cross-origin=]]
+so path and query part are stripped in the case of cross site links.
 
 Some sites could make referrer much less useful for note taking
 by implementing of
