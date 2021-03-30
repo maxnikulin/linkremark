@@ -77,6 +77,7 @@ async function fillFromSettings() {
 	form.clipboardForBody.checked = settings["export.methods.orgProtocol.clipboardForBody"];
 	form.handlerPopupSuppressed.checked
 		= settings["export.methods.orgProtocol.handlerPopupSuppressed"];
+	form.handlerPopupSuppressed.dispatchEvent(new Event("change"));
 }
 
 async function lrFetchCachedResult() {
@@ -86,25 +87,15 @@ async function lrFetchCachedResult() {
 	}
 	const { result, debugInfo } = cachedResult;
 	lrNotFatal(setCaptureResult)(result);
-	const activeMethod = lrPreviewBind(result && result.transport);
 	byId("dump").innerText = JSON.stringify(debugInfo, null, "  ");
-	await lrNotFatal(fillFromSettings)();
-	if (!activeMethod || (result && result.error)) {
+	if (result && result.error) {
 		expandDebugInfo();
 	}
 	if (result && result.error) {
 		const message = result.error.message || "Some error happened"
 		throw new Error(message);
-	} else if (!activeMethod) {
-		let message;
-		if (result) {
-			const method = result && result.transport && result.transport.method;
-			message = method ? "Unsupported method is configured: " + method
-				: "Capture is not completely successful";
-		}
-		throw new Error(message || "No capture result");
 	}
-	return activeMethod;
+	return result;
 }
 
 class LrPreviewTransportAction {
@@ -121,7 +112,7 @@ class LrPreviewTransportAction {
 			action.call(this);
 		}.bind(this);
 	}
-	async execClose() {
+	async execClose(ev) {
 		try {
 			if (await this.exec()) {
 				pushActionResult("Closing the tab...");
@@ -129,15 +120,26 @@ class LrPreviewTransportAction {
 			}
 		} catch (ex) {
 			pushActionResult(ex.message, "error");
-			pushActionResult("Try a button, please");
+			if (!ev) {
+				// launch from lrPreviewMain
+				pushActionResult("Try a button, please");
+			}
 			this.execCloseButton.focus();
 			throw ex;
 		}
 	}
-	activate() {
+	activate(transport) {
+		const method = transport && transport.method;
+		if (this.method !== method) {
+			return false;
+		}
 		this.section.open = true;
-		this.execCloseButton.focus();
-		return true;
+		if (this.execCloseButton.disabled) {
+			this.execOnlyButton.focus();
+		} else {
+			this.execCloseButton.focus();
+		}
+		return this;
 	}
 	async copy() {
 		try {
@@ -168,6 +170,15 @@ class LrPreviewOrgProtocolAction extends LrPreviewTransportAction {
 		this.execCloseButton = byId("orgProtocolLaunchClose");
 		this.section = byId("detailsOrgProtocol");
 	}
+	register() {
+		super.register();
+		const handler = (ev) => (this.execCloseButton.disabled
+			= !this.form.handlerPopupSuppressed.checked);
+		this.form.handlerPopupSuppressed.addEventListener("change", handler);
+		// It seems, firefox could preserve checkbox states
+		// after page reload. Prevent confusing behavior during debugging.
+		handler();
+	}
 	async exec() {
 		const form = this.form;
 		const params = {
@@ -184,10 +195,10 @@ class LrPreviewOrgProtocolAction extends LrPreviewTransportAction {
 		pushActionResult("launching org-protocol handler");
 		return form.handlerPopupSuppressed.checked;
 	}
-	activate() {
+	activate(transport) {
 		const form = this.form;
 		if (form.body.textContent || form.url.value || form.title.value) {
-			return super.activate();
+			return super.activate(transport);
 		}
 		return false;
 	}
@@ -207,8 +218,8 @@ class LrPreviewClipboardAction extends LrPreviewTransportAction {
 		}
 		return true;
 	}
-	activate() {
-		return this.form.body.textContent ? super.activate() : false;
+	activate(transport) {
+		return this.form.body.textContent ? super.activate(transport) : false;
 	}
 }
 
@@ -268,27 +279,50 @@ var expandDebugInfo = lrNotFatal(function() {
 	details.setAttribute("open", true);
 });
 
-function lrPreviewBind(transport) {
-	const method = transport && transport.method;
-	let active = null;
-	for (const Factory of [LrPreviewClipboardAction, LrPreviewOrgProtocolAction]) {
-		const handler = new Factory();
-		handler.register();
-		if (handler.method === method) {
-			active = handler;
-			handler.activate();
+function lrPreviewBind() {
+	return [LrPreviewClipboardAction, LrPreviewOrgProtocolAction].map(
+		Factory => {
+			const handler = new Factory();
+			handler.register();
+			return handler;
+		}
+	);
+}
+
+// Array.prototype.some returns true, not value returned by passed function.
+function someValue(array, fun) {
+	for (const e of array) {
+		const result = fun(e);
+		if (result) {
+			return result;
 		}
 	}
-	return active;
 }
 
 async function lrPreviewMain() {
 	try {
-		const activeMethod = await lrFetchCachedResult()
-		const params = new URLSearchParams(window.location.search);
-		const action = params.get("action");
-		if (action == "launch") {
-			activeMethod.execClose();
+		const handlers = lrPreviewBind();
+		const captureResultPromise = lrFetchCachedResult()
+		const settingsPromise = lrNotFatal(fillFromSettings)();
+		await settingsPromise;
+		const captureResult = await captureResultPromise;
+		const transport = captureResult && captureResult.transport;
+		const activeMethod = someValue(handlers, h => h.activate(transport));
+		if (activeMethod) {
+			const params = new URLSearchParams(window.location.search);
+			const action = params.get("action");
+			if (action == "launch") {
+				await activeMethod.execClose();
+			}
+		} else {
+			expandDebugInfo();
+			let message;
+			if (captureResult) {
+				const method = captureResult && captureResult.transport && captureResult.transport.method;
+				message = method ? "Unsupported method is configured: " + method
+					: "Capture is not completely successful";
+			}
+			throw new Error(message || "No capture result");
 		}
 	} catch (ex) {
 		pushActionResult(ex, "error");
