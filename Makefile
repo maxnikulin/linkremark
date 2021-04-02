@@ -79,6 +79,7 @@ firefox-dist: firefox
 		"content_scripts/capture.js" \
 		"content_scripts/clipboard.js" \
 		"content_scripts/meta.js" \
+		"content_scripts/microdata.js" \
 		"content_scripts/referrer.js" \
 		"icons/lr-light-16.png" \
 		"icons/lr-32.png" \

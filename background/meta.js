@@ -594,6 +594,7 @@ lr_meta.merge = function(frameInfo) {
 		this.mergeClickData,
 		this.mergeRelations,
 		this.mergeLdJson,
+		this.mergeMicrodata,
 		this.mergeImage,
 		this.mergeLink,
 	];
@@ -747,9 +748,17 @@ lr_meta.mergeLdJson = function(frameInfo, meta) {
 	}
 	for (const entry of variants) {
 		if (entry.value) {
-			return lr_json_ld.mergeJsonLd(entry.value, meta);
+			lr_json_ld.mergeJsonLd(entry.value, meta);
 		}
 	}
+};
+
+lr_meta.mergeMicrodata = function(frameInfo, meta) {
+	const microdata = frameInfo.microdata && frameInfo.microdata.result;
+	if (!microdata) {
+		return;
+	}
+	lr_json_ld.mergeJsonLd(microdata, meta);
 };
 
 lr_meta.html_entity_string = Object.assign(Object.create(null), {

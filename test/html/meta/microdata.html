@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Microdata</title>
+  </head>
+  <body>
+    <nav itemprop="breadcrumb">
+      <ul itemscope="" itemtype="http://schema.org/BreadcrumbList">
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <a href="../index.html" itemprop="item">
+            <span itemprop="name">Top</span>
+          </a>
+          <meta itemprop="position" content="1">
+        </li>
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <a href="index.html" itemprop="item">
+            <span itemprop="name">Meta</span>
+          </a>
+          <meta itemprop="position" content="2">
+        </li>
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <span itemprop="name">Microdata</span>
+          <meta itemprop="position" content="3">
+        </li>
+      </ul>
+    </nav>
+    <nav>
+      <a href="meta-head-url.html">Special &lt;head&gt;</a>
+      <a href="no-title.html">No meta</a>
+    </nav>
+    <h1>LinkRemark Test: Microdata embeded in HTML</h1>
+    <p>Navbar above is a BreadcrumbList.</p>
+    <p>There is a hidden <code>div</code> below marked as Article.</p>
+    <div itemscope="" itemtype="http://schema.org/Article">
+      <meta itemprop="name" content="LR Test: Microdata (name)">
+      <meta itemprop="headline" content="LR Test: Microdata (headline)">
+      <meta itemprop="description" content="Example of metadata spread over HTML elements">
+      <meta itemprop="datePublished" content="2020-11-12T13:44:15+01:00">
+      <meta itemprop="dateModified" content="2021-01-02T03:04:05+06:00">
+      <meta itemprop="url" content="https://localhost/lr/test/html/meta/schema-org.html">
+      <meta itemprop="author" content="Extension Author">
+      <meta itemprop="mainEntityOfPage" content="https://localhost/lr/test/html/meta/schema-org.html">
+      <div itemprop="image" itemscope="" itemtype="https://schema.org/ImageObject">
+        <meta itemprop="url" content="https://localhost/lr/test/html/image/lr-128.png">
+        <meta itemprop="width" content="128">
+        <meta itemprop="height" content="128">
+      </div>
+      <div itemprop="publisher" itemscope="" itemtype="https://schema.org/Organization">
+        <meta itemprop="name" content="Test Palace">
+        <meta itemprop="url" content="https://localhost/lr/test/">
+        <div itemprop="logo" itemscope="" itemtype="https://schema.org/ImageObject">
+          <meta itemprop="url" content="https://localhost/lr/test/html/image/lr-32.png">
+        </div>
+      </div>
+      <div itemprop="aggregateRating" itemscope="" itemtype="http://schema.org/AggregateRating" id="rating">
+        <meta itemprop="bestRating" content="5">
+        <meta itemprop="worstRating" content="1">
+        <meta itemprop="ratingValue" content="4.55">
+        <meta itemprop="ratingCount" content="7">
+        Rating: 4.55/(1-5)
+      </div>
+    </div>
+  </body>
+</html>

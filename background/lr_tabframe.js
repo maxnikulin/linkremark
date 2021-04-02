@@ -458,10 +458,12 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/capture.js", "content"));
 		metaPromises.push(...chain.map(wrappedFrame =>
 				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/meta.js", "meta")));
+		metaPromises.push(...chain.map(wrappedFrame =>
+				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/microdata.js", "microdata")));
 		await Promise.all(metaPromises);
 	} catch (ex) {
 		console.error(
-			"lrGatherTabInfo: meta or capture: continue despite the error %s %o", ex, ex);
+			"lrGatherTabInfo: meta, capture, or microdata: continue despite the error %s %o", ex, ex);
 	}
 	try {
 		if (tab && tab.id >= 0) {
