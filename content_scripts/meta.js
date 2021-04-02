@@ -270,7 +270,6 @@
 			['datePublished', 'published_time'],
 			['dateModified', 'modified_time'],
 			['blog-name', 'site_name'],
-			['twitter:site', 'site_name'],
 		]);
 		const propertyMap = new Map([
 			['og:url', 'url'],
@@ -287,6 +286,7 @@
 			['vk:image', 'image'],
 			['twitter:image', 'image'],
 			['og:site_name', 'site_name'],
+			['twitter:site', 'site_name'],
 			/* TODO og:type article, website */
 		]);
 		const itempropMap = new Map([

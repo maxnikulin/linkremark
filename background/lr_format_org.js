@@ -61,6 +61,23 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 		yield* descriptorArray;
 	}
 
+	/** Use `twitter:site` only if no names suitable for humans are available. */
+	function* siteNameVariants(meta) {
+		const origVariants = meta && meta.get("site_name");
+		const twitter = [];
+		for (const item of preferShort(origVariants)) {
+			if (
+				item.value[0] === "@"
+				&& item.keys.some(x => x.endsWith(".twitter:site"))
+			) {
+				twitter.push(item);
+			} else {
+				yield item;
+			}
+		}
+		yield* twitter;
+	}
+
 	function* selectionLineGen(meta) {
 		const selectionFragments = meta.selectionTextFragments && meta.selectionTextFragments.value;
 		const hasText = selectionFragments && Array.isArray(selectionFragments)
@@ -217,7 +234,7 @@ var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function l
 					flexThreshold: 48,
 				},
 				{
-					value: first(valuesFromDescriptors(preferShort(meta.get("site_name")))),
+					value: first(valuesFromDescriptors(siteNameVariants(meta))),
 					min: 8,
 					target: 24,
 					stiff: 0,
@@ -579,6 +596,14 @@ function lr_format_org_frame(frame, options = {}) {
 		const variants = lr_property_variants(frame, property);
 		for (const entry of variants || []) {
 			try {
+				if (
+					property === 'site_name'
+					&& entry.keys.some(x => x.endsWith(".twitter:site"))
+					&& variants.length > 1
+					&& entry.value[0] === "@"
+				) {
+					continue;
+				}
 				const value = dateProperties.has(property) ? lr_formatter.parseDate(entry.value) : entry.value;
 				body.push(LrOrgDefinitionItem({ term: property }, value));
 			} catch (ex) {
