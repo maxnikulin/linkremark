@@ -248,17 +248,11 @@
 				count: scriptList.length,
 			}
 		}
-		const strValue = scriptList[0].innerText;
-		if (!(strValue.length < 8*TEXT_SIZE_LIMIT)) {
-			item.error = new LrOverflowError(strValue.length);
-			return;
-		}
-		const value = JSON.parse(strValue);
-		const length = JSON.stringify(value).length;
-		if (length <= 2*TEXT_SIZE_LIMIT) {
+		const value = scriptList[0].innerText;
+		if (value.length < 8*TEXT_SIZE_LIMIT) {
 			item.value = value;
 		} else {
-			item.error = new LrOverflowError(length);
+			item.error = new LrOverflowError(value.length);
 		}
 	}
 

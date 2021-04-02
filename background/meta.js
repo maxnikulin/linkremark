@@ -747,8 +747,24 @@ lr_meta.mergeLdJson = function(frameInfo, meta) {
 		return;
 	}
 	for (const entry of variants) {
-		if (entry.value) {
-			lr_json_ld.mergeJsonLd(entry.value, meta);
+		try {
+			if (entry.error || !entry.value) {
+				continue;
+			}
+			try {
+				// FIXME It breaks meta value index.
+				entry.value = JSON.parse(lr_meta.unescapeEntities(entry.value, {json: true}));
+			} catch (ex) {
+				if (!(ex instanceof SyntaxError)) {
+					throw ex;
+				}
+				entry.value = JSON.parse(entry.value);
+			}
+			if (entry.value) {
+				lr_json_ld.mergeJsonLd(entry.value, meta);
+			}
+		} catch (ex) {
+			entry.error = lr_util.errorToObject(ex);
 		}
 	}
 };
@@ -786,11 +802,19 @@ lr_meta.htmlEntityReplaceCb = function(match, p1) {
 	return lr_meta.html_entity_string[p1] || match;
 };
 
-lr_meta.unescapeEntities = function(str) {
+lr_meta.htmlJsonEntityReplaceCb = function(match, p1) {
+	const replacement = lr_meta.htmlEntityReplaceCb(match, p1);
+	return replacement === '"' || replacement === "\\" ?
+		"\\" + replacement : replacement;
+}
+
+lr_meta.unescapeEntities = function(str, options) {
 	if (!str) {
 		return str;
 	}
-	return str.replace(/&([a-zA-Z]+|#[xX]?[0-9]+);/g, lr_meta.htmlEntityReplaceCb);
+	const cb = options && options.json ?
+		lr_meta.htmlJsonEntityReplaceCb : lr_meta.htmlEntityReplaceCb;
+	return str.replace(/&([a-zA-Z]+|#[xX]?[0-9]+);/g, cb);
 };
 
 /**
