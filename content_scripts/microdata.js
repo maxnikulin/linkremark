@@ -70,6 +70,15 @@
 			}
 			entry.add(value);
 		}
+		hasValue(value) {
+			for (const set of super.values()) {
+				if (set.has(value)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		toJSON() {
 			let named;
 			// Keep oder of entries
@@ -148,15 +157,12 @@
 							topMetaFrame.properties.set(null, text.substring(0, 4096));
 						}
 					}
-					if (!topMetaFrame.properties.has("@id")) {
-						const href = node.href;
-						if (href) {
-							topMetaFrame.properties.set("@id", href);
-						} else {
-							const id = node.getAttribute("id") || node.getAttribute("name");
-							if (id) {
-								topMetaFrame.properties.set("@id", "" + new URL("#" + id, node.baseURI));
-							}
+
+					const href = (node.getAttribute("href") && node.href);
+					if (!topMetaFrame.properties.hasValue(href) && !topMetaFrame.properties.has(null)) {
+						const id = lrNodeId(node);
+						if (id) {
+							topMetaFrame.properties.set("@id", id);
 						}
 					}
 				}
@@ -176,12 +182,60 @@
 					if (type) {
 						newFrame.properties.set("@type", type);
 					}
-				} else if (itemprop && node.nodeName.toUpperCase() === "META") {
-					newFrame.properties.set(null, node.getAttribute("content"));
+				} else if (itemprop) {
+					const value = lrNodeContentFromAttributes(node);
+					if (value) {
+						newFrame.properties.set(null, value);
+					}
 				}
 			}
 		}
 		return metaFrameStack[0].properties.toJSON();
+	}
+
+	function lrNodeId(node) {
+		// not hasAttribute to ignore empty string
+		const href = (node.getAttribute("href") && node.href);
+		if (href) {
+			return href;
+		}
+		const name = node.nodeName.toUpperCase();
+		const id = node.getAttribute("id") ||
+			(name === "A" && node.getAttribute("name"));
+		if (id) {
+			return "" + new URL("#" + id, node.baseURI)
+		}
+		return undefined;
+	}
+
+	function lrNodeContentFromAttributes(node) {
+		const name = node.nodeName.toUpperCase();
+		switch (name) {
+			case "META":
+				return node.getAttribute("content");
+			case "A":
+			case "LINK":
+				// not hasAttribute to ignore empty string
+				return node.getAttribute("href") && node.href;
+			case "TIME":
+				if (node.dateTime) {
+					return node.dateTime;
+				}
+				try {
+					// non-standard cases
+					const ts = parseInt(node.dataset.unix, 10);
+					if (!isNaN(ts)) {
+						return new Date(ts*1000).toISOString();
+					}
+				} catch (ex) {
+					// Unsure that I could check all possibilities to get Invalid Date.
+					// `toISOString` throws an exception for invalid dates.
+					console.error("LR: getting value for time element: %o", ex);
+				}
+				return node.getAttribute("content") || node.getAttribute("datetime");
+			default:
+				return undefined;
+		}
 	}
 
 	try {
