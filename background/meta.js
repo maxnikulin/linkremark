@@ -783,7 +783,7 @@ lr_meta.html_entity_string = Object.assign(Object.create(null), {
 	apos: "'",
 	gt: ">",
 	lt: "<",
-	laquo: "»",
+	laquo: "«",
 	raquo: "»",
 });
 
