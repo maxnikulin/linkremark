@@ -74,7 +74,7 @@
 					continue;
 				}
 				// Make `stack` readable in `JSON.stringify()` dump.
-				const lines = value.split("\n");
+				const lines = value.trim().split("\n");
 				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
@@ -108,7 +108,15 @@
 		props = props || {};
 		const retval = { key: props.key || "unspecified." + (getter && getter.name) };
 		try {
-			const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
+			function pushWarning(ex) {
+				array.push({
+					property: "warning",
+					key: retval.key,
+					value: lrToObject(ex),
+				});
+			}
+
+			const [ value, error ] = lrNormalize(getter(pushWarning), props.sizeLimit);
 			if (value != null || props.forceNull) {
 				retval.value = value;
 			}
@@ -206,7 +214,18 @@
 		}
 	}
 
-	function lrLastModified() {
+	function lrLastModified(pushWarning) {
+		// For dynamic pages servers do not send Last-Modified header.
+		// Browsers reports current time in such cases.
+		try {
+			const d1 = Math.floor(Date.now()/1000);
+			const d2_str = document.lastModified;
+			const d3 = Math.floor(Date.now()/1000);
+			const d2 = Math.floor(Date.parse(d2_str)/1000);
+			return d1 <= d2 && d2 <= d3 ? null : d2_str;
+		} catch (ex) {
+			pushWarning(ex);
+		}
 		return document.lastModified;
 	}
 
