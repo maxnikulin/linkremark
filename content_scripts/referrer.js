@@ -96,6 +96,8 @@
 			// [object Object] is obviously useless
 			throw TypeError("Not a string and has no toString");
 		}
+		// Unlike `String(value)` rises `TypeError` for `Symbol`,
+		// and it is more or less intentional.
 		value = "" + value;
 		if (!(value.length <= sizeLimit)) {
 			error = { name: "LrOverflowError", size: value.length };

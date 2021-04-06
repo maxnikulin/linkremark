@@ -23,17 +23,18 @@
  * Injected using tabs.executeScript().
  * Produces array of property descriptors.
  */
+
 "use strict";
 
-(function () {
+(function lrContentSelection() {
 	const config = {
 		selection: "byRangesOrWhole",
 	};
 
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
+		console.error(obj);
 		if (obj instanceof Error) {
-			console.error(obj);
 			var error = Object.create(null);
 			if (obj.message != null) {
 				error.message = obj.message;
@@ -55,7 +56,7 @@
 					continue;
 				}
 				// Make `stack` readable in `JSON.stringify()` dump.
-				const lines = value.split("\n");
+				const lines = value.trim().split("\n");
 				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
@@ -75,208 +76,209 @@
 		return self;
 	}
 
-	function pushWarning(result, error) {
-		result.push({ property: "warning", value: lrToObject(error) });
-	}
+	const DEFAILT_SIZE_LIMIT = 1000;
+	const TEXT_SIZE_LIMIT = 4000;
+	const FRAGMENT_COUNT_LIMIT = 50;
+	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
-	try {
-		const DEFAILT_SIZE_LIMIT = 1000;
-		const TEXT_SIZE_LIMIT = 4000;
-		const FRAGMENT_COUNT_LIMIT = 50;
-		console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
-
-		function lrNormalize(value, sizeLimit) {
-			sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
-			const t = typeof value;
-			let error;
-			if (value == null || t === "boolean" || t === "number") {
-				return [ value, error ];
-			}
-			if (t !== "string" && value.toString === Object.prototype.toString) {
-				// [object Object] is obviously useless
-				throw TypeError("Not a string and has no toString");
-			}
-			// Unlike `String(value)` rises `TypeError` for `Symbol`,
-			// and it is more or less intentional.
-			value = "" + value;
-			if (!(value.length <= sizeLimit)) {
-				error = new LrOverflowError(value.length);
-				value = value.substring(0, sizeLimit);
-			}
+	function lrNormalize(value, sizeLimit) {
+		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		const t = typeof value;
+		let error;
+		if (value == null || t === "boolean" || t === "number") {
 			return [ value, error ];
 		}
+		if (t !== "string" && value.toString === Object.prototype.toString) {
+			// [object Object] is obviously useless
+			throw TypeError("Not a string and has no toString");
+		}
+		// Unlike `String(value)` rises `TypeError` for `Symbol`,
+		// and it is more or less intentional.
+		value = "" + value;
+		if (!(value.length <= sizeLimit)) {
+			error = new LrOverflowError(value.length);
+			value = value.substring(0, sizeLimit);
+		}
+		return [ value, error ];
+	}
 
-		function lrPushProperty(array, getter, props) {
-			props = props || {};
-			const retval = { key: props.key || "unspecified." + (getter && getter.name) };
-			try {
-				if (!props.key) {
-					throw new Error("Missed property key");
-				}
-				const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
-				if (value != null || props.forceNull) {
-					retval.value = value;
-				}
-				if (error) {
-					retval.error = error;
-				}
-			} catch (ex) {
-				retval.error = lrToObject(ex);
+	function lrPushProperty(array, getter, props) {
+		props = props || {};
+		const retval = { key: props.key || "unspecified." + (getter && getter.name) };
+		try {
+			if (!props.key) {
+				throw new Error("Missed property key");
 			}
-			if (retval.hasOwnProperty("value") || retval.error != null) {
-				if (props.property) {
-					retval.property = props.property;
-				}
-				array.push(retval);
+			const [ value, error ] = lrNormalize(getter(), props.sizeLimit);
+			if (value != null || props.forceNull) {
+				retval.value = value;
+			}
+			if (error) {
+				retval.error = error;
+			}
+		} catch (ex) {
+			retval.error = lrToObject(ex);
+		}
+		if (retval.hasOwnProperty("value") || retval.error != null) {
+			if (props.property) {
+				retval.property = props.property;
+			}
+			array.push(retval);
+		}
+	}
+
+	function lrDocumentTitle() {
+		return "" + document.title;
+	}
+	function lrWindowLocation() {
+		return "" + window.location;
+	}
+
+	/**
+	 * See ../doc/README.org#selection for explanation why the hack
+	 * with alternating selection is necessary.
+	 */
+	function pushSelectionByRanges(selection, result) {
+		const rangeArray = [];
+		let available = TEXT_SIZE_LIMIT;
+		for (let i = 0; i < selection.rangeCount; ++i) {
+			rangeArray.push(selection.getRangeAt(i));
+		}
+
+		let error;
+		let hasResult = false;
+
+		function pushResult(item) {
+			result.push({ ...item,
+				key: "window.getSelection.range",
+				property: "selection",
+			});
+			if (item.value) {
+				hasResult = true;
 			}
 		}
 
-		function lrDocumentTitle() {
-			return "" + document.title;
-		}
-		function lrWindowLocation() {
-			return "" + window.location;
-		}
+		try {
+			let oldEnd = null;
+			let oldEndOffset = null;
+			let count = 0;
+			for (const range of rangeArray) {
+				// Selection property is "isCollapsed" but Range one is just "collapsed"
+				if (range.collapsed) {
+					continue;
+				}
+				selection.removeAllRanges();
+				selection.addRange(range);
+				const text = selection.toString().trim();
+				if (!text) {
+					continue;
+				}
+				++count;
+				if (count > FRAGMENT_COUNT_LIMIT) {
+					pushResult({ error: {
+						name: "LrFragmentCountOverflow",
+						size: rangeArray.length,
+					} });
+					break;
+				}
 
-		/**
-		 * See ../doc/README.org#selection for explanation why the hack
-		 * with alternating selection is necessary.
-		 */
-		function pushSelectionByRanges(selection, result) {
-			const rangeArray = [];
-			let available = TEXT_SIZE_LIMIT;
-			for (let i = 0; i < selection.rangeCount; ++i) {
-				rangeArray.push(selection.getRangeAt(i));
-			}
-
-			let error;
-			let hasResult = false;
-			try {
-				let oldEnd = null;
-				let oldEndOffset = null;
-				let count = 0;
-				for (const range of rangeArray) {
-					// Selection property is "isCollapsed" but Range one is just "collapsed"
-					if (range.collapsed) {
-						continue;
-					}
+				if (oldEnd != null) {
+					const between = range.cloneRange();
+					between.collapse(/* toStart = */ true);
+					between.setStart(oldEnd, oldEndOffset);
 					selection.removeAllRanges();
-					selection.addRange(range);
-					const text = selection.toString().trim();
-					if (!text) {
-						continue;
+					selection.addRange(between);
+					const separator = selection.toString();
+					if (separator && separator.indexOf("\n") >= 0) {
+						pushResult({ value: "" });
 					}
-					const item = {
-						key: "window.getSelection.range",
-						property: "selection",
-					};
-					++count;
-					if (count > FRAGMENT_COUNT_LIMIT) {
-						item.error = {
-							name: "LrFragmentCountOverflow",
-							size: rangeArray.length,
-						};
-						result.push(item)
-						break;
-					}
-
-					if (oldEnd != null) {
-						const between = range.cloneRange();
-						between.collapse(/* toStart = */ true);
-						between.setStart(oldEnd, oldEndOffset);
-						selection.removeAllRanges();
-						selection.addRange(between);
-						const separator = selection.toString();
-						if (separator && separator.indexOf("\n") >= 0) {
-							result.push({ key: "window.getSelection.range", value: ""});
-						}
-					}
-
-					if (text.length > available) {
-						item.error = new LrOverflowError(text.length);
-						if (available >  DEFAILT_SIZE_LIMIT) {
-							item.value = text.substring(text, available);
-						}
-						result.push(item);
-						hasResult = true;
-						break;
-					} else {
-						item.value = text;
-					}
-					result.push(item);
-					hasResult = true;
-					available -= text.length;
-					oldEnd = range.endContainer;
-					oldEndOffset = range.endOffet;
 				}
-			} catch (ex) {
-				error = ex;
+
+				if (text.length > available) {
+					const error = new LrOverflowError(text.length);
+					if (available >  DEFAILT_SIZE_LIMIT) {
+						pushResult({ error, value: text.substring(text, available) });
+					} else {
+						pushResult(error);
+					}
+					break;
+				} else {
+					pushResult({ value: text });
+				}
+				available -= text.length;
+				oldEnd = range.endContainer;
+				oldEndOffset = range.endOffet;
 			}
+		} catch (ex) {
+			error = ex;
+		} finally {
 			selection.removeAllRanges();
 			for (const range of rangeArray) {
 				selection.addRange(range);
 			}
-			if (error) {
-				if (hasResult) {
-					pushWarning(result, ex);
-				} else {
-					throw error;
-				}
-			}
-			return result.length > 0 ? result : null;
-		}
-		/**
-		 * Formatter will not be able to add " ... "
-		 * between separate fragments selected with `[Ctrl]`,
-		 * actually they are joined without any separator at all.
-		 */
-		function pushSelectionWhole(selection, result) {
-			function lrGetSelection() {
-				return selection && !selection.isCollapsed && selection.toString().trim();
-			}
-			lrPushProperty(result, lrGetSelection, {
-				key: "window.getSelection.text",
-				property: "selection",
-				sizeLimit: TEXT_SIZE_LIMIT,
-			});
 		}
 
-		function pushSelectionByRangesOrWhole(selection, result) {
-			try {
-				if (selection.rangeCount > 1) {
-					return pushSelectionByRanges(selection, result);
-				}
-			} catch (ex) {
-				pushWarning(result, ex);
+		if (error) {
+			pushResult({ error: lrToObject(error) });
+			if (!hasResult) {
+				throw error;
 			}
+		}
+		return hasResult;
+	}
+	/**
+	 * Formatter will not be able to add " ... "
+	 * between separate fragments selected with `[Ctrl]`,
+	 * actually they are joined without any separator at all.
+	 */
+	function pushSelectionWhole(selection, result) {
+		function lrGetSelection() {
+			return selection && !selection.isCollapsed && selection.toString().trim();
+		}
+		lrPushProperty(result, lrGetSelection, {
+			key: "window.getSelection.text",
+			property: "selection",
+			sizeLimit: TEXT_SIZE_LIMIT,
+		});
+	}
+
+	function pushSelectionByRangesOrWhole(selection, result) {
+		try {
+			if (selection.rangeCount > 1 && pushSelectionByRanges(selection, result)) {
+				return;
+			}
+		} catch (ex) {
+			// error already reported
+		}
+		return pushSelectionWhole(selection, result);
+	}
+
+	/**
+	 * MDN: Window.getSelection()
+	 * https://developer.mozilla.org/en-US/docs/Web/API/Window/getSelection
+	 *
+	 * When called on an <iframe> that is not displayed
+	 * (eg. where `display: none` is set) Firefox will return null,
+	 * whereas other browsers will return a Selection object
+	 * `with `Selection.type` set to None.
+	 */
+	function pushSelection(config, result) {
+		const selection = window.getSelection();
+		if (!selection || selection.isCollapsed) {
+			return null;
+		}
+		switch (config && config.selection) {
+		case "whole":
 			return pushSelectionWhole(selection, result);
+		case "byRanges":
+			return pushSelectionByRanges(selection, result);
+		default:
+			break;
 		}
+		return pushSelectionByRangesOrWhole(selection, result);
+	}
 
-		/**
-		 * MDN: Window.getSelection()
-		 * https://developer.mozilla.org/en-US/docs/Web/API/Window/getSelection
-		 *
-		 * When called on an <iframe> that is not displayed
-		 * (eg. where `display: none` is set) Firefox will return null,
-		 * whereas other browsers will return a Selection object
-		 * `with `Selection.type` set to None.
-		 */
-		function pushSelection(config, result) {
-			const selection = window.getSelection();
-			if (!selection || selection.isCollapsed) {
-				return null;
-			}
-			switch (config && config.selection) {
-			case "whole":
-				return pushSelectionWhole(selection, result);
-			case "byRanges":
-				return pushSelectionByRanges(selection, result);
-			default:
-				break;
-			}
-			return pushSelectionByRangesOrWhole(selection, result);
-		}
-
+	try {
 		const properties = [
 			{ getter: lrDocumentTitle, property: "title", key: "document.title" },
 			{ getter: lrWindowLocation, property: "url", key: "window.location" },
