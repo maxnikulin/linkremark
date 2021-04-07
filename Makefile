@@ -68,6 +68,7 @@ firefox-dist: firefox
 		"background/lr_native_messaging.js" \
 		"background/lr_tabframe.js" \
 		"background/lr_action.js" \
+		"background/lr_rpc_commands.js" \
 		"background/main.js" \
 		"pages/settings.html" \
 		"pages/settings.js" \

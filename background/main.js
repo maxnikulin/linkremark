@@ -58,6 +58,7 @@ async function lrMainAsync() {
 	gLrRpcServer.register("cache.getLast", gLrResultCache.handleLast);
 	gLrRpcServer.register("cache.getLastResult", gLrResultCache.handleLastResult);
 	gLrRpcServer.register("cache.getTargetElement", gLrResultCache.handleTargetElement);
+	gLrRpcServer.register("polyfill.closeTab", lr_rpc_commands.closeTab);
 	gLrAsyncScript = new LrAsyncScript();
 	gLrAsyncScript.register(gLrRpcServer);
 	lr_settings.register(gLrRpcServer);

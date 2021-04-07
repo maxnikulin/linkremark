@@ -98,6 +98,26 @@ async function lrFetchCachedResult() {
 	return result;
 }
 
+async function closeWindow(action) {
+	const CLOSE_SELF = 1;
+	const CLOSE_FF_ESR_POLYFILL = 2;
+	switch (action) {
+		case CLOSE_SELF:
+			setTimeout(closeWindow, 100, CLOSE_FF_ESR_POLYFILL);
+			window.close();
+			break;
+		case CLOSE_FF_ESR_POLYFILL:
+			try {
+				await lrSendMessage("polyfill.closeTab");
+			} catch (ex) {
+				pushActionResult(ex.message, "error");
+			}
+			break;
+		default:
+			setTimeout(closeWindow, 1000, CLOSE_SELF);
+	}
+}
+
 class LrPreviewTransportAction {
 	register() {
 		this.form = byId("params");
@@ -116,7 +136,7 @@ class LrPreviewTransportAction {
 		try {
 			if (await this.exec()) {
 				pushActionResult("Closing the tab...");
-				setTimeout(() => window.close(), 1000);
+				await closeWindow();
 			}
 		} catch (ex) {
 			pushActionResult(ex.message, "error");

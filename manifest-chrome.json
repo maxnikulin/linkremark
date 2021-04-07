@@ -78,6 +78,7 @@
 			"background/lr_tabframe.js",
 			"background/lr_notify.js",
 			"background/lr_action.js",
+			"background/lr_rpc_commands.js",
 			"background/main.js"
 		],
 		"persistent": false
