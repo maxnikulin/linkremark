@@ -258,11 +258,11 @@ var lr_json_ld = lr_util.namespace("lr_json_ld", lr_json_ld, function lr_json_ld
 		return true;
 	}
 
-	function mergeJsonLd(json, meta) {
+	function mergeJsonLd(json, meta, options) {
 		if (!json) {
 			return false;
 		}
-		const key = new Key("ld_json");
+		const key = new Key(options && options.key || "ld_json");
 		const props = { key, recursionLimit: 32 };
 		const result = handleGraph(json, meta, props) || handlePrimaryTyped(json, meta, props);
 		if (!result) {

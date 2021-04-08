@@ -774,7 +774,7 @@ lr_meta.mergeMicrodata = function(frameInfo, meta) {
 	if (!microdata) {
 		return;
 	}
-	lr_json_ld.mergeJsonLd(microdata, meta);
+	lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
 };
 
 lr_meta.html_entity_string = Object.assign(Object.create(null), {
