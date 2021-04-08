@@ -55,7 +55,11 @@ firefox-dist: firefox
 		"common/bapi.js" \
 		"background/lr_util.js" \
 		"background/lr_multimap.js" \
+		"background/lr_formatter.js" \
 		"background/lr_format_org.js" \
+		"background/lr_org_buffer.js" \
+		"background/lr_org_tree.js" \
+		"background/lr_json_ld.js" \
 		"background/meta.js" \
 		"background/native.js" \
 		"common/org_protocol.js" \
@@ -67,6 +71,7 @@ firefox-dist: firefox
 		"background/lr_clipboard.js" \
 		"background/lr_native_messaging.js" \
 		"background/lr_tabframe.js" \
+		"background/lr_notify.js" \
 		"background/lr_action.js" \
 		"background/lr_rpc_commands.js" \
 		"background/main.js" \
