@@ -151,19 +151,28 @@
 				const topMetaFrame = lrArrayLast(metaFrameStack);
 				if (topMetaFrame && topMetaFrame.node === node) {
 					metaFrameStack.pop();
-					if (!(topMetaFrame.properties.size > 0)) {
+					const prop = {};
+					if (topMetaFrame.properties.size > 0) {
+						let id = lrNodeId(node);
+						if (topMetaFrame.properties.hasValue(id)) {
+							id = null;
+						}
+						if (id) {
+							prop.name = "@id";
+							prop.value = id;
+						}
+					} else {
+						prop.name = null;
+						let href = node.getAttribute("href") && node.href;
 						const text = node.nodeName === "TEXTAREA" ? node.textContent : node.innerText;
-						if (text) {
-							topMetaFrame.properties.set(null, text.substring(0, 4096));
+						if (href) {
+							prop.value = href;
+						} else if (text) {
+							prop.value = text.substring(0, 4096);
 						}
 					}
-
-					const href = (node.getAttribute("href") && node.href);
-					if (!topMetaFrame.properties.hasValue(href) && !topMetaFrame.properties.has(null)) {
-						const id = lrNodeId(node);
-						if (id) {
-							topMetaFrame.properties.set("@id", id);
-						}
+					if (prop.value) {
+						topMetaFrame.properties.set(prop.name, prop.value);
 					}
 				}
 				continue;
@@ -213,7 +222,6 @@
 		switch (name) {
 			case "META":
 				return node.getAttribute("content");
-			case "A":
 			case "LINK":
 				// not hasAttribute to ignore empty string
 				return node.getAttribute("href") && node.href;
