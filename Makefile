@@ -46,35 +46,12 @@ clean:
 	$(RM) manifest.json
 
 firefox-dist: firefox
-	out=`cat manifest-common.json | \
-		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"` ; \
+	out="`cat manifest-common.json | \
+		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"`" ; \
+	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
 	file="linkremark-$${out}.unsigned.xpi" ; \
 	$(RM) "$$file" ; \
-	zip "$$file" manifest.json \
-		"background/init.js" \
-		"common/bapi.js" \
-		"background/lr_util.js" \
-		"background/lr_multimap.js" \
-		"background/lr_formatter.js" \
-		"background/lr_format_org.js" \
-		"background/lr_org_buffer.js" \
-		"background/lr_org_tree.js" \
-		"background/lr_json_ld.js" \
-		"background/meta.js" \
-		"background/native.js" \
-		"common/org_protocol.js" \
-		"background/result_cache.js" \
-		"background/rpc_server.js" \
-		"background/lr_settings.js" \
-		"background/async_script.js" \
-		"background/lr_export.js" \
-		"background/lr_clipboard.js" \
-		"background/lr_native_messaging.js" \
-		"background/lr_tabframe.js" \
-		"background/lr_notify.js" \
-		"background/lr_action.js" \
-		"background/lr_rpc_commands.js" \
-		"background/main.js" \
+	zip "$$file" manifest.json $$background \
 		"pages/settings.html" \
 		"pages/settings.js" \
 		"pages/lr.css" \
@@ -94,6 +71,7 @@ firefox-dist: firefox
 		"icons/lr-128.png" \
 		"icons/lr-16.png" \
 		"icons/lr-48.png" \
-		"_locales/en/messages.json"
+		"_locales/en/messages.json" ; \
+	echo "Created $$file"
 
 .PHONY: clean crome firefox test firefox-dist firefox-test chrome-test
