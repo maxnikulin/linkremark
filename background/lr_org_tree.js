@@ -177,10 +177,7 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 			LrOrgStateScope(
 				{ state: { headingLevel: 1 } },
 				LrOrgNobreak(null, new LrOrgHeadingMarker(), heading),
-				LrOrgStateScope(
-					{ state: { textIndent: 2 } },
-					LrOrgPropertiesDrawer({ properties }),
-				),
+				LrOrgPropertiesDrawer({ properties }),
 				LrOrgSeparatorLine,
 				...children,
 			),

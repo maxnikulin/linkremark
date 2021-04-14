@@ -111,11 +111,11 @@ var lr_test_org_tree = lr_util.namespace("lr_test_org_tree", lr_test_org_tree, f
 		const text = toText(tree).trim();
 		lr_test.assertEq(text,
 `* Head
-  :PROPERTIES:
-  :IMAGE_URL: http://ho.st/img1.png
-  :IMAGE_URL+: http://te.st/img2.jpg
-  :CUSTOM_ID: test_heading
-  :END:
+:PROPERTIES:
+:IMAGE_URL: http://ho.st/img1.png
+:IMAGE_URL+: http://te.st/img2.jpg
+:CUSTOM_ID: test_heading
+:END:
 
 Some text.`);
 	};
