@@ -146,11 +146,11 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 	}
 
 	function LrOrgListItem(attr, ...children) {
-		const marker = (attr.marker || '-');
+		const marker = (attr && attr.marker) || '-';
 		return [
 			LrOrgStartLine,
 			LrOrgMarkup(marker), LrOrgWordSeparator,
-			LrOrgStateScope({ state: { textIndent: Math.min(8, attr.marker.length + 1) } },
+			LrOrgStateScope({ state: { textIndent: Math.min(8, marker.length + 1) } },
 				...children
 			),
 			LrOrgStartLine,

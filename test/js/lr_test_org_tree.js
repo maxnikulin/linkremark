@@ -135,11 +135,30 @@ Some text.`);
 - URL :: [[http://te.st/dir?b%2D=&a=%2D][http://te.st/dir?b-=&a=-]]`);
 	};
 
-	lr_test.suites.push(this);
 	this.test_date = function() {
 		const text = toText(new Date(2020, 1-1, 2, 3, 4, 5, 6)).trim();
 		lr_test.assertTrue(() => /^\[2020-01-02 \p{Letter}+ 03:04\]$/u.test(text), `actual: "${text}"`);
 	};
 
+	this.test_nestedList = function() {
+		const { LrOrgListItem } = lr_org_tree;
+		const formatted = toText(
+			LrOrgListItem({ marker: '+' },
+				'First', LrOrgStartLine,
+				LrOrgListItem(null, 'Nested 1'),
+				LrOrgListItem(null, 'Nested 2'),
+			),
+			LrOrgListItem({ marker: '+' },
+				'Second'),
+		);
+		const expected = // Next line is shifted by 1 character due to the backtick.
+`+ First
+  - Nested 1
+  - Nested 2
++ Second`;
+		lr_test.assertEq(expected, formatted);
+	}
+
+	lr_test.suites.push(this);
 	return this;
 });
