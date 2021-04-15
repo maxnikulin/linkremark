@@ -21,6 +21,11 @@ function byId(id) {
 	return document.getElementById(id);
 }
 
+/** Do not omit undefined values, convert them to to `null` */
+function jsonStringify(obj) {
+	return JSON.stringify(obj, (k, v) => v !== undefined ? v : null, "  ");
+}
+
 function setTitle(title) {
 	document.title = title ? "LR: " + title : "LR Capture Preview";
 	const pageTitle = byId("pageTitle");
@@ -39,7 +44,7 @@ function setCaptureResult(result) {
 	if (typeof body === "string") {
 		text = body;
 	} else if (body != null) {
-		text = JSON.stringify(body, null, "  ");
+		text = jsonStringify(body);
 	}
 	const title = formattedResult && formattedResult.title;
 	if (body != null) {
@@ -87,7 +92,7 @@ async function lrFetchCachedResult() {
 	}
 	const { result, debugInfo } = cachedResult;
 	lrNotFatal(setCaptureResult)(result);
-	byId("dump").innerText = JSON.stringify(debugInfo, null, "  ");
+	byId("dump").innerText = jsonStringify(debugInfo);
 	if (result && result.error) {
 		expandDebugInfo();
 	}

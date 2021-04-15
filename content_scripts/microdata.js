@@ -80,16 +80,16 @@
 		}
 
 		toJSON() {
-			let named;
-			// Keep oder of entries
-			let unnamed;
+			// nulls are better for debug since `JSON.stringify` does not skip them
+			let named = null;
+			let unnamed = null;
 			for (let [key, value] of this) {
 				value = Array.from(value, e => (e instanceof LrMultiMap ? e.toJSON() : e));
 				value = value.length > 1 ? value : value[0];
 				if (key == null) {
 					unnamed = value;
 				} else {
-					if (named === undefined) {
+					if (named === null) {
 						named = {};
 					}
 					named[key] = value;
