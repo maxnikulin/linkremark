@@ -211,7 +211,7 @@ async function lrExecuteFrameScript(tab, wrappedFrame, file, property) {
 				error: lr_util.errorToObject(
 					new Error('tabs.executeScript is likely called for a privileged frame'))
 			};
-		} else if (retval.result || retval.error) {
+		} else if (lr_util.has(retval, "result") || lr_util.has(retval, "error")) {
 			wrappedFrame[property] = retval;
 		} else {
 			wrappedFrame[property] = { result: retval};
