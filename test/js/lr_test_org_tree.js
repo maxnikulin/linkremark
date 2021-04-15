@@ -79,8 +79,8 @@ var lr_test_org_tree = lr_util.namespace("lr_test_org_tree", lr_test_org_tree, f
 
 - an :: explanation
 
-        of
-        the term`);
+  of
+  the term`);
 	};
 
 	this.test_longDefinitionItem = function() {
@@ -94,8 +94,8 @@ var lr_test_org_tree = lr_util.namespace("lr_test_org_tree", lr_test_org_tree, f
 
 - something really long :: explanation
 
-                of
-                the term`);
+  of
+  the term`);
 	};
 
 	this.test_headingPropertied = function() {

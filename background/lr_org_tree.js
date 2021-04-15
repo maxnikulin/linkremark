@@ -159,12 +159,18 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 
 	function LrOrgDefinitionItem({ term }, ...children) {
 		term = ("" + term).trim();
+		const marker = "-";
 		return [
 			LrOrgStartLine,
-			LrOrgMarkup("-"), LrOrgWordSeparator,
+			LrOrgMarkup(marker), LrOrgWordSeparator,
 			LrOrgNobreak(null, term),
 			LrOrgWordSeparator, LrOrgMarkup("::"), LrOrgWordSeparator,
-			LrOrgStateScope({ state: { textIndent: Math.min(16, term.length + 6) } },
+			/* Since Org 9.3 long description is not aligned to "::" any more,
+			 * item is formatted as for unordered list (indented to the marker).
+			 * See org-mode commit
+			 * 683df456a4 Nicolas Goaziou Thu Jan 31 00:20:09 2019 +0100
+			 * org-list: Remove fancy description list indentation */
+			LrOrgStateScope({ state: { textIndent: Math.min(8, marker.length + 1) } },
 				...children
 			),
 			LrOrgStartLine,
@@ -177,6 +183,7 @@ var lr_org_tree = lr_util.namespace("lr_org_tree", lr_org_tree, function() {
 			LrOrgStateScope(
 				{ state: { headingLevel: 1 } },
 				LrOrgNobreak(null, new LrOrgHeadingMarker(), heading),
+				// Let's emacs apply drawer indentation accordingly to user settings.
 				LrOrgPropertiesDrawer({ properties }),
 				LrOrgSeparatorLine,
 				...children,
