@@ -8,3 +8,4 @@ background:
   - test/js/lr_test_org_tree.js
   - test/js/lr_test_json_ld.js
   - test/js/lr_test_format_org.js
+  - test/js/lr_test_meta.js

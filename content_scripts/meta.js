@@ -266,6 +266,9 @@
 			['blog-name', 'site_name'],
 		]);
 		const propertyMap = new Map([
+			['doi', 'doi'],
+			['DOI', 'doi'],
+			['citation_doi', 'doi'],
 			['og:url', 'url'],
 			['og:title', 'title'],
 			['twitter:title', 'title'],
@@ -290,6 +293,7 @@
 			['description', TEXT_SIZE_LIMIT],
 		]);
 		const countLimitMap = new Map(Object.entries({
+			doi: 5,
 			url: 5,
 			title: 5,
 			description: 5,

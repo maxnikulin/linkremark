@@ -82,6 +82,48 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 		return retval;
 	}
 
+	function sanitizeDOI(doi, error) {
+		if (!doi) {
+			return error ? { value: doi, error } : { value: doi };
+		}
+		if (typeof doi !== 'string') {
+			return { value: null, error: "TypeError" };
+		}
+		const retval = sanitizeLength(doi, error);
+		if (retval.error) {
+			return retval;
+		}
+		// https://en.wikipedia.org/wiki/Digital_object_identifier#Resolution
+		let cleaned = doi;
+		const reDoiSchema = /^(?:doi|hdl):/i;
+		const reInfoSchema = /^info:(?:doi|hdl)\//;
+		if (reDoiSchema.test(cleaned)) {
+			cleaned = cleaned.replace(reDoiSchema, '');
+		} else if (reInfoSchema.test(cleaned)) {
+			cleaned = cleaned.replace(reInfoSchema, '');
+		} else if (/^https?:\/[\/]/.test(cleaned)) {
+			try {
+				const url = new URL(cleaned);
+				// strip leading slash
+				cleaned = (url.pathname + url.search + url.hash).substring(1);
+			} catch (ex) {
+				console.debug("lr_meta.sanitizeDOI: failed to strip resolver: %o %o", cleaned, ex);
+			}
+		}
+		// Should it start from "10."?
+		if (cleaned) {
+			try {
+				cleaned = new URL("doi:" + cleaned).href;
+			} catch (ex) {
+				// Unsure if it could ever happen.
+				console.debug("lr_meta.sanitizeDOI: failed to construct URL: %o %o", cleaned, ex);
+				retval.error = "LrNotURL";
+			}
+		}
+		retval.value = cleaned;
+		return retval;
+	}
+
 	function sanitizeTextArray(fragmentArray, error) {
 		if (!Array.isArray(fragmentArray)) {
 			return { value: [], error: "TypeError" };
@@ -148,7 +190,7 @@ var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
 
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
-		sanitizeLength, sanitizeText, sanitizeUrl,
+		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
 		sanitizeObject,
 		sanitizeTextArray,
 		errorText,
@@ -306,6 +348,7 @@ class LrMeta {
 		Object.defineProperty(this, "sanitizerMap", {
 			enumerable: false,
 			value: new Map(Object.entries({
+				doi: lr_meta.sanitizeDOI,
 				url: lr_meta.sanitizeUrl,
 				image: lr_meta.sanitizeUrl,
 				linkUrl: lr_meta.sanitizeUrl,

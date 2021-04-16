@@ -582,6 +582,16 @@ function lr_format_org_frame(frame, options = {}) {
 		LrOrgDefinitionItem, LrOrgHeading, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgLink,
 	} = lr_org_tree;
 	const body = [];
+	try {
+		for (let variant of lr_property_variants(frame, "doi")) {
+			body.push(LrOrgDefinitionItem(
+				{ term: "DOI" },
+				LrOrgLink({ href: variant.value })));
+		}
+	} catch (ex) {
+		console.error("LR: while formatting doi: %o", ex);
+	}
+
 	for (let variant of lr_format_org.urlVariants(frame) || []) {
 		body.push(LrOrgDefinitionItem({ term: "URL" }, LrOrgLink({ href: variant.value })));
 		if (url == null) {
