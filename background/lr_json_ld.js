@@ -166,6 +166,7 @@ var lr_json_ld = lr_util.namespace("lr_json_ld", lr_json_ld, function lr_json_ld
 			setProperty(json, property, meta, target, nonrecursiveProps);
 		}
 		setProperty(json, "author", meta, "author", { ...props, recursive: true });
+		setProperty(json, "creator", meta, "author", { ...props, recursive: true });
 		const [topParent, topKey] =
 			findTopPartOf(json, props);
 		setProperty(topParent, "name", meta, "site_name",
