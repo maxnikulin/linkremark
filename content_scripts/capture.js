@@ -127,11 +127,15 @@
 		}
 	}
 
+	function lrNullOrString(arg) {
+		return !arg ? null : String(arg);
+	}
+
 	function lrDocumentTitle() {
-		return "" + document.title;
+		return lrNullOrString(document.title);
 	}
 	function lrWindowLocation() {
-		return "" + window.location;
+		return lrNullOrString(window.location);
 	}
 
 	/**

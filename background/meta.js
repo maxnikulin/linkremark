@@ -651,6 +651,7 @@ lr_meta.merge = function(frameInfo) {
 
 	const cleanupMethods = [
 		this.decodeDescription,
+		this.removeTitleUrlDuplicate,
 		this.makeDuplicationRemover("title", "description"),
 		this.makeDuplicationRemover("linkUrl", "linkText"),
 		this.removeNonCanonicalSlash,
@@ -665,6 +666,22 @@ lr_meta.merge = function(frameInfo) {
 	}
 
 	return meta;
+};
+
+lr_meta.removeTitleUrlDuplicate = function(metaMap) {
+	// Strip leading `http://`, `file://` or `view-source:`
+	const urlSet = new Set((metaMap.get('url') || [])
+		.map(entry => entry.value && entry.value.replace(/^[a-zA-Z][-_+a-zA-Z0-9]*:(?:\/\/)?/, "")));
+	if (!(urlSet.size > 0)) {
+		return;
+	}
+	const titleVariants = (metaMap.get('title') || []).slice();
+	for (let title of titleVariants) {
+		if (urlSet.has(title.value)) {
+			console.debug("LR clean meta: remove title similar to url %o", title);
+			metaMap.deleteValue("title", title.value);
+		}
+	}
 };
 
 lr_meta.makeDuplicationRemover = function(primary, forCleanup) {
