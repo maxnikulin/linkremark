@@ -651,8 +651,8 @@ lr_meta.merge = function(frameInfo) {
 
 	const cleanupMethods = [
 		this.decodeDescription,
-		this.removeDescriptionDuplicate,
-		this.removeTextLinkDuplicate,
+		this.makeDuplicationRemover("title", "description"),
+		this.makeDuplicationRemover("linkUrl", "linkText"),
 		this.removeNonCanonicalSlash,
 		this.removeSelfLink,
 	];
@@ -667,32 +667,25 @@ lr_meta.merge = function(frameInfo) {
 	return meta;
 };
 
-lr_meta.removeDescriptionDuplicate = function(metaMap) {
-	const titleSet = new Set((metaMap.get('title') || []).map(entry => entry.value));
-	if (!(titleSet.size > 0)) {
-		return
-	}
-	const descriptionVariants = (metaMap.get('description') || []).slice();
-	for (let description of descriptionVariants) {
-		if (titleSet.has(description.value)) {
-			console.debug("LR clean meta: remove description similar to title %o", description);
-			metaMap.move(description, 'description', 'title');
+lr_meta.makeDuplicationRemover = function(primary, forCleanup) {
+	const name = `removeDuplicate_${forCleanup}_${primary}`;
+	const obj = {
+		[name]: function(metaMap) {
+			const primarySet = new Set((metaMap.get(primary) || []).map(entry => entry.value));
+			if (!(primarySet.size > 0)) {
+				return;
+			}
+			const variants = (metaMap.get(forCleanup) || []).slice();
+			for (let v of variants) {
+				if (v.value && primarySet.has(v.value)) {
+					console.debug("LR clean meta: remove %s similar to %s: %o",
+						forCleanup, primary, v);
+					metaMap.move(v, forCleanup, primary);
+				}
+			}
 		}
-	}
-};
-
-lr_meta.removeTextLinkDuplicate = function(metaMap) {
-	const linkUrlSet = new Set((metaMap.get('linkUrl') || []).map(entry => entry.value));
-	if (!(linkUrlSet.size > 0)) {
-		return;
-	}
-	const linkTextVariants = (metaMap.get('linkText') || []).slice();
-	for (const entry of linkTextVariants) {
-		if (linkUrlSet.has(entry.value)) {
-			console.debug("LR clean meta: remove linkText similar to linkUrl %o", entry);
-			metaMap.move(entry, 'linkText', 'linkUrl');
-		}
-	}
+	};
+	return obj[name];
 };
 
 /* github og:description has entity-encoded apostrophes and twitter:description
