@@ -272,8 +272,19 @@ var lr_json_ld = lr_util.namespace("lr_json_ld", lr_json_ld, function lr_json_ld
 		return result;
 	}
 
+	/** Gather meta element scattered over the document without itemscope */
+	function mergeSchemaOrgOutOfScope(json, meta, options) {
+		if (!json || json["@type"]) {
+			return false;
+		}
+		const key = new Key(options && options.key || "schema_org.no_scope");
+		const props = { key, recursionLimit: 32 };
+		return handlePrimaryCreativeWork(json, meta, props);
+	}
+
 	Object.assign(this, {
 		mergeJsonLd,
+		mergeSchemaOrgOutOfScope,
 		internal: {
 			byId,
 			handleImageObjectProperty,

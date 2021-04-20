@@ -9,3 +9,4 @@ background:
   - test/js/lr_test_json_ld.js
   - test/js/lr_test_format_org.js
   - test/js/lr_test_meta.js
+  - test/js/lr_test_microdata.js

@@ -827,7 +827,41 @@ lr_meta.mergeMicrodata = function(frameInfo, meta) {
 	if (!microdata) {
 		return;
 	}
-	lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
+	if (Array.isArray(microdata)) {
+		lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
+		return;
+	}
+
+	const unnamed = microdata["@unnamed"];
+	const hasType = !!microdata["@type"];
+	if (hasType && !unnamed) {
+		lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
+		return;
+	}
+
+	const md = { ...microdata };
+	delete md["@unnamed"];
+	if (hasType) {
+		console.assert(unnamed, "lr_meta: microdata expected to have @unnamed", microdata);
+		const json = [ md,  ...(Array.isArray(unnamed) ? unnamed : [ unnamed ]) ];
+		lr_json_ld.mergeJsonLd(json, meta, { key: "microdata" });
+	} else {
+		const hasNamed = Object.keys(md).length > 0;
+		if (hasNamed) {
+			try {
+				lr_json_ld.mergeSchemaOrgOutOfScope(md, meta, { key: "microdata.no_scope" });
+			} catch (ex) {
+				console.warn("lr_meta: merging out of scope microdata: %o", ex);
+			}
+		}
+		if (unnamed) {
+			try {
+				lr_json_ld.mergeJsonLd(unnamed, meta, { key: "microdata.no_prop" });
+			} catch (ex) {
+				console.warn("lr_meta: merging microdata without itemprop: %o", ex);
+			}
+		}
+	}
 };
 
 lr_meta.html_entity_string = Object.assign(Object.create(null), {
