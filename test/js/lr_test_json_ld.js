@@ -17,7 +17,7 @@
 
 "use strict";
 
-var lr_test_json_ld = lr_util.namespace("lr_test_json_ld", lr_test_json_ld, function(lr_test_json_ld) {
+var lr_test_json_ld = lr_util.namespace("lr_test_json_ld", lr_test_json_ld, function lr_test_json_ld() {
 	function metaValues(meta, field) {
 		const valueObjects = meta.get(field);
 		return valueObjects && valueObjects.map(o => o.value);
