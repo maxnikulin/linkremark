@@ -264,8 +264,6 @@
 			['datePublished', 'published_time'],
 			['dateModified', 'modified_time'],
 			['blog-name', 'site_name'],
-		]);
-		const propertyMap = new Map([
 			['doi', 'doi'],
 			['DOI', 'doi'],
 			['citation_doi', 'doi'],
@@ -357,17 +355,12 @@
 			} else {
 				content = content.trim();
 			}
-			const name = meta.getAttribute('name');
-			const property = meta.getAttribute('property');
-			if (name) {
-				const target = nameMap.get(name) || propertyMap.get(name);
+			const name = meta.getAttribute('name'); // HTML
+			const property = name || meta.getAttribute('property'); // RDF
+			if (property) {
+				const target = nameMap.get(property);
 				if (target) {
-					setProp(meta, target, content, 'meta.name.' + name);
-				}
-			} else if (property) {
-				const target = propertyMap.get(property);
-				if (target) {
-					setProp(meta, target, content, 'meta.property.' + property);
+					setProp(meta, target, content, ['meta', name ? 'name' : 'property', property].join('.'));
 				}
 			}
 		}
