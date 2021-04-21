@@ -283,6 +283,10 @@
 			['og:site_name', 'site_name'],
 			['twitter:site', 'site_name'],
 			/* TODO og:type article, website */
+			// Currently ignored properties from HTML standard
+			// added with hope to identify problematic engines.
+			['application-name', 'other'],
+			['generator', 'other'],
 		]);
 		const sizeLimitMap = new Map([
 			['description', TEXT_SIZE_LIMIT],
@@ -295,7 +299,7 @@
 			image: 5,
 			published_time: 5,
 			modified_time: 5,
-			other: 10,
+			other: 20,
 		}));
 		/* TODO author
 		 * wordpress: body span.author
