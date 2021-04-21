@@ -286,9 +286,6 @@
 			['twitter:site', 'site_name'],
 			/* TODO og:type article, website */
 		]);
-		const itempropMap = new Map([
-			['datePublished', 'published_time'],
-		]);
 		const sizeLimitMap = new Map([
 			['description', TEXT_SIZE_LIMIT],
 		]);
@@ -362,7 +359,6 @@
 			}
 			const name = meta.getAttribute('name');
 			const property = meta.getAttribute('property');
-			const itemprop = meta.getAttribute('itemprop');
 			if (name) {
 				const target = nameMap.get(name) || propertyMap.get(name);
 				if (target) {
@@ -372,11 +368,6 @@
 				const target = propertyMap.get(property);
 				if (target) {
 					setProp(meta, target, content, 'meta.property.' + property);
-				}
-			} else if (itemprop) {
-				const target = itempropMap.get(itemprop);
-				if (target) {
-					setProp(meta, target, content, 'itemprop.' + itemprop);
 				}
 			}
 		}
