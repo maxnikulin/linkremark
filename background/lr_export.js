@@ -45,7 +45,7 @@ var lr_export = function() {
 
 
 	this.initSync = function() {
-		lr_export.registerFormat("org", "0.1", function lrFormatOrg(result, _options) {
+		lr_export.registerFormat("org", "0.2", function lrFormatOrg(result, _options) {
 			if (result != null && result.org != null) {
 				return result.org;
 			}
@@ -57,7 +57,7 @@ var lr_export = function() {
 			return result.org;
 		});
 
-		this.registerFormat("object", "0.1", function lrFormatJson(result, _options) {
+		this.registerFormat("object", "0.2", function lrFormatJson(result, _options) {
 			if (result == null || result.object == null) {
 				throw new Error('No result in "object" format');
 			}

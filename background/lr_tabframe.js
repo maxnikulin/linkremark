@@ -324,7 +324,10 @@ async function captureTabFocusedFrame(tab, target=null) {
 
 		result.object = lrReportStep(
 			function frameMergeMeta() {
-				return frameChain.map(frame => lr_meta.merge(frame));
+				return {
+					_type: "TabFrameChain",
+					elements: frameChain.map(frame => lr_meta.merge(frame)),
+				};
 			},
 			errorCollector);
 		errorCollector.push({step: "captureResult", result});

@@ -189,7 +189,7 @@ var lr_clipboard = function() {
 		});
 		lr_settings.registerOption({
 			name: "export.methods.clipboard.formatterVersion",
-			defaultValue: "0.1",
+			defaultValue: "0.2",
 			version: "0.1",
 			title: "Version of formatter for clipboard",
 			description: [
@@ -289,7 +289,7 @@ var lr_clipboard = function() {
 		});
 		lr_settings.registerOption({
 			name: "export.methods.orgProtocol.formatterVersion",
-			defaultValue: "0.1",
+			defaultValue: "0.2",
 			version: "0.1",
 			title: "Version of formatter for org-capture",
 			description: [

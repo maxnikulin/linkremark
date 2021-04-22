@@ -767,10 +767,12 @@ function lr_format_org_frame_chain(frameChain, target, baseProperties) {
 	).tree);
 }
 
-function lr_format_org(frameChain) {
-	if (!frameChain) {
-		throw new Error("Capture failed");
+function lr_format_org_tab_frame_chain(object) {
+	const type = object && object._type;
+	if (type !== "TabFrameChain") {
+		throw new TypeError(`lr_format_org_tab_frame_chain: type "${type}" !== "TabFrameChain"`);
 	}
+	const frameChain = object.elements;
 	const baseProperties = [["DATE_ADDED", new Date()]];
 	let result = null;
 	const target = frameChain[0] && frameChain[0].target;
@@ -801,7 +803,22 @@ function lr_format_org(frameChain) {
 			body: subframes,
 		});
 	}
-	const { url, title, tree } = result;
+	return result;
+}
+
+function lr_format_org(object) {
+	if (!object) {
+		throw new Error("Capture failed");
+	}
+	let handler;
+	switch (object._type) {
+		case "TabFrameChain":
+			handler = lr_format_org_tab_frame_chain;
+	}
+	if (!handler) {
+		throw new TypeError(`lr_format_org: unsupported type "${object._type}"`);
+	}
+	const { url, title, tree } = handler(object);
 	return {
 		url,
 		title: lr_org_tree.toPlainText(title),
