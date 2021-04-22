@@ -143,6 +143,7 @@ function bapiChrome(bapi, chrome) {
 			onInstalled: asis,
 			sendMessage: promisify,
 			getPlatformInfo: promisify,
+			openOptionsPage: promisify,
 			onMessage: promisifyEventWithResponse,
 		},
 		storage: {

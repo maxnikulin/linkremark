@@ -305,6 +305,10 @@ var expandDebugInfo = lrNotFatal(function() {
 });
 
 function lrPreviewBind() {
+	lrNotFatal(function() {
+		const link = byId("settings");
+		link.addEventListener("click", openSettings, false);
+	})();
 	return [LrPreviewClipboardAction, LrPreviewOrgProtocolAction].map(
 		Factory => {
 			const handler = new Factory();
@@ -321,6 +325,21 @@ function someValue(array, fun) {
 		if (result) {
 			return result;
 		}
+	}
+}
+
+function openSettings(ev) {
+	function onOpenOptionsPageError(ex) {
+		console.error("lr_action.openSettings: runtime.openOptionsPage: %o", ex);
+		const link = byId("settings");
+		// Next time use default browser action to open link target.
+		link.removeEventListener("click", openSettings);
+	}
+	try {
+		bapi.runtime.openOptionsPage().catch(onOpenOptionsPageError);
+		ev.preventDefault();
+	} catch (ex) {
+		onOpenOptionsPageError(ex);
 	}
 }
 

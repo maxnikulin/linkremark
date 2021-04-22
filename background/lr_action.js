@@ -168,6 +168,11 @@ var lr_action = function() {
 	};
 
 	this.openSettings = async function(tab) {
+		try {
+			return await bapi.runtime.openOptionsPage();
+		} catch (ex) {
+			console.error("lr_action.openSettings: runtime.openOptionsPage: %o", ex);
+		}
 		return await bapi.tabs.create({
 			url: bapi.runtime.getURL("pages/settings.html"),
 			openerTabId: tab && tab.id,
