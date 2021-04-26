@@ -297,60 +297,79 @@ function lrReportStep(func, collector, props=null) {
 	}
 }
 
-async function captureTabFocusedFrame(tab, target=null) {
-	// In chromium-87 contextMenus listener gets
-	// tab.id == -1 and tab.windowId == -1 for PDF files
-	const activeTab = tab && tab.id >= 0 ? tab : await getActiveTab();
-	lr_notify.notify({ state: lr_notify.state.PROGRESS, tabId: activeTab.id });
-	let result = {};
-	let errorCollector = [];
-	try {
-		lrReportStep(
-			function setTargetElement() {
-				// Unavailable in Chrome
-				if (target == null) {
-					return;
+async function lrCaptureTabGroup(tabTargetArray, executor) {
+	const promises = executor.child(function launchTabGroupCaptures(executor) {
+		return tabTargetArray.map(tabTarget => executor.step(
+			{ ignoreError: true },
+			function launchTabCapture() {
+				const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
+				return executor.child(
+					{ tabId: tab && tab.id, tabUrl: tab && tab.url },
+					lrCaptureSingleTab, tabTarget /* implicit childExecutor argument */
+				);
+			}));
+	});
+	const elements = await executor.child(async function waitTabGroupCaptures(executor) {
+		let failures = promises.length;
+		let errors = [];
+		let result = [];
+		for (const p of promises) {
+			try {
+				if (p) {
+					const capture = await executor.step(
+						{ result: true },
+						async function waitSingleTabCapture(p) {
+							return await p;
+						}, p)
+					result.push(capture);
+					--failures;
 				}
-				const { tabId, frameId, targetElementId } = target;
-				if (!(targetElementId != null && tabId >= 0)) {
-					return;
-				}
-				gLrResultCache.putTargetElement({tabId, frameId, targetElementId});
-			},
-			errorCollector);
-		const frameChain = await lrAsyncReportStep(
-			async function tabFramesInfo() { return lrGatherTabInfo(tab, target, activeTab); },
-			errorCollector, { result: true });
-
-		result.object = lrReportStep(
-			function frameMergeMeta() {
-				return {
-					_type: "TabFrameChain",
-					elements: frameChain.map(frame => lr_meta.merge(frame)),
-				};
-			},
-			errorCollector);
-		errorCollector.push({step: "captureResult", result});
-
-		gLrResultCache.put(result, errorCollector);
-		const exportResult = await lrAsyncReportStep(
-			async function exportResult() { return lr_export.process(result, { tab: activeTab } ); },
-			errorCollector);
-		if (!exportResult) {
-			throw new Error("Export failed");
+			} catch (ex) {
+				errors.push(ex);
+			}
 		}
-		lr_notify.notify({ state: lr_notify.state.SUCCESS, tabId: activeTab.id });
+		if (promises.length === failures) {
+			// TODO aggregate error
+			throw new Error("Capture failed for all tabs");
+		}
+		if (failures !== 0) {
+			result.unshift({ _type: "Text", elements: [ `Capture of ${failures} tabs failed` ] });
+		}
+		return result;
+	});
+	return { _type: "TabGroup", elements };
+}
+
+async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
+	try {
+		if (!windowTab.url) {
+			throw new Error("Permission denied");
+		}
+		executor.step({ result: true }, function setTargetElement() {
+			// Unavailable in Chrome
+			if (target == null) {
+				return "No target";
+			}
+			const { tabId, frameId, targetElementId } = target;
+			if (!(targetElementId != null && tabId >= 0)) {
+				return "No targetElementId or tabId";
+			}
+			gLrResultCache.putTargetElement({tabId, frameId, targetElementId});
+			return true
+		});
+		const frameChain = await executor.step(
+			{ result: true },
+			lrGatherTabInfo, frameTab, target, windowTab);
+		const result = executor.step(function frameMergeMeta() {
+			return {
+				_type: "TabFrameChain",
+				elements: frameChain.map(frame => lr_meta.merge(frame)),
+			};
+		});
+		return result;
 	} catch (ex) {
-		console.error("captureTabFocusedFrame", ex);
-		result.error = lr_util.errorToObject(ex);
-		gLrResultCache.put(result, errorCollector);
-		errorCollector.push({ step: "captureTabFocusedFrame", error: lr_util.errorToObject(ex)});
-		lr_notify.notify({ state: lr_notify.state.ERROR, tabId: activeTab.id });
-		return await lrAsyncReportStep(
-			async function reportError() { return lr_action.openPreview(activeTab); },
-			errorCollector);
-	} finally {
-		gLrResultCache.put(result, errorCollector);
+		executor.notifier.tabFailure(windowTab && windowTab.id)
+		throw ex;
 	}
 }
 

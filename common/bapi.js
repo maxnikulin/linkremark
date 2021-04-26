@@ -135,6 +135,9 @@ function bapiChrome(bapi, chrome) {
 		i18n: {
 			getMessage: asis,
 		},
+		permissions: {
+			request: promisify,
+		},
 		runtime: {
 			connectNative: asis,
 			getManifest: asis,

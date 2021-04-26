@@ -54,6 +54,9 @@
 		"clipboardWrite",
 		"nativeMessaging"
 	],
+	"optional_permissions": [
+		"tabs"
+	],
 	"background": {
 		"scripts": [
 			"background/init.js",

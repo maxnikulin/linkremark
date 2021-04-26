@@ -76,6 +76,20 @@ on github: https://github.com/maxnikulin/linkremark/releases
 In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
 and load it as unpacked extension.
 
+* Permissions
+
+You could find more information what every requested
+permission means on the following page:
+[[https://support.mozilla.org/en-US/kb/permission-request-messages-explained]]
+
+** Optional permissions
+
+*** Access browser tabs (=tabs=)
+
+When granted, it is possible to capture a group of tabs.
+Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
+and open context menu (right click) for a header of selected tab.
+
 * Usage
 
 Optionally select some text and choose an option from the context menu (right click).

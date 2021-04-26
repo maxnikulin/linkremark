@@ -44,7 +44,7 @@ var lr_notify = lr_util.namespace("lr_notify", lr_notify, function lr_notify() {
 
 	const colorValue = 159;
 
-	var notify = lr_util.notFatal(function lrNotify({state, tabId, title}) {
+	var notify = lr_util.notFatal(async function lrNotify({state, tabId, title}) {
 		let color = [ colorValue, colorValue, 0, colorValue ];
 		let text = "?";
 		const name = bapi.runtime.getManifest().short_name;
@@ -75,7 +75,10 @@ var lr_notify = lr_util.namespace("lr_notify", lr_notify, function lr_notify() {
 					title = `${name}: some problems`; // TODO i18n
 				}
 				break;
+			default:
+				console.warn("lr_notify.notify: invalid state %o", state);
 		}
+		// TODO await
 		bapi.browserAction.setBadgeBackgroundColor({ tabId, color });
 		bapi.browserAction.setBadgeText({ tabId, text });
 		if (title == null) {

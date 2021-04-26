@@ -143,7 +143,7 @@ var lr_clipboard = function() {
 			try {
 				const result = await method(capture, options);
 				if (result) {
-					return true;
+					return result;
 				} else {
 					console.error(`lrClipboard: ${method.name} has not succeeded`);
 				}
