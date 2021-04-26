@@ -26,6 +26,11 @@
 "use strict";
 
 (function lrMicrodata(){
+	const LR_DISCARD = Symbol("LrDiscard");
+	const LR_PROPERTY_COUNT = Symbol("LrPropertyCount");
+	const LR_PROPERTY_COUNT_LIMIT = 8;
+	const LR_OTHER_PROPERTIES = Symbol("LrOtherProperties");
+	const LR_OTHER_PROPERTIES_LIMIT = 16;
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -69,6 +74,7 @@
 				super.set(key, entry);
 			}
 			entry.add(value);
+			return this;
 		}
 		hasValue(value) {
 			for (const set of super.values()) {
@@ -105,6 +111,37 @@
 		}
 	}
 
+	class LrLimitedMultiMap extends LrMultiMap {
+		constructor(limits) {
+			super();
+			this.limits = new Map([
+				[LR_PROPERTY_COUNT, LR_PROPERTY_COUNT_LIMIT],
+				[LR_OTHER_PROPERTIES, LR_OTHER_PROPERTIES_LIMIT],
+			]);
+			if (limits) {
+				for (const [k, v] of Object.entries(limits)){
+					this.limits.set(k, v);
+				}
+			}
+		}
+		set(key, value) {
+			if (this.has(key)) {
+				const count = this.get(key).size;
+				const limit = this.limits.get(key) || this.limits.get(LR_OTHER_PROPERTIES_LIMIT);
+				const allow = limit == null || count < limit;
+				if (!allow) {
+					return null;
+				}
+			} else {
+				const allow = this.limits.has(key) || this.size < this.limits.get(LR_PROPERTY_COUNT);
+				if (!allow) {
+					return null;
+				}
+			}
+			return super.set(key, value);
+		}
+	}
+
 	function QueueItem(node) {
 		this.node = node; this.post = false;
 	}
@@ -114,11 +151,20 @@
 		while (queue.length > 0) {
 			const item = queue.pop();
 			const children = yield item;
+			if (children === LR_DISCARD) {
+				for (const last = queue.length; last-- > 0; ) {
+					if (queue[last].post) {
+						break;
+					} else {
+						queue.pop();
+					}
+				}
+			}
 			if (!item.post) {
 				item.post = true;
 				queue.push(item);
 			}
-			if (children) {
+			if (children && Symbol.iterator in children) {
 				queue.push.apply(
 					queue,
 					Array.from(children, x => new QueueItem(x)).reverse());
@@ -131,7 +177,10 @@
 	}
 
 	function lrCollectMicrodata() {
-		const metaFrameStack = [ { node: undefined, properties: new LrMultiMap() } ];
+		const DOM_DEPTH_LIMIT = 128;
+		const MICRODATA_DEPTH_LIMIT = 16;
+
+		const metaFrameStack = [ { node: undefined, properties: new LrLimitedMultiMap() } ];
 		const stack = []
 		let item;
 		let children;
@@ -184,23 +233,28 @@
 			stack.push(node);
 			const itemscope = node.hasAttribute("itemscope");
 			const itemprop = node.getAttribute("itemprop");
-			children = node.children;
+			if (stack.length < DOM_DEPTH_LIMIT && metaFrameStack.length < MICRODATA_DEPTH_LIMIT) {
+				children = node.children;
+			}
 			if (itemscope || itemprop) {
 				const topMetaFrame = lrArrayLast(metaFrameStack);
-				const newFrame = { node, properties: new LrMultiMap() };
-				topMetaFrame.properties.set(itemprop, newFrame.properties);
-				metaFrameStack.push(newFrame);
-				if (itemscope) {
-					const typeAttr = node.getAttribute("itemtype");
-					const type = typeAttr && typeAttr.replace(/^https?:\/\/schema\.org\//, "");
-					if (type) {
-						newFrame.properties.set("@type", type);
+				const newFrame = { node, properties: new LrLimitedMultiMap() };
+				if (topMetaFrame.properties.set(itemprop, newFrame.properties)) {
+					metaFrameStack.push(newFrame);
+					if (itemscope) {
+						const typeAttr = node.getAttribute("itemtype");
+						const type = typeAttr && typeAttr.replace(/^https?:\/\/schema\.org\//, "");
+						if (type) {
+							newFrame.properties.set("@type", type);
+						}
+					} else if (itemprop) {
+						const value = lrNodeContentFromAttributes(node);
+						if (value) {
+							newFrame.properties.set(null, value);
+						}
 					}
-				} else if (itemprop) {
-					const value = lrNodeContentFromAttributes(node);
-					if (value) {
-						newFrame.properties.set(null, value);
-					}
+				} else {
+					children = null;
 				}
 			}
 		}
