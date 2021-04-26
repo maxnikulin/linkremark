@@ -109,20 +109,20 @@
 		this.node = node; this.post = false;
 	}
 
-	function* lrDeepFirstSearch(root, getChildren) {
+	function* lrDeepFirstSearch(root) {
 		const queue = [new QueueItem(root)];
 		while (queue.length > 0) {
 			const item = queue.pop();
-			yield item;
-			if (item.post) {
-				continue;
+			const children = yield item;
+			if (!item.post) {
+				item.post = true;
+				queue.push(item);
 			}
-			item.post = true;
-			queue.push(item);
-			queue.push.apply(
-				queue,
-				Array.from(getChildren(item.node))
-					.map(x => new QueueItem(x)).reverse());
+			if (children) {
+				queue.push.apply(
+					queue,
+					Array.from(children, x => new QueueItem(x)).reverse());
+			}
 		}
 	}
 
@@ -133,8 +133,12 @@
 	function lrCollectMicrodata() {
 		const metaFrameStack = [ { node: undefined, properties: new LrMultiMap() } ];
 		const stack = []
-		for (const item of lrDeepFirstSearch(document.documentElement, i => i.children)) {
-			const { node, post } = item;
+		let item;
+		let children;
+		const iter = lrDeepFirstSearch(document.documentElement);
+		while (!(item = iter.next(children)).done) {
+			children = null;
+			const { node, post } = item.value;
 			/*
 			if (
 				node.hasAttribute("itemprop")
@@ -180,6 +184,7 @@
 			stack.push(node);
 			const itemscope = node.hasAttribute("itemscope");
 			const itemprop = node.getAttribute("itemprop");
+			children = node.children;
 			if (itemscope || itemprop) {
 				const topMetaFrame = lrArrayLast(metaFrameStack);
 				const newFrame = { node, properties: new LrMultiMap() };
