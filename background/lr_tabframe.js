@@ -417,6 +417,11 @@ async function lrFrameChainByClickData(tab, frameMap, clickData) {
 }
 
 async function lrExecuteReferrerScript(tab, frames) {
+	if (!Array.isArray(frames)) {
+		// To allow second pass if iterator is passed
+		frames = Array.from(frames);
+	}
+
 	try {
 		await Promise.all(Array.from(
 			frames,
