@@ -45,11 +45,7 @@
 		"storage",
 		"activeTab",
 		"menus", "contextMenus",
-		"webNavigation", "<all_urls>",
-		"clipboardWrite", "nativeMessaging"
-	],
-	"optional_permissions": [
-		"tabs"
+		"webNavigation", "<all_urls>"
 	],
 	"background": {
 		"scripts": [

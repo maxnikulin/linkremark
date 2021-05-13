@@ -1,4 +1,11 @@
 {
+	"permissions": [
+		"nativeMessaging"
+	],
+	"optional_permissions": [
+		"clipboardWrite",
+		"tabs"
+	],
 	"applications": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",

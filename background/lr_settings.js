@@ -25,13 +25,27 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 
 	this.registerOption = function(details) {
 		if (details == null) {
-			console.error("lr_settings.registerOption called with argument " + details);
+			console.error(
+				"lr_settings.registerOption called with invalid argument " + String(details));
 			return;
 		}
 		for (const property of ["name", "defaultValue", "version", "title", "description"]) {
+			if (details.type === "permission" && property === "defaultValue") {
+				continue;
+			}
 			console.assert(
 				details[property] !== undefined,
 				`Settings option ${details.name} should define ${property}`);
+		}
+		if (details.name.startsWith("permissions.")) {
+			const perm = details.name.substring(12);
+			const optional = bapi.runtime.getManifest().optional_permissions;
+			if (!optional || !(optional.indexOf(perm) >= 0)) {
+				console.log(
+					"lr_settings.registerOption: skip optional permission %s as disabled for this browser.",
+					perm);
+				return;
+			}
 		}
 		this.settingsMap.set(details.name, details);
 	};
@@ -162,6 +176,25 @@ var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
 				"when settings backup file were created",
 			],
 			parent: "internal",
+		});
+
+		this.registerGroup({
+			name: "misc",
+			title: "Miscellaneous",
+			priority: 4,
+		});
+		this.registerOption({
+			name: "permissions.tabs",
+			title: 'Permission: access browser tabs ("tabs")',
+			version: "0.2",
+			description: [
+				"Allowes to capture group of tabs.",
+				"Useful only in Firefox, requested on demand.",
+				"Revoke to block add-on access to titles and URLs",
+				"of tabs other than the currently active one.",
+			],
+			type: "permission",
+			parent: "misc",
 		});
 	};
 

@@ -34,6 +34,43 @@ function E(tagName, attrs, ...children) {
 	return e;
 }
 
+class LrPermissionControl {
+	constructor(name) {
+		this.name = name;
+		this.permission = this.name.substring(12);
+	}
+	render() {
+		this.checkbox = E('input', { type: 'checkbox', name: this.name });
+		this.progress = E('span', { className: 'invisible' }, " Updating...");
+		this.error = E('span', { className: 'invisible error'}, " Failed");
+		const label = E('label', null, this.checkbox, "Allowed");
+		return E('div', null, label, this.progress, this.error);
+	}
+	mapStateToProps(state) {
+		return state && state.permissions && state.permissions[this.permission];
+	}
+	updateProps(props) {
+		if (!this.checkbox) { // has not rendered yet
+			return;
+		}
+		this.checkbox.checked = props && props.state;
+		const errorText = props && props.requests && props.requests.filter(r => r.error != null)
+			.map(r => String(r.error)).join(", ");
+		if (errorText) {
+			this.error.classList.remove("invisible");
+			this.error.innerText = " " + errorText;
+		} else {
+			this.error.classList.add("invisible");
+			this.error.innerText = " Failed";
+		}
+		if (props && props.requests && props.requests.some(r => !r.error)) {
+			this.progress.classList.remove("invisible");
+		} else {
+			this.progress.classList.add("invisible");
+		}
+	}
+}
+
 function getDescriptionParagraphs(property) {
 	let text = property && property.description;
 	if (!text) {
@@ -157,8 +194,22 @@ function getType(property) {
 	return "string";
 }
 
+function formatPermission(property) {
+	const control = new LrPermissionControl(property.name);
+	const dom = control.render();
+	// HTML elements should be already created to properly updateProps.
+	lrEventSources.stateStore.registerComponent(
+		control,
+		control.mapStateToProps.bind(control));
+	return dom;
+}
+
 function formatPropertyInputs(property) {
-	const isText = getType(property) === "text";
+	const type = getType(property);
+	if (type === "permission") {
+		return formatPermission(property);
+	}
+	const isText = type === "text";
 	const input = formatInput(property);
 	input.classList.add("userInput");
 	const inputContainer = E("div", { className: "userInputContainer", }, input);
@@ -175,6 +226,15 @@ async function lrInputChanged(e) {
 	try {
 		const form = document.getElementById("formDescriptors");
 		const targetName = e.target.name;
+		if (targetName.startsWith("permissions.")) {
+			const name = targetName.substring(12);
+			const permObj = { permissions: [ name ] };
+			const state = e.target.checked;
+			// Reset to original state till permission change event,
+			e.target.checked = !e.target.checked;
+			lrEventSources.permissionEvents.change(state, { permissions: [name] });
+			return;
+		}
 		const real = targetName.startsWith("real.");
 		const name = real ? targetName.substring(5) : targetName.replace(/\.[^.]+$/, "");
 		if (real) {
@@ -203,7 +263,7 @@ async function renderDescriptors() {
 		const isText = getType(property) === "text";
 		const attrs = isText ? { className: "textParameter" } : null;
 		const div = E("div", attrs);
-		if ("defaultValue" in property) {
+		if ("defaultValue" in property || "type" in property) {
 			div.append(E("h3", null, property.title));
 			const divInputs = formatPropertyInputs(property)
 			if (isText) {
@@ -220,7 +280,7 @@ async function renderDescriptors() {
 		}
 	}
 	for (const property of descriptors) {
-		if ("defaultValue" in property) {
+		if ("defaultValue" in property && property.type !== 'permission') {
 			applyValueObject(form, property);
 		}
 	}
@@ -318,5 +378,13 @@ function initLoadSave() {
 	fileSave.addEventListener("click", lrMakeBackup, false);
 }
 
+function lrInitEventSources() {
+	const permissionEvents = new LrPermissionsEvents();
+	const stateStore = new LrStateStore(lrEventReducer);
+	stateStore.registerComponent(permissionEvents, null, dispatch => permissionEvents.subscribe(dispatch));
+	return { permissionEvents, stateStore };
+}
+
+var lrEventSources = lrInitEventSources();
 renderDescriptors();
 initLoadSave();

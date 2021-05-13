@@ -176,6 +176,25 @@ var lr_clipboard = function() {
 			parent: "export.methods.clipboard",
 		});
 		lr_settings.registerOption({
+			name: "permissions.clipboardWrite",
+			type: "permission",
+			version: "0.2",
+			title: 'Permission: Input data to the clipboard ("clipboardWrite")',
+			description: [
+				"In Firefox if capture preview is suppressed",
+				"it allows to copy to clipboard on privileged pages",
+				"(PDF file, reader mode, about: pages, addons.mozilla.org site)",
+				"without transient preview page.",
+				"",
+				"Do not grant this permission if you are afraid",
+				"that add-on can silently overwrite data in clipboard.",
+				"Clipboard is not necessary for native-messaging or org-protocol.",
+				"The only visible consequence of disabling this permission",
+				"is temporary preview page in rare cases.",
+			],
+			parent: "export.methods.clipboard",
+		});
+		lr_settings.registerOption({
 			name: "export.methods.clipboard.formatterType",
 			defaultValue: "org",
 			version: "0.1",

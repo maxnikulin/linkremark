@@ -46,6 +46,28 @@ var lr_native_messaging = function() {
 			title: "Browser native messaging communication channel",
 			priority: 10,
 		});
+		/* Firefox-78 ESR does not support `nativeMessaging` in `optional_permissions`
+		 * see [[https://bugzilla.mozilla.org/1630415]]
+		 * "1630415 - make nativeMessaging an optional permission".
+		 * Implemented in Firefox-87.
+		 * Chromium-90 does not expose `chrome.runtime.connectNative`
+		 * till extension reload.
+		 */
+		lr_settings.registerOption({
+			name: "permissions.nativeMessaging",
+			type: "permission",
+			title: 'Permission: Exchange messages with other programs ("nativeMessaging")',
+			version: "0.2",
+			description: [
+				"It is necessary to explicitly grant this permission",
+				"if you decided to configure communication with Emacs",
+				"using native messaging backend.",
+				"Implementation of request on demand in problematic in this case.",
+				"In Chrome you may need to reload the extension",
+				"after granting this permission.",
+			],
+			parent: "export.methods.nativeMessaging",
+		});
 		lr_settings.registerOption({
 			name: "export.methods.nativeMessaging.backend",
 			parent: "export.methods.nativeMessaging",

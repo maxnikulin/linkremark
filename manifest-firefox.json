@@ -51,11 +51,7 @@
 		"contextMenus",
 		"webNavigation",
 		"<all_urls>",
-		"clipboardWrite",
 		"nativeMessaging"
-	],
-	"optional_permissions": [
-		"tabs"
 	],
 	"background": {
 		"scripts": [
@@ -85,6 +81,10 @@
 			"background/main.js"
 		]
 	},
+	"optional_permissions": [
+		"clipboardWrite",
+		"tabs"
+	],
 	"applications": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",

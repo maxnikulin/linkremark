@@ -266,3 +266,7 @@ div.p {
 	margin-top: 1ex;
 	margin-bottom: 1ex;
 }
+
+span.invisible {
+	display: none;
+}

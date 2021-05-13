@@ -82,13 +82,49 @@ You could find more information what every requested
 permission means on the following page:
 [[https://support.mozilla.org/en-US/kb/permission-request-messages-explained]]
 
+** Requested on Install
+*** Exchange messages with other programs (=nativeMessaging=)
+
+Chrome: "Communicate with cooperating native applications".
+
+Allows the extension to communicate with Emacs without global org-protocol
+handler, so allows to have more secure setup. On the other hand
+you need to install and configure an extra application, so you should
+either trust this external tool or should develop it yourself.
+
+This permission is relevant for experienced Emacs and Org Mode users.
+
+This permission can not be requested on demand in Firefox-78.10 ESR,
+see [[https://bugzilla.mozilla.org/1630415]]
+"1630415 - make nativeMessaging an optional permission".
+Extension can not launch any application till it is explicitly added
+to a configuration file (manifest) by the user.
+
 ** Optional permissions
 
 *** Access browser tabs (=tabs=)
 
+Chrome: "Read your browsing history".
+
+Additional feature is avilable in Firefox only.
 When granted, it is possible to capture a group of tabs.
 Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
 and open context menu (right click) for a header of selected tab.
+
+Requested on demand when not granted.
+
+*** Input data to the clipboard (=clipboardWrite=)
+
+Chrome: "Modify data you copy and paste".
+
+Hopefully in Firefox the extension works a bit better with this permission.
+It is not strictly necessary however. The extension is still able
+to copy text to clipboard in response to user action even without
+this permission. The only drawback is transient preview tab in rare cases
+(e.g. for PDF files). Native messaging backend does not use clipboard at all
+and org-protocol touches clipboard only in non-default configuration.
+
+Full functionality is available even with disabled permission.
 
 * Usage
 

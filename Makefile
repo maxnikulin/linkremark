@@ -57,6 +57,7 @@ firefox-dist: firefox
 		"pages/lr.css" \
 		"pages/preview.js" \
 		"pages/preview.html" \
+		"pages/ui_events.js" \
 		"content_scripts/link.js" \
 		"content_scripts/image.js" \
 		"content_scripts/capture.js" \

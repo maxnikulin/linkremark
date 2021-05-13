@@ -36,21 +36,25 @@ var bapiType;
 if (bapi) {
 	bapiType = 'firefox';
 } else if (window.chrome) {
-	bapi = bapiChrome({}, window.chrome);
+	bapi = bapiChrome(window.chrome);
 	bapiType = 'chrome';
 } else {
 	bapiType = 'unknown';
 	throw new Error("LinkRemark: unsupported browser");
 }
 
-function bapiChrome(bapi, chrome) {
-	function asis(method) {
-		return method;
-	}
+function bapiChrome(chrome) {
+	const asis = Symbol("asis");
+	const targetMap = new WeakMap();
 
-	function promisify(method, src) {
-		const func = function(...args) {
+	function promisify(target, property) {
+		const method = Reflect.get(target, property);
+		const name = method.name || "promisifyWrapper";
+		const obj = {[name]: function(...args) {
 			var error = new Error();
+			// Unsure if _target is guarantied to survive
+			// after permission revocation and grant again.
+			const src = targetMap.get(this) || this;
 			return new Promise(function(resolve, reject) {
 				try {
 					method.call(src, ...args, function(result) {
@@ -70,8 +74,9 @@ function bapiChrome(bapi, chrome) {
 					reject(e);
 				}
 			});
-		};
-		Object.defineProperty(func, "name", { value: method.name, configurable: true });
+		} };
+		const func = obj[name];
+		Object.defineProperty(func, "name", { value: name, configurable: true });
 		return func;
 	}
 
@@ -110,8 +115,8 @@ function bapiChrome(bapi, chrome) {
 		};
 	};
 
-	function promisifyEventWithResponse(origEvent) {
-		return new EventWithSendResponse(origEvent);
+	function promisifyEventWithResponse(target, prop) {
+		return new EventWithSendResponse(Reflect.get(target, prop));
 	};
 
 	var methods = { 
@@ -137,9 +142,14 @@ function bapiChrome(bapi, chrome) {
 			getMessage: asis,
 		},
 		permissions: {
+			getAll: promisify,
+			remove: promisify,
 			request: promisify,
+			onAdded: promisifyEventWithResponse,
+			onRemoved: promisifyEventWithResponse,
 		},
 		runtime: {
+			lastError: asis,
 			connectNative: asis,
 			getManifest: asis,
 			id: asis,
@@ -161,6 +171,8 @@ function bapiChrome(bapi, chrome) {
 			create: promisify,
 			// compatibility: Chrome >= 39, Firefox >= 43
 			executeScript: promisify,
+			// Used only for tab group capture that is unsupported in Chrome.
+			get: promisify,
 			query: promisify,
 			remove: promisify,
 			update: promisify,
@@ -170,38 +182,48 @@ function bapiChrome(bapi, chrome) {
 		},
 	};
 
-	function mapRecursive(target, src, map) {
-		var transform;
-		var branch;
-		for (var name in map) {
-			if (!Object.prototype.hasOwnProperty.call(src, name)) {
-				console.warn("unknown property", name);
-				continue;
+	class BapiHandler {
+		constructor(propertyMap) {
+			this._propertyMap = propertyMap;
+			this._cache = new Map();
+		}
+		get(target, property) {
+			const mapping = this._propertyMap[property];
+			if (mapping === undefined) {
+				return undefined;
 			}
-			transform = map[name];
-			if (typeof transform === 'function') {
-				target[name] = transform(src[name], src, name);
-			} else {
-				const proto = function() {};
-				Object.defineProperty(proto, 'name', {
-					value: name,
-					configurable: true,
-					enumerable: false,
-				});
-				branch = target[name] = new proto();
-				mapRecursive(branch, src[name], transform);
+			const targetProperty = Reflect.get(target, property);
+			if (targetProperty === undefined) {
+				// revoked permission
+				this._cache.delete(property)
+				return targetProperty;
 			}
+			if (mapping === asis) {
+				return targetProperty;
+			}
+			let cached = this._cache.get(property);
+			if (cached === undefined) {
+				if (typeof mapping === 'function') {
+					cached = mapping(target, property);
+				} else {
+					cached = new Proxy(targetProperty, new BapiHandler(mapping));
+					targetMap.set(cached, targetProperty);
+				}
+				this._cache.set(property, cached);
+			}
+			return cached;
+		}
+		has(target, property) {
+			return this._propertyMap[property] !== undefined && Reflect.has(target, property);
+		}
+		// Added with hope to improve debugging experience in Chromium,
+		// it does not affect completion in console however.
+		ownKeys(target) {
+			const set = new Set(Reflect.ownKeys(target));
+			return Object.keys(this._propertyMap).filter(k => set.has(k));
 		}
 	}
-
-	mapRecursive(bapi, chrome, methods);
-	Object.defineProperty(bapi.runtime, "lastError", {
-		enumerable: true,
-		configurable: true,
-		get() { return chrome.runtime.lastError },
-		set(value) { return chrome.runtime.lastError = value },
-	});
-	return bapi;
+	return new Proxy(chrome, new BapiHandler(methods));
 }
 
 /**
