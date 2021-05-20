@@ -129,6 +129,7 @@ function bapiChrome(bapi, chrome) {
 			}, */
 		},
 		contextMenus: {
+			ContextType: asis, // "TAB" feature detection in Firefox
 			create: asis,
 			onClicked: asis,
 		},

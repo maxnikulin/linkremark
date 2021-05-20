@@ -272,15 +272,19 @@ var lr_action = function() {
 				id: "LR_LINK_REMARK",
 				title: "Remark for this link",
 			},
-			{
+		];
+		for (const item of itemArray) {
+			lr_action.createMenuItem(item);
+		}
+
+		// Firefox-only extension
+		if ("TAB" in bapi.contextMenus.ContextType) {
+			lr_action.createMenuItem({
 				contexts: [ "tab" ],
 				enabled: true,
 				id: "LR_TAB",
 				title: "Remark for tab or group",
-			},
-		];
-		for (const item of itemArray) {
-			lr_action.createMenuItem(item);
+			});
 		}
 	};
 
