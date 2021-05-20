@@ -420,7 +420,7 @@ var lr_action = function() {
 					windowTab: tab,
 					target: lr_action.clickDataToTarget(tab, clickData, null),
 				});
-			} else if (!hasPermission || tab.url) {
+			} else if (!hasPermission || selectedTab.url) {
 				tabTargets.push({
 					frameTab: selectedTab,
 					windowTab: selectedTab,
@@ -428,7 +428,7 @@ var lr_action = function() {
 			} else {
 				// While obtaining the list of selected tab we might not have permissions,
 				// so try to get url and title again.
-				const tab = await bapi.tabs.get(tab.id);
+				const tab = await bapi.tabs.get(selectedTab.id);
 				tabTargets.push({ frameTab: tab, windowTab: tab });
 			}
 		};
