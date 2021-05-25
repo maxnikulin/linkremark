@@ -77,12 +77,23 @@ var lr_util = function() {
 		return obj != null && Object.prototype.hasOwnProperty.call(obj, property);
 	};
 
-	this.namespace = function(name, default_object, func) {
+	/// Usage:
+	///     var named_obj = lr_util.namespace(named_obj, function named_obj(name_obj) {
+	///           name_obj = this;
+	///           /* ... */
+	///     });
+	this.namespace = function(default_object, func) {
 		if (default_object != null) {
 			return func.call(default_object);
 		}
-		const obj = new (this.setFuncName(function() {}, name))();
-		return func.call(obj);
+		// Chromium-90 tries hard to use in console a name of some local object.
+		// Avoiding local objects and various ways to set function name do not help.
+		// "Object": return func.call(new (this.setFuncName(function() {}, name))());
+		// "func": return func.call(new ((() => ({[name]: function(){}}))()[name])());
+		// "func": return func.call(new (this.setFuncName((() => ({[name]: function(){}}))()[name], name))());
+		// "func": return func.call(Object.create({constructor: this.setFuncName((() => ({[name]: function(){}}))()[name], name)}));
+		// So call function as constructor.
+		return new func() || default_object;
 	};
 
 	var platformInfo = {};

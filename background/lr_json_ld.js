@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_json_ld = lr_util.namespace("lr_json_ld", lr_json_ld, function lr_json_ld() {
+var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
+	var lr_json_ld = this;
 	class Key extends Array {
 		toString() {
 			return this.join(".");

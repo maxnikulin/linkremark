@@ -18,7 +18,8 @@
 
 "use strict";
 
-var lr_test_org = lr_util.namespace("lr_test_org", lr_test_org, function() {
+var lr_test_org = lr_util.namespace(lr_test_org, function lr_test_org() {
+	var lr_test_org = this;
 
 	/*
 	 * [ orginal href, escaped for link part, escaped for description part, comment ]

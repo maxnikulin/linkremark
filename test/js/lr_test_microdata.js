@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_test_microdata = lr_util.namespace("lr_test_microdata", lr_test_microdata, function lr_test_microdata() {
+var lr_test_microdata = lr_util.namespace(lr_test_microdata, function lr_test_microdata() {
+	var lr_test_microdata = this;
 	function metaValues(meta, field) {
 		const valueObjects = meta.get(field);
 		return valueObjects && valueObjects.map(o => o.value);

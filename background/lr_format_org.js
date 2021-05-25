@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_format_org = lr_util.namespace("lr_format_org", lr_format_org, function lr_format_org() {
+var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
+	var lr_format_org = this;
 	function* valueFromDescriptor(iterable) {
 		if (!iterable) {
 			return;

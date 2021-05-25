@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_test = lr_util.namespace("lr_test", lr_test, function(){
+var lr_test = lr_util.namespace(lr_test, function lr_test(){
+	var lr_test = this;
 	class LrAssertionError extends Error {
 	};
 

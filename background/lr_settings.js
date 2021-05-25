@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_settings = lr_util.namespace("lr_settings", lr_settings, function() {
+var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
+	var lr_settings = this;
 	this.NAME_SETTING = "settings.extensionName";
 	this.EXTENSION_NAME = "LinkRemark";
 

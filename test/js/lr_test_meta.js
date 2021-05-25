@@ -18,7 +18,8 @@
 
 "use strict";
 
-var lr_test_meta = lr_util.namespace("lr_test_meta", lr_test_meta, function() {
+var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
+	var lr_test_meta = this;
 	this.casesValid = [
 		[ "10.0.1/just-doi", "doi:10.0.1/just-doi" ],
 		[ "doi:10.0.2/with-doi-schema", "doi:10.0.2/with-doi-schema" ],

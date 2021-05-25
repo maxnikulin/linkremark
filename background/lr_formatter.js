@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_formatter = lr_util.namespace("lr_formatter", lr_formatter, function lr_formatter() {
+var lr_formatter = lr_util.namespace(lr_formatter, function lr_formatter() {
+	var lr_formatter = this;
 	function parseDate(date) {
 		if (date == null) {
 			return [];

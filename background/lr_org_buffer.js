@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_org_buffer = lr_util.namespace("lr_org_buffer", lr_org_buffer, function() {
+var lr_org_buffer = lr_util.namespace(lr_org_buffer, function lr_org_buffer() {
+	var lr_org_buffer = this;
 
 	/**
 	 * Special objects that could be pushed to org buffer besides strings

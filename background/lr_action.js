@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_action = function() {
+var lr_action = lr_util.namespace(lr_action, function lr_action() {
+	var lr_action = this;
 	const PREVIEW = "PREVIEW";
 
 	class LrExecutor {
@@ -535,4 +536,4 @@ var lr_action = function() {
 	});
 
 	return this;
-}.call(lr_action || {});
+});

@@ -18,7 +18,8 @@
 
 "use strict";
 
-var lr_test_org_tree = lr_util.namespace("lr_test_org_tree", lr_test_org_tree, function() {
+var lr_test_org_tree = lr_util.namespace(lr_test_org_tree, function lr_test_org_tree() {
+	var lr_test_org_tree = this;
 	const {	LrOrgStartLine, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgMarkup, }
 		= lr_org_buffer;
 

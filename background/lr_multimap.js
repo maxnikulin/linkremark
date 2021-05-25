@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_multimap = lr_util.namespace("lr_multimap", lr_multimap, function lr_multimap() {
+var lr_multimap = lr_util.namespace(lr_multimap, function lr_multimap() {
+	var lr_multimap = this;
 	class LrMultiMap extends Map {
 		constructor(items) {
 			super();

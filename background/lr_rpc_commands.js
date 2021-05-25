@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_rpc_commands = lr_util.namespace("lr_rpc_commands", lr_rpc_commands, function lr_rpc_commands() {
+var lr_rpc_commands = lr_util.namespace(lr_rpc_commands, function lr_rpc_commands() {
+	var lr_rpc_commands = this;
 	/* Polyfill for Firefox-78 ESR that does not allow to close preview from its JS script */
 	this.closeTab = function (_args, port) {
 		const id = port.tab && port.tab.id;

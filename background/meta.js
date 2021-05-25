@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_meta = lr_util.namespace("lr_meta", lr_meta, function lr_meta() {
+var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
+	var lr_meta = this;
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");

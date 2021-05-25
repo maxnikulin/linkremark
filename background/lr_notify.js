@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_notify = lr_util.namespace("lr_notify", lr_notify, function lr_notify() {
+var lr_notify = lr_util.namespace(lr_notify, function lr_notify() {
+	var lr_notify = this;
 	const notifyNothing = 0;
 	const notifyProgress = 1;
 	const notifySuccess = 2;

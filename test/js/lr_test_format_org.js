@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_test_format_org = lr_util.namespace("lr_test_format_org", lr_test_format_org, function(lr_test_format_org) {
+var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_format_org() {
+	var lr_test_format_org = this;
 	const cases_limitSimple = [
 		[ [ "author", "title", "site" ], [ "author", "title", "site" ] ],
 		[
