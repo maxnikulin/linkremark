@@ -31,10 +31,13 @@ var lr_native_messaging = function() {
 				formats: lr_export.getAvailableFormats(),
 				version: bapi.runtime.getManifest().version,
 			});
-			const {format, version} = hello;
+			if (typeof hello != 'object' || !hello.format || !hello.version) {
+				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
+			}
+			const {format, version, options} = hello;
 			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
-			const data = lr_export.format(capture, format, version);
-			return await connection.send("capture", {data, format, version});
+			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
+			return await connection.send("capture", {data, format, version, options});
 		} finally {
 			connection.disconnect();
 		}

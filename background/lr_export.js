@@ -45,23 +45,31 @@ var lr_export = function() {
 
 
 	this.initSync = function() {
-		lr_export.registerFormat("org", "0.2", function lrFormatOrg(result, _options) {
-			if (result != null && result.org != null) {
+		lr_export.registerFormat({
+			format: "org",
+			version: "0.2",
+			formatter: function lrFormatOrg(result, _options) {
+				if (result != null && result.org != null) {
+					return result.org;
+				}
+				if (result == null || result.object == null) {
+					throw new Error('No result in "object" format');
+				}
+				const frame = result.object[0];
+				result.org = lr_format_org(result.object);
 				return result.org;
 			}
-			if (result == null || result.object == null) {
-				throw new Error('No result in "object" format');
-			}
-			const frame = result.object[0];
-			result.org = lr_format_org(result.object);
-			return result.org;
 		});
 
-		this.registerFormat("object", "0.2", function lrFormatJson(result, _options) {
-			if (result == null || result.object == null) {
-				throw new Error('No result in "object" format');
+		this.registerFormat({
+			format: "object",
+			version: "0.2",
+			formatter: function lrFormatJson(result, _options) {
+				if (result == null || result.object == null) {
+					throw new Error('No result in "object" format');
+				}
+				return result.object;
 			}
-			return result.object;
 		});
 	};
 
@@ -77,7 +85,14 @@ var lr_export = function() {
 		return handler(result, otherOptions);
 	};
 
-	this.registerFormat = function(format, version, formatter, override = false) {
+	/** Register `formatter(resultObj, options)` that is called when
+	 * `lr_export.format(resultObj, { format, version, options, recursionLimit })`
+	 * is invoked. Notice that `recursionLimit` field is mandatory.
+	 * @argument options: Object { name: String setting_name }
+	 * `setting_name` in `options` descriptor is used to get current setting value
+	 * effective if no such option is passed explicitly.
+	 */
+	this.registerFormat = function({format, version, formatter, options, override}) {
 		lr_util.assertFunction(
 			formatter, 'registerFormat "formatter" argument must be callable');
 		let versionMap = this.formatMap.get(format);
@@ -88,7 +103,7 @@ var lr_export = function() {
 		if (!override && versionMap.has(version)) {
 			throw new Error(`Formatter already registered for ${format}-${version}`);
 		}
-		versionMap.set(version, formatter);
+		versionMap.set(version, { formatter, options });
 	};
 
 	this.registerMethod = function(method, handler, override = false) {
@@ -109,8 +124,20 @@ var lr_export = function() {
 		let empty = true;
 		for (const [format, versionMap] of this.formatMap.entries()) {
 			if (versionMap && versionMap.size > 0) {
-				result[format] = [...versionMap.keys()];
+				const versions = []
+				result[format] = versions;
 				empty = false;
+				for (const [version, info] of versionMap) {
+					const versionInfo = { version };
+					versions.push(versionInfo);
+					if (info.options) {
+						const defaultValues = {};
+						versionInfo.options = defaultValues;
+						for (const [option_name, setting_name] of Object.entries(info)) {
+							defaultValues[option_name] = lr_settings.getOption(setting_name);
+						}
+					}
+				}
 			}
 		}
 		if (empty) {
@@ -119,13 +146,24 @@ var lr_export = function() {
 		return result;
 	};
 
-	this.format = function(capture, format, version, options) {
+	this.format = function(capture, formatOptions) {
+		const { format, version, options } = formatOptions;
+		let { recursionLimit} = formatOptions;
+		if (!(recursionLimit-- > 0)) {
+			throw new Error("Recursion limit exceeded or not specified");
+		}
 		const versionMap = this.formatMap.get(format);
-		const formatter = versionMap && versionMap.get(version);
-		if (formatter == null) {
+		const versionInfo = versionMap && versionMap.get(version);
+		if (versionInfo == null) {
 			throw new Error(`Unknown format ${format}-${version}`);
 		}
-		return formatter(capture, options);
+		const defaultOptions = {};
+		for (const [option_name, setting_name] of Object.entries(versionInfo.options || {})) {
+			if (options == null || options[optionName] === undefined) {
+				defaultOptions[option_name] = lr_settings.getOption(setting_name);
+			}
+		}
+		return versionInfo.formatter(capture, { ...defaultOptions, ...(options || {}), recursionLimit });
 	};
 
 	return this;

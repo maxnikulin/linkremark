@@ -30,7 +30,7 @@ var lr_clipboard = function() {
 			version = lr_settings.getOption("export.methods.clipboard.formatterVersion");
 		}
 
-		const note = lr_export.format(capture, format, version, formatterOptions);
+		const note = lr_export.format(capture, { format, version, options: formatterOptions, recursionLimit: 4 });
 		if (!note) {
 			throw new Error(`Formatter ${format}-${version} returned empty result`);
 		}
@@ -54,7 +54,7 @@ var lr_clipboard = function() {
 			version = lr_settings.getOption("export.methods.orgProtocol.formatterVersion");
 		}
 
-		const note = lr_export.format(capture, format, version, formatterOptions);
+		const note = lr_export.format(capture, { format, version, options: formatterOptions, recursionLimit: 4 });
 		if (!note) {
 			throw new Error(`Formatter ${format}-${version} returned empty result`);
 		}
