@@ -61,13 +61,13 @@ def call_org_protocol_store_link(url, title):
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
-# Handler().capture(format='object', version='0.1', data=[{
+# Handler().capture(format='object', version='0.2', data=[{
 #     'url': [{'value': 'https://orgmode.org/', 'keys': ['window.location']}],
 #     'title': [{'value': 'Org Mode', 'keys': ['document.title']}],
 # }])
 class Handler:
     _format = "object"
-    _version = "0.1"
+    _version = "0.2"
     _url_score_map = {
         'link.canonical': 100,
         'og:url': 30,
@@ -77,32 +77,40 @@ class Handler:
     def hello(self, version=None, formats=None):
         """
         >>> Handler().hello(
-        ...    formats={"object": ["0.1"], "org": ["0.1"]},
-        ...    version="0.1",
+        ...     formats=[
+        ...         {"format": "object", "version": "0.2"},
+        ...         {"format": "org", "version": "0.2"},
+        ...     ],
+        ...     version="0.2",
         ... );
-        {'format': 'object', 'version': '0.1'}
+        {'format': 'object', 'version': '0.2'}
         """
 
         # Extension ID could be obtained from `sys.argv`.
-        if not isinstance(formats, dict):
+        if not isinstance(formats, list):
             return JsonRpcError(
                 "hello: formats are not specified",
                 HTTPStatus.BAD_REQUEST)
-        versions = formats.get(self._format)
         data = {'format': self._format, 'version': self._version}
-        if not isinstance(versions, list) or self._version not in versions:
-            return JsonRpcError(
-                "hello: supported format not found",
-                HTTPStatus.NOT_IMPLEMENTED,
-                data)
-        return data
+        for descr in formats:
+            if not isinstance(descr, dict):
+                return JsonRpcError(
+                    "hello: format descriptor is not an object",
+                    HTTPStatus.BAD_REQUEST)
+            if descr['format'] == self._format and descr['version'] == self._version:
+                return data
+        return JsonRpcError(
+            "hello: supported format not found",
+            HTTPStatus.NOT_IMPLEMENTED,
+            data)
 
+    # In the case of tab group only the first link is stored.
     def capture(self, data=None, format=None, version=None):
         error = self._check_format_version(data, format, version)
         if error:
             return error
         try:
-            url, title = self._get_frame_link(data[0])
+            url, title = self._get_frame_link(data["body"]["elements"][0])
         except ValueError as ex:
             return JsonRpcError(
                 "capture: " + str(ex),
@@ -112,12 +120,16 @@ class Handler:
 
     def _check_format_version(self, data, format, version):
         if (
-                not isinstance(data, list) or
-                not len(data) > 0 or
-                not isinstance(data[0], dict)):
+                not isinstance(data, dict) or
+                "body" not in data or
+                not isinstance(data["body"], dict) or
+                "elements" not in data["body"] or
+                not isinstance(data["body"]["elements"], list) or
+                not len(data["body"]["elements"]) > 0 or
+                not isinstance(data["body"]["elements"][0], dict)):
             return JsonRpcError(
                 "capture: data is not Array or its element is not Object",
-                HTTPStatus.BAD_REQUEST)
+                HTTPStatus.BAD_REQUEST, data)
         if format != self._format or version != self._version:
             return JsonRpcError(
                 "capture: unsupported format",

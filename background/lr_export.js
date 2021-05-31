@@ -58,7 +58,7 @@ var lr_export = function() {
 				const frame = result.object[0];
 				result.org = lr_format_org(result.object);
 				return result.org;
-			}
+			},
 		});
 
 		this.registerFormat({
@@ -68,8 +68,8 @@ var lr_export = function() {
 				if (result == null || result.object == null) {
 					throw new Error('No result in "object" format');
 				}
-				return result.object;
-			}
+				return { body: result.object };
+			},
 		});
 	};
 
@@ -85,7 +85,8 @@ var lr_export = function() {
 		return handler(result, otherOptions);
 	};
 
-	/** Register `formatter(resultObj, options)` that is called when
+	/** Register `formatter(resultObj, options) => { body, title, url}`
+	 * that is called when
 	 * `lr_export.format(resultObj, { format, version, options, recursionLimit })`
 	 * is invoked. Notice that `recursionLimit` field is mandatory.
 	 * @argument options: Object { name: String setting_name }
@@ -120,27 +121,24 @@ var lr_export = function() {
 	};
 
 	this.getAvailableFormats = function() {
-		const result = {};
-		let empty = true;
+		const result = [];
 		for (const [format, versionMap] of this.formatMap.entries()) {
-			if (versionMap && versionMap.size > 0) {
-				const versions = []
-				result[format] = versions;
-				empty = false;
-				for (const [version, info] of versionMap) {
-					const versionInfo = { version };
-					versions.push(versionInfo);
-					if (info.options) {
-						const defaultValues = {};
-						versionInfo.options = defaultValues;
-						for (const [option_name, setting_name] of Object.entries(info)) {
-							defaultValues[option_name] = lr_settings.getOption(setting_name);
-						}
+			if (!(versionMap && versionMap.size > 0)) {
+				continue;
+			}
+			for (const [version, info] of versionMap) {
+				const versionInfo = { format, version };
+				result.push(versionInfo);
+				if (info.options) {
+					const defaultValues = {};
+					versionInfo.options = defaultValues;
+					for (const [option_name, setting_name] of Object.entries(info.options)) {
+						defaultValues[option_name] = lr_settings.getOption(setting_name);
 					}
 				}
 			}
 		}
-		if (empty) {
+		if (!(result.length > 0)) {
 			throw new Error("No export formats has been registered as available so far");
 		}
 		return result;
