@@ -71,6 +71,24 @@ var lr_export = function() {
 				return { body: result.object };
 			},
 		});
+
+		lr_export.registerFormat({
+			format: "org-protocol",
+			version: "0.2",
+			options: {
+				format: "export.methods.orgProtocol.formatterType",
+				version: "export.methods.orgProtocol.formatterVersion",
+				template: "export.methods.orgProtocol.template",
+			},
+			formatter: function lrFormatOrgProtocol(result, options) {
+				const { template, format } = options;
+				const { url, body, title } = lr_export.format(result, options);
+				return lrOrgProtocol.makeUrl({
+					template,
+					body, url, title
+				});
+			},
+		});
 	};
 
 	this.process = async function(result, options = null) {
