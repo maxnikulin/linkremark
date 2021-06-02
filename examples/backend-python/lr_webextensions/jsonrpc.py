@@ -59,6 +59,7 @@ class JsonRpcError(Exception):
 
 def loop(handler, input_file=sys.stdin.buffer, output_file=sys.stdout.buffer):
     for message in native_messaging.message_source(input_file):
+        result = None
         try:
             result = process(handler, message)
             native_messaging.send_message(output_file, result)
@@ -66,7 +67,8 @@ def loop(handler, input_file=sys.stdin.buffer, output_file=sys.stdout.buffer):
             message = "exception while processing request"
             logger.exception(message, exc_info=True)
             result = make_error(
-                request_id=None, code=INTERNAL_ERROR, message=message)
+                request_id=result.get('id', None) if result else None,
+                code=INTERNAL_ERROR, message=message)
             native_messaging.send_message(output_file, result)
 
 
@@ -131,7 +133,9 @@ def process(handler, message: Dict[str, Any]) -> Dict[str, Any]:
         return make_response(request_id, result)
 
     except JsonRpcError as ex:
-        return ex.make_response(request_id)
+        response = ex.make_response(request_id)
+        logger.error("%s: %r", method, response)
+        return response
 
     except Exception as ex:
         error = 'Exception while calling handler'
