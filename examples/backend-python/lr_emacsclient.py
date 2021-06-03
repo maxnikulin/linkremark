@@ -40,6 +40,9 @@ Requirements:
 You may wish to define ``linkremark-ensure-frame`` function
 in Emacs to control whether new frame should be created for capture,
 especially if Emacs daemon is running without any frame at all.
+
+See ``lr_example.py`` to get impression how to request raw capture
+data and to create a custom formatter.
 """
 
 import json

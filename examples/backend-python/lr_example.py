@@ -17,11 +17,19 @@
 
 """Example of native messaging backend for LinkRemark browser extension
 
-It asks data in "object" format, extracts URL from the captured frame
+Demonstrate how to create custom formatters by requesting data
+in "object" format. This application extracts URL from the captured frame
 and launches org-protocol store-link handler.
 
-Use ``emacs-client`` instead of ``xdg-open`` to avoid hassle with
-setting up of protocol handler in desktop environment.
+Use ``emacs-client`` instead of ``xdg-open`` have a bit more secure
+configuration and to avoid hassle with setting up of protocol handler
+in desktop environment.
+
+See also ``lr_emacsclient.py`` minimal useful backend that requests
+formatted capture as org-protocol URI and passes it to emacsclient.
+It is possible to pass raw JSON to Emacs as org-protocol URI by advertising
+``{"format": "org-protocol", "version": "0.2", "options": {"format": "object", "version": "0.2"}}``
+desired format.
 
 OS: Linux.
 """
