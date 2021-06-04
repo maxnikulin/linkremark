@@ -52,6 +52,7 @@ firefox-dist: firefox
 	file="linkremark-$${out}.unsigned.xpi" ; \
 	$(RM) "$$file" ; \
 	zip "$$file" manifest.json $$background \
+		"pages/lr_dom.js" \
 		"pages/settings.html" \
 		"pages/settings.js" \
 		"pages/lr.css" \

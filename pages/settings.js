@@ -19,21 +19,6 @@
 
 var gDescriptors = false;
 
-function E(tagName, attrs, ...children) {
-	const e = document.createElement(tagName);
-	for (const [attr, value] of Object.entries(attrs || {})) {
-		if (attr === "className") {
-			e.className = value || "";
-		} else {
-			e.setAttribute(attr, value != null ? value : "");
-		}
-	}
-	for (const child of children) {
-		e.append(child);
-	}
-	return e;
-}
-
 class LrPermissionControl {
 	constructor(name) {
 		this.name = name;
