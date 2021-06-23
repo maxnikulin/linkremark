@@ -103,6 +103,14 @@ var lr_export = function() {
 		return handler(result, otherOptions);
 	};
 
+	// RPC endpoint called from preview page, so converts Object to LrMeta.
+	this.processObject = async function([ capture, options ]) {
+		if (capture.object) {
+			capture.object = lr_meta.objectToMeta(capture.object);
+			return await this.process(capture, options);
+		}
+	}
+
 	/** Register `formatter(resultObj, options) => { body, title, url}`
 	 * that is called when
 	 * `lr_export.format(resultObj, { format, version, options, recursionLimit })`

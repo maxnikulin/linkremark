@@ -18,6 +18,28 @@
 "use strict";
 
 var lr_native_messaging = function() {
+	async function hello(capture, {backend} = {}) {
+		if (backend == null || backend === "") {
+			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
+		}
+		if (backend == null || backend === "") {
+			throw new Error("Native messaging backend is not specified");
+		}
+		const connection = new LrNativeConnection(backend);
+		try {
+			const hello = await connection.send("hello", {
+				formats: lr_export.getAvailableFormats(),
+				version: bapi.runtime.getManifest().version,
+			});
+			if (typeof hello != 'object') {
+				throw new Error('Response to "hello" is not an object describing capabilities')
+			}
+			return hello;
+		} finally {
+			connection.disconnect();
+		}
+	}
+
 	async function lrSendToNative(capture, {backend} = {}) {
 		if (backend === undefined) {
 			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
@@ -93,5 +115,6 @@ var lr_native_messaging = function() {
 
 		lr_export.registerMethod("native-messaging", lrSendToNative);
 	};
+	Object.assign(this, { hello });
 	return this;
 }.call(lr_native_messaging || {});

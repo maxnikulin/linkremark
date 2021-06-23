@@ -189,12 +189,40 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return "error";
 	}
 
+	function objectToMeta(obj) {
+		if (!obj) {
+			return obj;
+		}
+		if (obj._type) {
+			const elements = obj.elements;
+			if (!elements) {
+				return obj;
+			}
+			for (let i = 0; i < elements.length; ++i) {
+				elements[i] = objectToMeta(elements[i]);
+			}
+			return obj;
+		}
+		const meta = new LrMeta();
+		for (const [ property, variants ] of Object.entries(obj)) {
+			if (!Array.isArray(variants)) {
+				meta.addStructure(property, variants);
+				continue;
+			}
+			for (const v of variants) {
+				meta.addDescriptor(property, v);
+			}
+		}
+		return meta;
+	}
+
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
 		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
 		sanitizeObject,
 		sanitizeTextArray,
 		errorText,
+		objectToMeta,
 	});
 	return this;
 });
