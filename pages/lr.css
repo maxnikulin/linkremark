@@ -29,6 +29,30 @@ html.expandable > body {
 	overflow-wrap: anywhere;
 }
 
+.tabContainer {
+	/* for horizontal alignment without explicit height */
+	display: flex;
+	flex-wrap: nowrap;
+}
+
+.tabContainer > * {
+	flex-grow: 0;
+	flex-shrink: 0;
+	background: white;
+	width: 100%;
+}
+
+.tabContainer > .hideLeft {
+	margin-inline-end: -100%;
+	margin-inline-start: 0px;
+	visibility: hidden;
+}
+.tabContainer > .hideRight {
+	margin-inline-start: -100%;
+	margin-inline-end: 0px;
+	visibility: hidden;
+}
+
 @media all and (min-width: 46.5rem) {
 	/* Wide enough screen to add body paddings, so margins could have color.
 	 * Actual margin size depends on content width, e.g. if debug info is open
@@ -62,8 +86,16 @@ html.expandable > body {
 	.limitedWidth, .limitedWidthChildren > *,
 	.textParameter, .textParameter .defaultLabel, .textParameter > * {
 		margin-inline: auto;
-}
+	}
 
+	.tabContainer > .hideLeft {
+		margin-inline-end: -42rem;
+		width: 42rem;
+	}
+	.tabContainer > .hideRight {
+		margin-inline-start: -42rem;
+		width: 42rem;
+	}
 }
 
 /* Do not add vertical margins on low resolution laptop screens
@@ -93,6 +125,10 @@ textarea.limitedWidth {
 .scrollContainer, .textParameter {
 	/* Override .limitedWidthChildren > * */
 	width: auto;
+}
+.scroll > * {
+	/* otherwise texarea could not be wider than window in Chrome */
+	flex-shrink: 0;
 }
 
 /* Make focused element clearly distinguishable.
@@ -154,11 +190,22 @@ button {
 	align-items: baseline;
 }
 
-.flexLineContainer > * {
+.tabPane {
+	display: flex;
+	flex-direction: column;
+}
+
+.flexTabLine {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+}
+
+.flexGrow, .flexLineContainer > *, .flexTabLine > * {
 	flex-grow: 1;
 }
 
-.flexLineContainer > .flexFixed, .flexLineContainer > .defaultLabel {
+.flexLineContainer > .flexFixed, .flexLineContainer > .defaultLabel, .flexTabLine > .flexFixed {
 	flex-grow: 0;
 }
 
@@ -267,6 +314,12 @@ div.p {
 	margin-bottom: 1ex;
 }
 
-span.invisible {
+*.invisible {
 	display: none;
+}
+
+/* Temporary to adjust size to contents */
+textarea.disableFlex {
+	flex-grow: 0;
+	align-self: start;
 }
