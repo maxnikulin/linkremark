@@ -75,20 +75,33 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		rpc.register("settings.get", this.handleGet);
 	};
 
+	/// Classify if it is a real setting or something else (group, permission)
+	this._isSetting = function(descriptor) {
+		return descriptor && "defaultValue" in descriptor;
+	};
+
 	this.getOption = function(name) {
 		const current = this.current && this.current[name];
 		if (current && !current.useDefault) {
 			return current.value;
 		}
 		const descriptor = this.settingsMap.get(name);
-		if (descriptor == null) {
+		if (!this._isSetting(descriptor)) {
 			throw new Error(`Unknown setting ${name}`);
 		}
 		return descriptor.defaultValue;
 	};
 
 	this.getSettings = function(names) {
-		if (typeof names === "string") {
+		if (names == null) {
+			const result = {};
+			for (const [key, descriptor] of this.settingsMap) {
+				if (this._isSetting(descriptor)) {
+					result[key] = this.getOption(key);
+				}
+			}
+			return result;
+		} else if (typeof names === "string") {
 			return this.getOption(names);
 		} else if (Array.isArray(names)) {
 			const result = {};
@@ -307,7 +320,13 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 				Object.assign(retval, { value: (this.current || {})[param.name] });
 			}
 			if (lr_util.isFunction(retval.description)) {
-				retval.description = retval.description();
+				try {
+					retval.description = retval.description();
+				} catch (ex) {
+					console.error("lr_settings.getDescriptors: failed to eval description for %o: %o",
+						param.name, ex);
+					retval.description = "";
+				}
 			}
 			return retval;
 		}, this);
