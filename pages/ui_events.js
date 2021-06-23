@@ -7,15 +7,45 @@ class LrStateStoreComponent {
 }
 
 class LrStateStore {
-	constructor(reducer) {
+	constructor(reducer, state) {
 		this._reducer = reducer;
 		this._pendingPromises = [];
 		this._components = [];
-		this._state = undefined;
+		this._state = state;
 		this._oldState = undefined;
 		this.dispatch = this._dispatch.bind(this);
 		this.getState = this._getState.bind(this);
 		this._applyState = this._doApplyState.bind(this);
+	}
+
+	connect(mapStateToProps, mapDispatchToProps) {
+		const store = this;
+		const dispatchProps = mapDispatchToProps ?
+			mapDispatchToProps(store.dispatch) : { dispatch: store.dispatch };
+		return function(Component) {
+			return class extends Component {
+				constructor(props) {
+					const mergedProps = {
+						...(mapStateToProps ? mapStateToProps(store.getState()) : {}),
+						...dispatchProps,
+						...(props || {}),
+					};
+					super(mergedProps);
+					this.props = mergedProps;
+					this.ownProps = props;
+					if (mapStateToProps) {
+						store.registerComponent(
+							this,
+							state => ({
+								...(this.ownProps || {}),
+								...dispatchProps,
+								...mapStateToProps(state) || {},
+							}),
+						);
+					}
+				}
+			}
+		}
 	}
 
 	registerComponent(component, mapStateToProps, registerDispatch) {
@@ -39,23 +69,25 @@ class LrStateStore {
 		if (t === '[object Function]' || t === '[object AsyncFunction]') {
 			action = action(this.dispatch, this.getState);
 		}
-		if (action === null) {
-			return;
+		if (action == null) {
+			console.warn("LrStateStore: dispatch called with no action");
+			return action;
 		}
 		if (action.then) {
 			const tThen = Object.prototype.toString.apply(action.then);
 			if (tThen === '[object Function]' || tThen === '[object AsyncFunction]') {
-				action.then(
+				const result = action.then(
 					r => this._onPromiseResolve(action, r),
-					e => this._onPromiseReject(action, r));
+					e => this._onPromiseReject(action, e));
 				this._pendingPromises.push(action);
-				return;
+				return result;
 			}
 		}
 		this._state = this._reducer(this._state, action);
 		if (this._state !== this._oldState) {
 			Promise.resolve().then(this._applyState);
 		}
+		return action;
 	}
 
 	_getState() {
@@ -87,6 +119,7 @@ class LrStateStore {
 
 	_onPromiseResolve(action, _result) {
 		this._removePromise(action);
+		return action;
 	}
 
 	_onPromiseReject(action, ex) {
@@ -125,58 +158,76 @@ var LrEventActions = {
 	},
 }
 
-function lrEventReducer(state = { permissions: {} }, {type, data}) {
-	let permissions;
+function LrCombinedReducer(map, initState = {}) {
+	return function lrCombinedReducer(state = initState, action) {
+		const {type} = action;
+		const key = type.substring(0, type.indexOf("/"));
+		const handler = map.get(key);
+		if (handler) {
+			const substate = state[key];
+			const result = handler(substate, action);
+			if (result !== substate) { // FIXME shallow equal
+				state = { ...state, [key]: result };
+			}
+		}
+		if (!handler) {
+			console.error("lrCombinedReducer: unknown action: %o %o %o", key, type, action)
+		}
+		return state;
+	};
+}
+
+function lrPermissionsReducer(state = {}, {type, data}) {
 	switch (type) {
 		case "permissions/added": {
-			const perms = data.permissions;
-			if (perms) {
-				for (const p of perms) {
-					if (!state.permissions[p] || !state.permissions[p].state) {
-						permissions = permissions || { ...state.permissions };
-						permissions[p] = { ...(permissions[p] || {}), state: true };
-					}
+			const perms = data.permissions || [];
+			const updates = data.permissions.filter(p => !state[p] || !state[p].state);
+			if (updates.length > 0) {
+				const replace = {};
+				for (const p of updates) {
+					replace[p] = { ...(state[p] || {}), state: true };
 				}
+				return { ...state, ...replace };
 			}
 			break;
 		}
 		case "permissions/removed": {
-			const perms = data.permissions;
-			if (perms) {
-				for (const p of perms) {
-					if (state.permissions[p] && state.permissions[p].state) {
-						permissions = permissions || { ...state.permissions };
-						permissions[p] = { ...(permissions[p] || {}), state: false };
-					}
+			const perms = data.permissions || [];
+			const updates = data.permissions.filter(p => state[p] && state[p].state);
+			if (updates.length > 0) {
+				const replace = {};
+				for (const p of updates) {
+					replace[p] = { ...(state[p] || {}), state: false };
 				}
+				return { ...state, ...replace };
 			}
 			break;
 		}
 		case "permissions/current": {
-			const addedPerms = new Set(data.permissions);
-			const removedPerms = new Set();
-			for (const [k, v] of Object.entries(state.permissions)) {
+			if (!data.permissions) {
+				break;
+			}
+			const diff = new Map(data.permissions.map(k => [k, true]));
+			for (const [k, v] of state ? Object.entries(state) : []) {
 				if (v && v.state) {
-					if (!addedPerms.remove(k)) {
-						removedPerms.add(k);
+					if (!diff.delete(k)) {
+						diff.set(k, false);
 					}
 				}
 			}
-			if (addedPerms.size > 0 || removedPerms > 0) {
-				permissions = { ...state.permissions };
-				for (const p of removedPerms) {
-					permissions[p] = { ...(permissions[p] || {}), state: false };
+			if (diff.size > 0) {
+				const updated = { ...state };
+				for (const [k, v] of diff) {
+					updated[k] = { ...(updated[k] || {}), state: v };
 				}
-				for (const p of addedPerms) {
-					permissions[p] = { ...(permissions[p] || {}), state: true };
-				}
+				return updated;
 			}
 			break;
 		}
 		case "permissions/request/started":
 		case "permissions/request/completed":
 		case "permissions/request/failed": {
-			permissions = { ...state.permissions };
+			const permissions = { ...state };
 			for (const p of data.permissions && data.permissions.permissions || []) {
 				const prop = permissions[p] = { ...(permissions[p] || {}) };
 				prop.requests = prop.requests ? prop.requests.slice() : [];
@@ -205,16 +256,13 @@ function lrEventReducer(state = { permissions: {} }, {type, data}) {
 					console.error("lrEventReducer: unknown subaction %o %o", type, data);
 				}
 			}
+			return permissions;
 			break;
 		}
 		default:
 			console.error("lrEventReducer: unknown action %o %o", data, type);
 	}
-	if (permissions == null) {
-		return state;
-	} else {
-		return { ...state, permissions };
-	}
+	return state;
 }
 
 class LrPermissionsEvents {

@@ -380,7 +380,11 @@ function initLoadSave() {
 
 function lrInitEventSources() {
 	const permissionEvents = new LrPermissionsEvents();
-	const stateStore = new LrStateStore(lrEventReducer);
+	const stateStore = new LrStateStore((state = {}, action) => {
+		const { permissions } = state;
+		const updated = lrPermissionsReducer(permissions, action);
+		return permissions === updated ? state : { ...state, permissions: updated };
+	});
 	stateStore.registerComponent(permissionEvents, null, dispatch => permissionEvents.subscribe(dispatch));
 	return { permissionEvents, stateStore };
 }
