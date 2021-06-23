@@ -5,6 +5,44 @@
 This file should be opened with +ie6+ GNU Emacs for the best representation.
 #+end_comment
 
+* Native messaging as interface to GNU Emacs
+
+Web pages and browser extensions are isolated
+from files and applications available on your computer.
+There are three ways to pass capture result with page info
+to Emacs and Org: clipboard, org-protocol, and a helper application,
+so called native application or native messaging host,
+let's call it backend.
+
+While developing a backend, ensure that nothing is printed to stdout
+besides responses to requests. Explicitly capture stdout
+of external processes like =emacsclient=
+
+If you need to pass some arguments to backend executable,
+e.g. to specify configuration, created a wrapper, e.g. a shell script
+that does =exec /path/to/backend --all --necessary arguments "$@"=,
+to satisfy calling convention. Last one or two arguments will be
+arguments passed by the browser.
+
+** Python and backend names
+
+Name can contain alphanumeric characters and dots.
+Google developer documentation suggests domain-like names
+with reversed order of components to avoid name clashes
+for native messaging hosts created by different developers,
+However names like io.github.maxnikulin.linkremark.emacsclient
+despite being valid as executable names, can cause problems
+with python tools like =python3 -m doctest filename=
+since dot is used as module name separator in import paths.
+Executable name can be unrelated to backend name
+specified in manifest and extension configuration,
+however it may lead to confusion.
+
+So I suggest simple names with some unique prefix
+for executable files, e.g. =lr_emacsclient.py=,
+and similar names =lr_emacsclient= for native application
+name and =lr_emacsclient.json= for manifest file name.
+
 * Metadata for the site X are incomplete
 
 Maybe it is a bug, look into the page sources
