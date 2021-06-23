@@ -26,322 +26,92 @@ function jsonStringify(obj) {
 	return JSON.stringify(obj, (k, v) => v !== undefined ? v : null, "  ");
 }
 
-function setTitle(title) {
-	document.title = title ? "LR: " + title : "LR Capture Preview";
-	const pageTitle = byId("pageTitle");
-	pageTitle.textContent = title ? "LinkRemark Capture: " + title
-		: "LinkRemark Capture Preview";
+function lrPromiseTimeout(delay) {
+	return new Promise(resolve => setTimeout(resolve, delay, delay));
 }
 
-function captureFormatMap(result) {
-	const retval = {};
-	for (let capture, { captureId } = result && result.formats && result.transport || {};
-		null != (capture = captureId && result.formats[captureId]);
-		captureId = capture.src
-	) {
-		if (!(capture.format in retval)) {
-			retval[capture.format] = capture;
-		}
-	}
-	return retval;
+function lrWithTimeout(timeout, func) {
+	return function lrRunWithTimeout(...args) {
+		return Promise.race([
+			func(...args),
+			new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout)),
+		]);
+	};
 }
 
-function setCaptureResult(capture) {
-	const form = byId("params");
-	const body = capture && capture.body || capture;
-	let text = "";
-	if (typeof body === "string") {
-		text = body;
-	} else if (body != null) {
-		text = jsonStringify(body);
+function lrCopyUsingEvent(text) {
+	let status = null;
+	function oncopy(event) {
+		document.removeEventListener("copy", oncopy, true);
+		event.stopImmediatePropagation();
+		event.preventDefault();
+		event.clipboardData.clearData();
+		event.clipboardData.setData("text/plain", text || "");
 	}
-	if (body != null) {
-		form.body.textContent = text;
-		lrNotFatal(function lrAdjustTextAreaHeight(textarea) {
-			const maxHeight = 50;
-			const reserve = 2;
-			/* Approach with `getComputedStyle` is less reliable
-			 * due to `lineHeight` may be `normal` and proper factor
-			 * for fontSize is rather uncertain. */
-			const height = Math.ceil(textarea.scrollHeight/(textarea.clientHeight/textarea.rows));
-			textarea.rows = Math.min(maxHeight, height + reserve);
-		})(form.body);
-	}
-	const title = capture && capture.title;
-	if (typeof title === "string") {
-		setTitle(title);
-		form.title.value = title;
+	document.addEventListener("copy", oncopy, true);
+
+	return document.execCommand("copy");
+}
+
+async function lrCopyToClipboard(text) {
+	// TODO progress notification
+	let result = lrCopyUsingEvent(text);
+	if (result) {
+		return result;
 	} else {
-		setTitle();
+		console.warn("lrCopyUsingEvent failed");
 	}
-	const url = capture && capture.url;
-	if (url) {
-		form.url.value = url;
-	}
-}
-
-async function fillFromSettings() {
-	const settings = await lrSendMessage("settings.get", [
-		"export.methods.orgProtocol.template",
-		"export.methods.orgProtocol.clipboardForBody",
-		"export.methods.orgProtocol.handlerPopupSuppressed",
-	]);
-	const form = byId("params");
-	form.template.value = settings["export.methods.orgProtocol.template"];
-	form.clipboardForBody.checked = settings["export.methods.orgProtocol.clipboardForBody"];
-	form.handlerPopupSuppressed.checked
-		= settings["export.methods.orgProtocol.handlerPopupSuppressed"];
-	form.handlerPopupSuppressed.dispatchEvent(new Event("change"));
-}
-
-async function lrFetchCachedResult() {
-	const cachedResult = await lrSendMessage("cache.getLast");
-	if (cachedResult == null) {
-		throw new Error("Got no capture result");
-	}
-	const { result, debugInfo } = cachedResult;
-	byId("dump").innerText = jsonStringify(debugInfo);
-	if (result && result.error) {
-		expandDebugInfo();
-	}
-	if (result && result.error) {
-		const message = result.error.message || "Some error happened"
-		throw new Error(message);
-	}
-	return result;
-}
-
-async function closeWindow(action) {
-	const CLOSE_SELF = 1;
-	const CLOSE_FF_ESR_POLYFILL = 2;
-	switch (action) {
-		case CLOSE_SELF:
-			setTimeout(closeWindow, 100, CLOSE_FF_ESR_POLYFILL);
-			window.close();
-			break;
-		case CLOSE_FF_ESR_POLYFILL:
-			try {
-				await lrSendMessage("polyfill.closeTab");
-			} catch (ex) {
-				pushActionResult(ex.message, "error");
-			}
-			break;
-		default:
-			setTimeout(closeWindow, 1000, CLOSE_SELF);
-	}
-}
-
-class LrPreviewTransportAction {
-	register() {
-		this.form = byId("params");
-		this.handleExecOnly = this.withPreventDefault(this.exec);
-		this.execOnlyButton.addEventListener("click", this.handleExecOnly);
-		this.handleExecClose = this.withPreventDefault(this.execClose);
-		this.execCloseButton.addEventListener("click", this.handleExecClose);
-	}
-	withPreventDefault(action) {
-		return function(ev) {
-			ev.preventDefault();
-			action.call(this);
-		}.bind(this);
-	}
-	async execClose(ev) {
-		try {
-			if (await this.exec()) {
-				pushActionResult("Closing the tab...");
-				await closeWindow();
-			}
-		} catch (ex) {
-			pushActionResult(ex.message, "error");
-			if (!ev) {
-				// launch from lrPreviewMain
-				pushActionResult("Try a button, please");
-			}
-			this.execCloseButton.focus();
-			throw ex;
-		}
-	}
-	activate(transport) {
-		const method = transport && transport.method;
-		if (this.method !== method) {
-			return false;
-		}
-		this.section.open = true;
-		if (this.execCloseButton.disabled) {
-			this.execOnlyButton.focus();
-		} else {
-			this.execCloseButton.focus();
-		}
-		return this;
-	}
-	async copy() {
-		try {
-			const body = this.form.body;
-			body.select();
-			const status = document.execCommand("copy");
-			if (!status) {
-				if (!navigator.clipboard || !navigator.clipboard.writeText) {
-					throw new Error("Clipboard API is disabled");
-				}
-				await navigator.clipboard.writeText(body.textContent);
-			}
-		} catch (ex) {
-			console.error("LR: preview: navigator.clipboard.writeText");
-			console.error(ex);
-			throw new Error("Write to clipboard failed " + ex);
-		}
-		pushActionResult("Copy to clipboard: OK", "success");
+	if (navigator.clipboard) {
+		await navigator.clipboard.writeText(text || "");
 		return true;
 	}
+	throw new Error("Copy to clipboard failed");
 }
 
-class LrPreviewOrgProtocolAction extends LrPreviewTransportAction {
-	constructor() {
-		super();
-		this.method = "org-protocol";
-		this.execOnlyButton = byId("orgProtocolLaunch");
-		this.execCloseButton = byId("orgProtocolLaunchClose");
-		this.section = byId("detailsOrgProtocol");
+// TODO progress log
+async function lrCloseWindow() {
+	await lrPromiseTimeout(1000);
+	try {
+		window.close();
+	} catch (ex) {
+		console.error("lrCloseWindow: window.close: %o", ex);
 	}
-	register() {
-		super.register();
-		const handler = (ev) => (this.execCloseButton.disabled
-			= !this.form.handlerPopupSuppressed.checked);
-		this.form.handlerPopupSuppressed.addEventListener("change", handler);
-		// It seems, firefox could preserve checkbox states
-		// after page reload. Prevent confusing behavior during debugging.
-		handler();
-	}
-	async exec() {
-		const form = this.form;
-		const params = {
-			template: form.template.value,
-			url: form.url.value,
-			title: form.title.value,
-		};
-		if (form.clipboardForBody.checked) {
-			await this.copy();
-		} else {
-			params.body = form.body.textContent;
-		}
-		window.location.href = lrOrgProtocol.makeUrl(params);
-		pushActionResult("launching org-protocol handler");
-		return form.handlerPopupSuppressed.checked;
-	}
-	activate(transport) {
-		const form = this.form;
-		if (form.body.textContent || form.url.value || form.title.value) {
-			return super.activate(transport);
-		}
-		return false;
-	}
+	await lrPromiseTimeout(100);
+	await lrSendMessage("polyfill.closeTab");
+	await lrPromiseTimeout(200);
+	throw new Error("Unable to close the window");
 }
 
-class LrPreviewClipboardAction extends LrPreviewTransportAction {
-	constructor() {
-		super();
-		this.method = "clipboard";
-		this.execOnlyButton = byId("copy");
-		this.execCloseButton = byId("copyClose");
-		this.section = byId("detailsClipboard");
+function lrRequestNativeMessagingPermission() {
+	const permission = "nativeMessaging";
+	const optional = bapi.runtime.getManifest().optional_permissions;
+	const hasOptional = optional && optional.indexOf(permission) >= 0;
+	if (!hasOptional) {
+		return;
 	}
-	async exec() {
-		if (!this.copy()) {
-			throw new Error("Copy to clipboard failed");
-		}
-		return true;
-	}
-	activate(transport) {
-		return this.form.body.textContent ? super.activate(transport) : false;
-	}
+	bapi.permissions.request({ permissions: [ permission ] })
+		.catch(ex => console.error("request ${permission} permission: %s", ex));
 }
 
-function pushActionResult(msg, cls) {
-	if (cls != null && cls !== "success") {
-		console.error(msg);
-	}
-
-	const ul = document.getElementById('actionResult');
-	const children = ul.children;
-	if (children.length >= 5) {
-		children[0].remove();
-	}
-	const firstChild = ul.firstChild;
-	if (firstChild.nodeName === "#text") {
-		firstChild.remove();
-	}
-	const li = document.createElement('li');
-	if (cls) {
-		li.className = cls;
-	}
-	li.append(document.createTextNode(msg));
-	ul.append(li)
-	ul.append(document.createTextNode('\n'));
-}
-
-function lrNotFatal(func, name) {
-	if (!name) {
-		name = func.name;
-	}
-	let wrapper;
-	if (Object.prototype.toString.call(func) === '[object AsyncFunction]') {
-		wrapper = async function(...args) {
-			try {
-				return await func(...args);
-			} catch (ex) {
-				console.error("lrNotFatal: %s %s %o", name || "anonymous", ex, ex);
-			}
-		}
-	} else {
-		wrapper = function(...args) {
-			try {
-				return func(...args);
-			} catch (ex) {
-				console.error("lrNotFatal: %s %s %o", name || "anonymous", ex, ex);
-			}
-		}
-	}
-	if (name) {
-		Object.defineProperty(wrapper, "name", { value: name, configurable: true });
-	}
-	return wrapper;
-}
-
-var expandDebugInfo = lrNotFatal(function() {
-	const details = document.getElementById("debugInfo");
-	details.setAttribute("open", true);
-});
-
-function lrPreviewBind() {
-	lrNotFatal(function() {
-		const link = byId("settings");
-		link.addEventListener("click", openSettings, false);
-	})();
-	return [LrPreviewClipboardAction, LrPreviewOrgProtocolAction].map(
-		Factory => {
-			const handler = new Factory();
-			handler.register();
-			return handler;
-		}
-	);
-}
-
-// Array.prototype.some returns true, not value returned by passed function.
-function someValue(array, fun) {
-	for (const e of array) {
-		const result = fun(e);
-		if (result) {
-			return result;
-		}
-	}
+function lrAdjustTextAreaHeight(textarea) {
+	const maxHeight = 50;
+	const reserve = 2;
+	/* Approach with `getComputedStyle` is less reliable
+	 * due to `lineHeight` may be `normal` and proper factor
+	 * for fontSize is rather uncertain. */
+	textarea.classList.add("disableFlex");
+	const lineHeightPx = textarea.clientHeight/textarea.rows;
+	const windowHeight = Math.floor(0.8*window.innerHeight/lineHeightPx);
+	const contentHeight = Math.ceil(textarea.scrollHeight/lineHeightPx) + reserve;
+	textarea.classList.remove("disableFlex");
+	textarea.rows = Math.min(maxHeight, windowHeight, contentHeight);
 }
 
 function openSettings(ev) {
 	function onOpenOptionsPageError(ex) {
 		console.error("lr_action.openSettings: runtime.openOptionsPage: %o", ex);
-		const link = byId("settings");
 		// Next time use default browser action to open link target.
-		link.removeEventListener("click", openSettings);
+		ev.target.removeEventListener("click", openSettings);
 	}
 	try {
 		bapi.runtime.openOptionsPage().catch(onOpenOptionsPageError);
@@ -351,41 +121,1034 @@ function openSettings(ev) {
 	}
 }
 
-async function lrPreviewMain() {
-	try {
-		const handlers = lrPreviewBind();
-		const captureResultPromise = lrFetchCachedResult()
-		const settingsPromise = lrNotFatal(fillFromSettings)();
-		await settingsPromise;
-		const captureResult = await captureResultPromise;
-		const formatMap = captureFormatMap(captureResult);
-		// ignore org-protocol
-		const formatted = formatMap.org || formatMap.object;
-		lrNotFatal(setCaptureResult)(formatted);
-		const transport = captureResult && captureResult.transport;
-		const activeMethod = someValue(handlers, h => h.activate(transport));
-		if (activeMethod) {
-			const params = new URLSearchParams(window.location.search);
-			const action = params.get("action");
-			if (action == "launch") {
-				await activeMethod.execClose();
-			}
-		} else {
-			expandDebugInfo();
-			let message;
-			if (captureResult) {
-				const method = captureResult && captureResult.transport && captureResult.transport.method;
-				message = method ? "Unsupported method is configured: " + method
-					: "Capture is not completely successful";
-			}
-			throw new Error(message || "No capture result");
+function lrCaptureForExport(state, format) {
+	if (!format) {
+		format = state.transport && state.transport.format;
+	}
+	return lrPmCaptureForExport(state.capture, format);
+}
+
+async function lrCopyAction(dispatch, getState) {
+	const state = getState();
+	const projection = lrPmGetCurrentProjectionFromState(state);
+	const text = projection
+		&& ( projection.format === "org-protocol" ? projection.url : projection.body);
+	if (!text) {
+		throw new Error("No text to copy");
+	}
+	await lrCopyToClipboard(text);
+}
+
+async function lrNativeMessagingAction(dispatch, getState) {
+	const state = getState();
+	const name = state.transport && state.transport["native-messaging"] && state.transport["native-messaging"].name;
+	const capture = lrCaptureForExport(state);
+	// TODO check that response to the same request received
+	await lrSendMessage("export.process", [ capture, { method: "native-messaging", backend: name } ]);
+}
+
+async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
+	const state = getState();
+	const projection = lrPmGetCurrentProjectionFromState(state);
+	const { body, url, title } = projection;
+	const { clipboardForBody, template } = state.transport["org-protocol"] || {};
+	const arg = { url, title, template }
+	if (clipboardForBody) {
+		// If there is no body than clipboard content should be cleared anyway.
+		await lrCopyToClipboard(body);
+	} else if (body != null && body != "") {
+		arg.body = body;
+	}
+	window.location.href = lrOrgProtocol.makeUrl(arg);
+}
+
+async function lrPreviewGetCapture(dispatch, getState) {
+	const cached = await lrSendMessage("cache.getLast");
+	const { debugInfo, result } = cached || {};
+	const error = result && result.error;
+	if (debugInfo) {
+		lrDebugInfoAdd(debugInfo);
+		if (error || !result) {
+			lrDebugInfoExpand();
 		}
-	} catch (ex) {
-		pushActionResult(ex, "error");
-		pushActionResult("check extension console for errors", "error");
-		setTitle("Error: " + ex);
-		throw ex;
+	}
+	if (!cached) {
+		throw new Error("Internal error: unable to get capture result");
+	}
+	if (result != null) {
+		dispatch(gLrPreviewActions.captureResult(result));
+	} else {
+		dispatch(gLrPreviewLog.finished({
+			id: bapiGetId(),
+			error: new Error("No capture result received"),
+		}));
+		return;
+	}
+	const state = getState();
+	const current = state && state.capture && state.capture.current;
+	let format;
+	for (const f of ["org", "object"]) {
+		if (current && current[f]) {
+			format = f;
+			break;
+		}
+	}
+	if (format) {
+		dispatch(gLrPreviewActions.exportFormatSelected(format));
+	}
+
+	const method = result && result.transport && result.transport.method;
+	if (error) {
+		throw new Error(error.message || error);
+	} else if (method) {
+		if (method != "native-messaging") {
+			dispatch(gLrPreviewActions.exportMethodSelected(method));
+		}
+		dispatch(gLrPreviewActions.focusTransportMethod(method));
+
+		const params = new URLSearchParams(window.location.search);
+		const action = params.get("action");
+		if (action == "launch") {
+			dispatch(lrMakeTransportAction({
+				close: true,
+				method: method,
+			}));
+		}
 	}
 }
 
-lrPreviewMain();
+function lrMakeTransportAction({ method, close }) {
+	const actions = {
+		"clipboard": lrCopyAction,
+		"org-protocol": lrLaunchOrgProtocolHandlerAction,
+		"native-messaging": lrNativeMessagingAction,
+	};
+	const handler = actions[method];
+	return async function lrTransportAction(dispatch, getState) {
+		const id = bapiGetId();
+		try {
+			if (!handler) {
+				throw new Error("Unknown method");
+			}
+			dispatch(gLrPreviewLog.started({
+				id, message: `Exporting using ${method}...` }));
+			await handler(dispatch, getState);
+			if (close) {
+				await lrCloseWindow();
+			}
+			dispatch(gLrPreviewLog.finished({
+				id, message: `Exported using ${method}` }));
+		} catch (ex) {
+			console.error("lrTransportAction: %o", ex);
+			dispatch(gLrPreviewLog.finished({
+				id, error: `Export failed: ${method}: ${ex}` }));
+		}
+	}
+}
+
+function lrMakeUpdateProjectionAction(format) {
+	return async function lrUpdateProjectionAction(dispatch, getState) {
+		dispatch({ type: "transport/formatSelected", data: format });
+		try {
+			function debug(fmt, ...args) {
+				if (false) {
+					console.debug("lrUpdateProjectionAction(%s): " + fmt, format, ...args);
+				}
+			}
+			const state = getState();
+			const currentProjection = lrPmGetCurrentProjectionFromState(state, { format, nothrow: true });
+			if (currentProjection && currentProjection.modified != null) {
+				if (
+					!lrPmProjectionsEqual(
+						currentProjection, state.capture.formats[currentProjection.modified], false)
+				) {
+					debug("modified");
+					return;
+				}
+				debug("options modified");
+			}
+
+			const capture = lrPmCaptureForExport(state.capture, format);
+			if (capture == null) {
+				if (format === "org-protocol") {
+					debug("org-protocol options");
+					const availableFormats = await lrSendMessage("export.availableFormats");
+					const { options } = availableFormats.find(f => f.format === "org-protocol");
+					return dispatch(gLrPreviewActions.captureFormat(lrPmDefaultProjection(format, options)));
+				} else {
+					debug("no source");
+				}
+				return;
+			}
+			const transportId = capture.transport && capture.transport.captureId;
+			if (currentProjection && transportId === currentProjection.id) {
+				debug("up to date");
+				return;
+			}
+			debug("updating");
+			const options = currentProjection && currentProjection.options &&
+				JSON.parse(currentProjection.options);
+			const newCapture = await lrSendMessage("export.format",
+				[ capture, { format, version: LR_PM_DEFAULT_FORMAT_VERSIONS[format], options } ]);
+			return dispatch(gLrPreviewActions.captureResult(newCapture));
+		} catch (ex) {
+			console.error("lrUpdateProjectionAction: %o", ex);
+			// TODO report progress
+			dispatch(gLrPreviewLog.finished({
+				id: bapiGetId(),
+				error: `Formatting to ${format} failed: ${ex}`,
+			}));
+		}
+	};
+}
+
+// Debug info is intentionally managed outside of state store with hope of higher reliability.
+
+function lrDebugInfoExpand() {
+	try {
+		const details = byId("debugInfo").parentNode;
+		details.setAttribute("open", true);
+	} catch (ex) {
+		console.error("lrDebugInfoExpand: internal error: %o", ex);
+	}
+}
+
+function lrDebugInfoAdd(entry) {
+	try {
+		const header = byId("debugInfo");
+		const next = header.nextElementSibling;
+		entry = entry || "Missed error info";
+		if (entry.stack) {
+			entry = lr_common.errorToObject(entry);
+		}
+		const text = typeof entry === "string" ? entry : jsonStringify(entry);
+		const fragment = new DocumentFragment();
+		fragment.append(
+			E('div', { className: "limitedWidth" }, new Date().toLocaleString()),
+			E('pre', null, text),
+		);
+		header.parentNode.insertBefore(fragment, next);
+	} catch (ex) {
+		console.error("lrDebugInfoAdd: internal error: %o", ex);
+	}
+}
+
+class LrTitle {
+	constructor(props) {
+		this.pageTitle = byId("pageTitle");
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		// capture, title, error, state
+		this.props = props;
+		props = props || {};
+		let header;
+		let title = String(props.title || props.error) || "Sandbox & Debug Info";
+		let shortStatus = "";
+		let headerStatus = "";
+		if (props.error) {
+			shortStatus = "E";
+			if (props.title) {
+				headerStatus = "Error";
+			}
+		} else if (props.state === "success") {
+			shortStatus = "v";
+		} else if (props.state === "wait") {
+			shortStatus = "…";
+		} else if (props.capture) {
+			headerStatus = "Capture Preview";
+		}
+
+		if (shortStatus) {
+			shortStatus = `[${shortStatus}]`;
+		}
+		if (headerStatus) {
+			headerStatus = " " + headerStatus;
+		}
+		document.title = `LR${shortStatus}: ${title}`;
+		this.pageTitle.textContent = `LinkRemark${headerStatus}: ${title}`;
+	}
+}
+
+class LrTabSwitcher {
+	constructor(props) {
+		this.props = props;
+		this._buttons = {};
+		const elements = [ E('div', null, props.label && (props.label + " ")) ];
+		for (const tab of props.tabs) {
+			const button = E('input', { type: "radio", name: props.name, value: tab.key });
+			elements.push(E('label', null, button, ' ' + tab.label));
+			this._buttons[tab.key] = button;
+			if (tab.onchange) {
+				button.addEventListener("change", tab.onchange, false);
+			}
+		}
+		this.dom = E('div', { className: "limitedWidth" },
+			E('form', { className: "flexLineContainer" }, ...elements));
+		this._onChange = this._doOnChange.bind(this);
+		this.dom.addEventListener("change", this._onChange, false);
+	}
+	updateProps(props) {
+		this.props = props;
+		if (!this.props || !this._buttons) {
+			return;
+		}
+		const active = this.props.active;
+		if (this.props.ignore && this.props.ignore.indexOf(active) >= 0) {
+			return;
+		}
+		const button = this._buttons[active];
+		if (!button) {
+			console.error("LrTabSwitcher: %o: unknown key: %o", this.props.name, active)
+		} else {
+			button.checked = true;
+		}
+	}
+
+	_doOnChange(e) {
+		const target = e.target;
+		const checked = target.checked;
+		target.checked = !target.checked;
+		if (checked && this.props.onselect) {
+			this.props.onselect(target.value);
+		}
+	}
+}
+
+class LrTabGroup {
+	constructor(props) {
+		this.dom = E('div', /*{ className: 'limitedWidth' }, E('div',*/ { className: 'tabContainer' },
+			...props.tabs.map(t => t.dom)); //);
+		if (props.limitedWidth) {
+			this.dom.classList.add("limitedWidth");
+		}
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		this.props = props;
+		const visibleName = this.props && this.props.active;
+		let visibleTab = null;
+		for (const t of this.props.tabs) {
+			if (t.name !== visibleName) {
+				if (visibleTab) {
+					t.dom.classList.add("hideRight");
+					t.dom.classList.remove("hideLeft");
+				} else {
+					t.dom.classList.add("hideLeft");
+					t.dom.classList.remove("hideRight");
+				}
+			} else {
+				visibleTab = t.dom;
+					t.dom.classList.remove("hideLeft");
+					t.dom.classList.remove("hideRight");
+			}
+		}
+		if (!visibleTab && this.props) {
+			console.error("LrTabGroup: unknown tab: %o", visibleName);
+		}
+	}
+}
+
+class LrPreviewLog {
+	constructor(props) {
+		this.dom = E('ul', { className: 'limitedWidth' });
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		this.props = props;
+		const items = this.props && this.props.items;
+		if (!items) {
+			return;
+		}
+		const { childNodes } = this.dom;
+		const existingMap = new Map();
+		for (const e of this.dom.childNodes) {
+			existingMap.set(e.dataset.lrId, e);
+		}
+		const updatedMap = new Map(items.map(n => [ n.id, n ]));
+
+		function cls(entry) {
+			return entry.error ? "error" : ( 'time' in entry ? 'success' : '');
+		}
+		function msg(entry) {
+			return entry.error ? String(entry.error) : entry.message;
+		}
+		function create(entry) {
+			const li =  E('li', { className: cls(entry) }, msg(entry));
+			li.dataset.lrId = entry.id;
+			return li;
+		}
+
+		for (const [key, value] of existingMap) {
+			const updated = updatedMap.get(key);
+			if (!updated) {
+				value.remove();
+			} else {
+				value.classList = cls(updated);
+				value.innerText = msg(updated);
+			}
+		}
+		let iProps = 0;
+		for (let iDom = 0; iDom < childNodes.length; ++iDom) {
+			for ( ; iProps < items.length; ++iProps) {
+				if (childNodes[iDom].dataset.lrId === items[iProps].id) {
+					++iProps;
+					break;
+				}
+				const e = existingMap.get(items[iProps].id);
+				if (e) {
+					this.dom.insertBefore(e, childNodes[iDom]);
+				} else {
+					this.dom.insertBefore(create(items[iProps]), childNodes[iDom]);
+				}
+			}
+		}
+		for ( ; iProps < items.length; ++iProps) {
+			this.dom.insertBefore(create(items[iProps]), null);
+		}
+	}
+}
+
+class LrNativeMessagingMissedPermissionTab {
+	constructor() {
+		const button = E('button', null, "Request Permission");
+		button.addEventListener("click", lrRequestNativeMessagingPermission, false);
+		this.dom = E('div', { className: "limitedWidth" },
+			E('p', null, "Please, grant permission to communicate with native applications."),
+			button);
+	}
+}
+
+class LrMethodTabBase {
+	constructor(props, { execName, execCloseName }) {
+		const { method }  = props;
+		this.state = {};
+		this.execClose = E('button', null, execCloseName || "Execute and Close");
+		this.exec = E('button', null, execName || "Execute");
+		const execListener = ev => {
+			ev.preventDefault();
+			if (this.props && this.props.exec) {
+				const options = { method };
+				if (ev.target === this.execClose) {
+					options.close = true;
+				}
+				this.props.exec(options);
+			} else {
+				console.error(`LrMethodTabBase(${method}): props.exec not set`);
+			}
+		};
+		this.exec.addEventListener('click', execListener, false);
+		this.execClose.addEventListener('click', execListener, false);
+		this.dom = E('form', { className: "limitedWidth" },
+			E('div', null, this.execClose, this.exec));
+		this.dom.addEventListener("change",
+			ev => {
+				const value = ev.target.type === "checkbox" ? ev.target.checked : ev.target.value;
+				this.props.onchange({ method, name: ev.target.name, value });
+			},
+			false);
+	}
+	updateProps(props) {
+		if (props) {
+			const { focus } = props;
+			if (focus != null && !(this.state.focus >= focus)) {
+				this.state.focus = focus;
+				if (this.execClose.disabled) {
+					this.exec.focus();
+				} else {
+					this.execClose.focus();
+				}
+			}
+		}
+		this.props = props;
+	}
+}
+
+class LrNativeMessagingTab extends LrMethodTabBase {
+	constructor(props) {
+		super(props, { execName: "Execute", execCloseName: "Execute & Close" });
+		this.name = E('input', { className: 'long', name: 'name' });
+		this.appInfo = E('div', { className: "flexGrow" });
+		const fragment = new DocumentFragment();
+		fragment.append(
+			E('label', { className: 'flexLineContainer' },
+				E('div', { className: 'flexFixed fixed' }, 'App Name'),
+				this.name,
+			),
+			this.appInfo,
+		);
+		this.dom.append(fragment);
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		if (props) {
+			const name = props.name;
+			if (name && this.name.value !== name) {
+				this.name.value = name;
+			}
+		}
+		super.updateProps(props);
+	}
+}
+
+class LrClipboardTab extends LrMethodTabBase {
+	constructor(props) {
+		super(props, { execName: "Copy", execCloseName: "Copy & Close" })
+		this.updateProps(props);
+	}
+}
+
+class LrOrgProtocolTab extends LrMethodTabBase {
+	constructor(props) {
+		super(props, { execName: "Launch", execCloseName: "Launch & Close" });
+		this.template = E('input', { name: "template", size: 3, className: "flexFixed" });
+		this.clipboardForBody = E('input', { type: "checkbox", name: "clipboardForBody" });
+		this.handlerPopupSuppressed = E('input', { type: "checkbox", name: "handlerPopupSuppressed" });
+		const fragment = new DocumentFragment();
+		fragment.append(
+			E('label', { className: "flexLineContainer" },
+				E('div', { className: "flexFixed" }, "Key "),
+				this.template,
+				E('div', { className: "flexFixed" }, " (name of template in Emacs)"),
+			),
+			E('div', { className: "flexLineContainer" },
+				E('label', null, this.clipboardForBody, " copy body to clipboard"),
+				E('label', null, this.handlerPopupSuppressed, " allow to close the window"),
+			),
+		);
+		this.dom.append(fragment);
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		if (props) {
+			const allowClose = "handlerPopupSuppressed" in props && props.handlerPopupSuppressed;
+			this.execClose.disabled = !allowClose;
+			this.dom.elements.template.value = props.template || "";
+			this.dom.elements.handlerPopupSuppressed.checked = allowClose;
+			this.dom.elements.clipboardForBody.checked = props.clipboardForBody;
+		}
+		super.updateProps(props)
+	}
+}
+
+function lrMethodTabMapDispatchToProps(dispatch) {
+	return {
+		onchange: data => dispatch(gLrPreviewActions.transportChange(data)),
+		exec: parameters => dispatch(lrMakeTransportAction(parameters)),
+	};
+}
+
+function LrMethodTabElement({store, method, Factory}) {
+	this.name = method;
+	const methodTab = new (store.connect(
+		function lrMethodTabMapStateToProps(state) {
+			return state.transport && state.transport[method];
+		},
+		lrMethodTabMapDispatchToProps,
+	)(Factory))({ method });
+	this.dom = methodTab.dom;
+}
+
+class LrNoCaptureTab {
+	constructor() {
+		this.dom = byId("missedResult").content.children[0].cloneNode(true);
+	}
+}
+
+class LrFormatTab {
+	constructor(props) {
+		this.state = {};
+		const children = [];
+		children.push(E('div', { className: "scroll flexGrow" }, E('textarea', {
+			name: "body",
+			className: "limitedWidth",
+			rows: 5,
+			cols: 132,
+		})));
+		const urlLabelText = "Url";
+		if (props && props.longUrl) {
+			children.push(
+				E('label', { className: "limitedWidth" }, urlLabelText),
+				E('div', { className: "scroll flexGrow" }, E('textarea', {
+					name: "url",
+					className: "limitedWidth",
+					rows: 3,
+					cols: 132,
+				})),
+			);
+		} else {
+			children.push(E('label', { className: "flexTabLine limitedWidth" },
+				E('div', { className: "flexFixed fixed" }, "Url"), " ",
+				E('input', { className: "long", name: "url" }),
+			));
+		}
+		children.push(E('label', { className: "flexTabLine limitedWidth" },
+			E('div', { className: "flexFixed fixed" }, "Title"), " ",
+			E('input', { className: "long", name: "title" }),
+		));
+		if (props && props.useOptions) {
+			children.push(E('div', { className: "scroll" }, E('textarea', {
+				name: "options",
+				className: "limitedWidth",
+				rows: 5,
+				cols: 132,
+			})));
+		}
+		this.reset = E('button', null, "Reset");
+		this.reset.addEventListener("click", ev => {
+			ev.preventDefault();
+			const action = this.props && this.props.onreset;
+			if (action) {
+				action();
+			} else {
+				console.error("LrFormatTab: props.reset not set");
+			}
+		}, false);
+		children.push(E('div', { className: "limitedWidth" }, this.reset));
+		this.dom = E('form', { className: "tabPane" }, ...children);
+		this.dom.addEventListener("change", ev => {
+			const onchange = this.props && this.props.onchange;
+			if (onchange) {
+				this.props.onchange({ field: ev.target.name, value: ev.target.value });
+			} else {
+				console.error("LrTabFormat: onchange is not provided");
+			}
+		}, false);
+		this.updateProps(props);
+	}
+	updateProps(props) {
+		if (!props) {
+			return;
+		}
+		this.props = props;
+		const { elements } = this.dom;
+		for (const name of ["body", "title", "url", "options" ]) {
+			const e = elements[name];
+			if (!e) {
+				continue; // options are optional
+			}
+			e.value = props[name] || "";
+		}
+		if (props.modified != null) {
+			this.reset.classList.remove("invisible");
+		} else {
+			this.reset.classList.add("invisible");
+		}
+		if (this.props.adjust != null && !(this.state.adjust >= this.props.adjust)) {
+			lrAdjustTextAreaHeight(this.dom.elements[this.props.longUrl ? "url" : "body"]);
+			this.state.adjust = this.props.adjust;
+		}
+	}
+}
+
+LrFormatTab.stateToProps = function(format) {
+	return function lrFormatTabStateToProps(state) {
+		return lrPmGetCurrentProjectionFromState(state, { format, nothrow: true });
+	};
+};
+
+LrFormatTab.dispatchToProps = function(format) {
+	return function lrFormatTabDispatchToProps(dispatch) {
+		return {
+			onchange: data => dispatch(gLrPreviewActions.captureChanged({ ...data, format })),
+			onreset: () => dispatch(gLrPreviewActions.captureReset(format)),
+		};
+	};
+};
+
+LrFormatTab.tab = function(format, store, ...args) {
+	return {
+		name: format,
+		dom: (new (store.connect(
+			LrFormatTab.stateToProps(format),
+			LrFormatTab.dispatchToProps(format),
+		)(LrFormatTab)) (...args)).dom,
+	};
+};
+
+function lrExportReducer(state = {}, { type, data }) {
+	switch (type) {
+		case "transport/methodSelected":
+			return { ...state, method: data };
+			break;
+		case "transport/formatSelected":
+			return { ...state, format: data };
+			break;
+		case "transport/settings": {
+			const mapping = [
+				[ "export.methods.nativeMessaging.backend", "native-messaging", "name"],
+				[ "export.methods.orgProtocol.template", "org-protocol", "template" ],
+				[ "export.methods.orgProtocol.handlerPopupSuppressed", "org-protocol", "handlerPopupSuppressed" ],
+				[ "export.methods.orgProtocol.clipboardForBody", "org-protocol", "clipboardForBody" ],
+			];
+			for (const [option, method, parameter] of mapping) {
+				const value = data[option];
+				if (
+					value == null || value === "" ||
+					(state[method] && state[method][parameter] === value)
+				) {
+					continue;
+				}
+				const replace = { ...(state[method] || {}) };
+				replace[parameter] = value;
+				state = { ...state, [method]: replace };
+			}
+			break;
+		}
+		case "transport/change": {
+			const { method, name, value, source } = data;
+			const methodSettings = state[method] || {};
+			const currentSource = methodSettings.source;
+			if (
+				methodSettings[name] === value
+				|| source === "user" || !currentSource || (currentSource === "settings" && source === "capture")
+			) {
+				state = { ...state, [method]: { ...methodSettings, [name]: value, source } };
+			}
+			break;
+		}
+		default:
+			console.error("lrExportReducer: unknown action: %o %o", type, data);
+			lrPreviewLogException(null, {
+				message: "Internal error",
+				error: new Error(`Unsupported action "${type}"`)
+			});
+	}
+	return state;
+}
+
+function lrCaptureReducer(state, action) {
+	return lrPmCaptureGc(lrCaptureReducerDirty(state, action));
+}
+
+function lrCaptureReducerDirty(state = { formats: {}, current: {} }, { type, data }) {
+	switch (type) {
+		case "capture/changed":
+			return lrPmUpdateProjection(state, data);
+			break;
+		case "capture/reset": {
+			const format = data;
+			const projection = state.formats[state.current[format]];
+			if (projection == null || projection.modified == null) {
+				console.error("lrCaptureReducer: %s: not modified: %o", type, projection);
+				return state;
+			}
+			const current = { ...state.current, [format]: projection.modified };
+			return { ...state, current, };
+		}
+		case "capture/result":
+			return lrPmCaptureUpdate(state, data);
+		case "capture/format": {
+			const capture = {
+				...state,
+				formats: { ...state.formats },
+				current: { ...state.current },
+			};
+			capture.formats[data.id] = lrPmProjectionCaptureToState(data);
+			capture.current[data.format] = data.id;
+			return capture;
+		}
+		default:
+			console.error("lrCaptureReducer: unknown action: %o %o", type, data);
+			lrPreviewLogException(null, {
+				message: "Internal error",
+				error: new Error(`Unsupported action "${type}"`),
+			});
+	}
+	return state;
+}
+
+const gLrPreviewActions = {
+	exportMethodSelected: function(method) {
+		return { type: "transport/methodSelected", data: method };
+	},
+	exportFormatSelected: lrMakeUpdateProjectionAction,
+	settings: function(settings) {
+		return { type: "transport/settings", data: settings };
+	},
+	captureResult: function(capture) {
+		return { type: "capture/result", data: capture };
+	},
+	captureChanged: function(diff) {
+		return { type: "capture/changed", data: diff };
+	},
+	captureReset: function(format) {
+		return { type: "capture/reset", data: format };
+	},
+	captureFormat: function(projection) {
+		return { type: "capture/format", data: projection };
+	},
+	transportChange: function(nameValue) {
+		return { type: "transport/change", data: { source: "user", ...nameValue } } ;
+	},
+	focusTransportMethod: function(method) {
+		return { type: "transport/change", data: { name: "focus", value: bapiGetId(), method } };
+	},
+};
+
+function lrPreviewLogReducer(state = [], { type, data }) {
+	const maxNumber = 5;
+	const delay = 10000;
+	if (!data || data.id == null) {
+		lrPreviewLogException(null, {
+			message: "Internal error",
+			error: new Error(`No data for "${type}" action`),
+		});
+		return state;
+	}
+
+	// id will be used as dom node attribute
+	const dataFixed = { ...data, id: String(data.id) };
+
+	function limit(elements) {
+		if (elements.length <= maxNumber) {
+			return elements;
+		}
+		const threshold = Date.now() - delay;
+		const candidates = elements.map((e, i) => e.time < threshold && { i, time: e.time })
+			.filter(e => !!e);
+		candidates.sort((a, b) => a.time < b.time);
+		const toRemove = new Set(candidates.splice(0, elements.length - maxNumber).map(e => e.i));
+		return elements.filter((_, i) => !toRemove.has(i));
+	}
+
+	function replace(elements, result) {
+		result.time = Date.now();
+		let found = false;
+		const retval = result.id != null
+			? elements.map(e => e.id === result.id ? (found = result) : e)
+			: [ ...elements, result ];
+		if (!found) {
+			retval.push(result);
+		}
+		return limit(retval);
+	}
+
+	switch (type) {
+		case "log/started":
+			return limit([ ...state, dataFixed ]);
+		case "log/finished":
+			return replace(state, dataFixed);
+		default:
+			console.error("lrPreviewLogReducer: unknown action: %o %o", type, data);
+			lrPreviewLogException(null, {
+				message: "Internal error",
+				error: new Error(`Unsupported action "${type}"`),
+			});
+	}
+	return state;
+}
+
+const gLrPreviewLog = {
+	started(messageAndId) { return { type: "log/started", data: messageAndId } },
+	finished(messageAndId) { return { type: "log/finished", data: messageAndId } },
+}
+
+function lrPreviewLogException(store, data) {
+	console.error("lrPreviewLogException: %o", data);
+	try {
+		const { message, error } = data || {
+			message: "Internal error",
+			error: new Error("Attempt to log nothing"),
+		};
+
+		try {
+			lrDebugInfoAdd(error);
+			lrDebugInfoExpand();
+		} catch (ex) {
+			console.error("lrPreviewLogException: internal error: debug info: %o", ex);
+		}
+
+		try {
+			if (store) {
+				const errorMessage = message ? `${message}: ${error.message || String(error)}` : String(error);
+				store.dispatch(gLrPreviewLog.finished({ id: bapiGetId(), error: errorMessage }));
+			}
+		} catch (ex) {
+			console.error("lrPreviewLogException: internal error: dispatch to store: %o", ex);
+		}
+	} catch (ex) {
+		console.error("lrPreviewLogException: internal error: %o", ex);
+	}
+}
+
+function lrCreateCaptureView(store) {
+	const fragment = new DocumentFragment();
+	const methodSwitcher = new (
+		store.connect(
+			function lrMethodSwitcherStateToProps(state) {
+				return { active: state && state.transport && state.transport.method };
+			},
+			function lrMethodSwitcherDispatchToProps(dispatch) {
+				return {
+					onselect: (method) => dispatch(gLrPreviewActions.exportMethodSelected(method)),
+				};
+			},
+		)(LrTabSwitcher)
+	)({
+		name: "export.method",
+		label: "Export:",
+		tabs: [ {
+			key: "clipboard", label: "Clipboard",
+		}, {
+			key: "native-messaging", label: "Native app",
+			onchange: e => {
+				if (e.target.checked) {
+					return lrRequestNativeMessagingPermission();
+				}
+			},
+		}, {
+			key: "org-protocol", label: "org-protocol",
+		} ],
+	});
+	fragment.append(methodSwitcher.dom);
+
+	const methodTabs = new (
+		store.connect(function lrMethodTabsStateToProps(state) {
+			const transport = state && state.transport && state.transport.method;
+			if (transport !== "native-messaging") {
+				return { active: transport };
+			}
+			const hasNativeMessagingPermission = state && state.permissions
+				&& state.permissions.nativeMessaging && state.permissions.nativeMessaging.state;
+			return {
+				active: hasNativeMessagingPermission ? transport : "native-messaging-permissions"
+			};
+		})(LrTabGroup)
+	)({ limitedWidth: true,
+		tabs: [
+			new LrMethodTabElement({ method: "clipboard", store, Factory: LrClipboardTab }),
+			{
+				name: "native-messaging-permissions",
+				dom: new LrNativeMessagingMissedPermissionTab().dom,
+			},
+			new LrMethodTabElement({ method: "native-messaging", store, Factory: LrNativeMessagingTab }),
+			new LrMethodTabElement({ method: "org-protocol", store, Factory: LrOrgProtocolTab }),
+		],
+	});
+	fragment.append(methodTabs.dom);
+
+	const formatSwitcher = new (
+		store.connect(
+			function lrFormatSwitcherStateToProps(state) {
+				return { active: state && state.transport && state.transport.format };
+			},
+			function lrFormatSwitcherDispatchToProps(dispatch) {
+				return {
+					onselect: format => dispatch(gLrPreviewActions.exportFormatSelected(format)),
+				};
+			},
+		)(LrTabSwitcher)
+	)({
+		name: "export.format",
+		label: "Format:",
+		ignore: [ "missed" ],
+		tabs: [ {
+			key: "org", label: "Org",
+		}, {
+			key: "object", label: "Meta as JSON",
+		}, {
+			key: "org-protocol", label: "org-protocol",
+		} ],
+	});
+	fragment.append(formatSwitcher.dom);
+
+	const formatTabs = new (
+		store.connect(
+			function lrFormatTabsStateToProps(state) {
+				return { active: state && state.transport && state.transport.format || "missed" };
+			},
+		)(LrTabGroup)
+	)({ tabs: [
+		{
+			name: "missed",
+			dom: new LrNoCaptureTab().dom,
+		},
+		LrFormatTab.tab("org", store),
+		LrFormatTab.tab("object", store),
+		LrFormatTab.tab("org-protocol", store, { useOptions: true, longUrl: true }),
+	] });
+	fragment.append(formatTabs.dom);
+
+	return fragment;
+}
+
+function lrInitEventSources() {
+	const permissionEvents = new LrPermissionsEvents();
+	const stateStore = new LrStateStore(LrCombinedReducer(
+		new Map([
+			[ "permissions", lrPermissionsReducer ],
+			[ "transport", lrExportReducer ],
+			[ "capture", lrCaptureReducer ],
+			[ "log", lrPreviewLogReducer ],
+		]),
+	), { transport: { method: "clipboard", format: "missed" }});
+	stateStore.registerComponent(permissionEvents, null, dispatch => permissionEvents.subscribe(dispatch));
+	return { permissionEvents, stateStore };
+}
+
+async function lrPreviewMain(eventSources) {
+	gLrPreview = lrInitEventSources();
+	const store = gLrPreview.stateStore;
+	const captureActions = byId('detailsCapture');
+
+	try {
+		const log = new (store.connect(
+			function lrPreviewNotificationsStateToProps(state) {
+				return { items: state.log };
+			}
+		)(LrPreviewLog))();
+		captureActions.appendChild(log.dom);
+	} catch (ex) {
+		lrPreviewLogException(store, { message: "Action log init failure", error: ex });
+	}
+
+	try {
+		new (store.connect(lrPmStateToTitleProps)(LrTitle))();
+	} catch (ex) {
+		lrPreviewLogException(store, { message: "Dynamic title init failure", error: ex });
+	}
+
+	try {
+		const link = byId("settings");
+		link.addEventListener("click", openSettings, false);
+	} catch (ex) {
+		lrPreviewLogException(store, { message: "Settings button init failure", error: ex });
+	}
+
+	// no try-catch since the page is useless in the case of failure
+	const captureView = lrCreateCaptureView(store);
+	captureActions.appendChild(captureView);
+
+	const dispatch = action => store.dispatch(action);
+
+	try {
+		await dispatch(lrWithTimeout(1000, async function lrPreviewGetSettings(dispatch) {
+			const settings = await lrSendMessage("settings.get");
+			dispatch(gLrPreviewActions.settings(settings));
+			const method = settings && settings["export.method"];
+			if (method && method != "native-messaging") {
+				dispatch(gLrPreviewActions.exportMethodSelected(method));
+			}
+		}));
+	} catch (error) {
+		lrPreviewLogException(store, { message: "Failed to get settings", error });
+	}
+
+	try {
+		await dispatch(lrWithTimeout(1000, lrPreviewGetCapture));
+	} catch (error) {
+		lrPreviewLogException(store, { message: "Failed to get capture", error });
+	}
+
+	return eventSources;
+}
+
+// for debug
+var gLrPreview;
+
+lrPreviewMain()
+	.catch(error => {
+		lrPreviewLogException(gLrPreview.stateStore, { message: "Preview init failure", error });
+		throw error;
+	});

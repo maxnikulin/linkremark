@@ -114,12 +114,23 @@ var lr_export = function() {
 		return await handler(result, otherOptions);
 	};
 
-	// RPC endpoint called from preview page, so converts Object to LrMeta.
-	this.processObject = async function([ capture, options ]) {
-		if (capture.object) {
-			capture.object = lr_meta.objectToMeta(capture.object);
-			return await this.process(capture, options);
+	// For RPC endpoints
+	this._restoreMeta = function(capture) {
+		for (const key of Object.keys(capture.formats)) {
+			const projection = capture.formats[key];
+			if (projection.format === "object" && projection.body) {
+				projection.body = lr_meta.objectToMeta(projection.body);
+			}
 		}
+		return capture;
+	};
+
+	// RPC endpoint called from preview page, so converts Object to LrMeta.
+	this.processMessage = async function([ capture, options ]) {
+		if (capture == null) {
+			throw new Error("No capture data");
+		}
+		return await this.process(this._restoreMeta(capture), options);
 	}
 
 	/** Register `formatter(resultObj, options) => { body, title, url}`
@@ -214,6 +225,13 @@ var lr_export = function() {
 		capture.formats[result.id] = result;
 		capture.transport.captureId = result.id;
 		return result;
+	};
+
+	this.formatMessage = function(args) {
+		const [ capture, options ] = args;
+		const meta = this._restoreMeta(capture);
+		this.format(meta, { ...options, recursionLimit: 5 });
+		return meta;
 	};
 
 	this.findFormat = function(capture, { format, version, options }) {

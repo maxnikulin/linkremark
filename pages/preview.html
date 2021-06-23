@@ -3,73 +3,44 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>LR Capture Preview</title>
+    <title>LR Sandbox & Debug Info</title>
     <link rel="stylesheet" href="lr.css" type="text/css">
     <link rel="fluid-icon" sizes="128x128" href="/icons/lr-128.png">
     <link rel="icon" sizes="16x16" href="/icons/lr-16.png">
   </head>
   <body>
-    <h1 id="pageTitle" class="limitedWidth">LinkRemark Capture Preview</h1>
+    <h1 id="pageTitle" class="limitedWidth">LinkRemark Sandbox and Debug Info</h1>
     <details id="detailsCapture" class="section" open>
       <summary class="limitedWidth">Capture</summary>
-      <form id="params">
-        <div class="limitedWidth">
-          <details class="section leftMargin" id="detailsClipboard">
-            <summary>Clipboard</summary>
-            <div class="leftMargin">
-              <button id="copyClose" autofocus="true">Copy and Close</button>
-              <button id="copy">Copy</button>
-            </div>
-          </details>
-          <details class="section leftMargin" id="detailsOrgProtocol">
-            <summary>Org protocol</summary>
-            <div class="leftMargin">
-              <div>
-                <button id="orgProtocolLaunchClose" disabled>Launch and Close</button>
-                <button id="orgProtocolLaunch">Launch Handler</button>
-              </div>
-              <label class="flexLineContainer">
-                <div class="flexFixed fixed">Key</div>
-                <input name="template" size="3" class="flexFixed">
-                <div class="flexFixed">(name of template in Emacs)</div>
-              </label>
-              <label class="flexLineContainer">
-                <div class="flexFixed fixed">Title</div>
-                <input class="long" name="title">
-              </label>
-              <label class="flexLineContainer">
-                <div class="flexFixed fixed">Url</div>
-                <input class="long" name="url">
-              </label>
-              <div class="flexLineContainer">
-                <label><input type="checkbox" name="clipboardForBody"> copy body to clipboard</label>
-                <label><input type="checkbox" name="handlerPopupSuppressed"> allow to close the window</label>
-              </div>
-            </div>
-          </details>
-        </div>
-        <ul id="actionResult" class="limitedWidth">
-        </ul>
-        <div class="scroll">
-          <!-- cols="132" allows to resize textarea and make it wider on narrow screen
-            but in Firefox-87 shadow at the right side becomes invisible. -->
-            <textarea name="body" rows="5" cols="132" class="limitedWidth"></textarea>
-        </div>
-      </form>
-      <div class="p limitedWidth">Hint: use <kbd>C-c C-x C-y</kbd> (<kbd>M-x org-paste-subtree</kbd>)
-        to insert text to Emacs Org mode buffer instead of simple yank <kbd>C-y</kbd>.
-      </div>
     </details>
     <div class="limitedWidth">
       <div class="p leftMargin">Open <a href="settings.html" id="settings" target="_blank">settings</a> page.</div>
     </div>
-    <details id="debugInfo">
+    <details>
       <!-- summary width is specified in em, so do not add "section" class to details -->
-      <summary class="limitedWidth"><span class="wrappedSection">Debug Info</span></summary>
-    <pre id="dump"></pre>
+      <summary id="debugInfo" class="limitedWidth"><span class="wrappedSection">Debug Info</span></summary>
     </details>
-    <script type="text/javascript" src="/common/bapi.js"></script>
-    <script type="text/javascript" src="/common/org_protocol.js"></script>
-    <script type="text/javascript" src="/pages/preview.js"></script>
+    <template id="missedResult">
+      <div class="limitedWidth">
+        <p>Either no pages has been captured yet or an error has happened.
+        To find some info related to the error, try:</p>
+        <ul>
+          <li>"Debug Info" section below.</li>
+          <li>Browser console for this page (<kbd>F12</kbd>).</li>
+          <li>Extension console (can be opened from add-on debug page).</li>
+        </ul>
+        <p>Otherwise this page may be used as a playground
+           during setup of org-protocol: handler or native messaging application.
+           Choose input format above.
+        </p>
+      </div>
+    </template>
+    <script src="/common/bapi.js"></script>
+    <script src="/common/lr_common.js"></script>
+    <script src="/pages/lr_dom.js"></script>
+    <script src="/pages/ui_events.js"></script>
+    <script src="/common/org_protocol.js"></script>
+    <script src="/pages/preview_model.js"></script>
+    <script src="/pages/preview.js"></script>
   </body>
 </html>
