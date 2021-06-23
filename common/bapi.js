@@ -226,6 +226,7 @@ function bapiChrome(chrome) {
 	return new Proxy(chrome, new BapiHandler(methods));
 }
 
+const bapiGetId = function(init) { return () => init++; } (Date.now());
 /**
  * runtime.sendMessage wrapper for communication similar to JSON-RPC
  *
@@ -235,10 +236,10 @@ function bapiChrome(chrome) {
  * or just stating that onMessage handler does not follow the rules.
  */
 async function lrSendMessage(method, params) {
-	const response = await bapi.runtime.sendMessage({ method, params });
-	if (response != null && response.result) {
+	const response = await bapi.runtime.sendMessage({ id: bapiGetId(), method, params });
+	if (response != null && "result" in response) {
 		return response.result;
-	} else if (response != null && response.error) {
+	} else if (response != null && "error" in response) {
 		throw new Error(response.error);
 	}
 	console.error("lrSendMessage: invalid response", response);
