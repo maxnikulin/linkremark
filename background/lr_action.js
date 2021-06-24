@@ -351,6 +351,20 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		};
 	};
 
+	async function getActiveTab() {
+		try {
+			const tab = await bapi.tabs.query({currentWindow: true, active: true});
+			const activeTab = tab != null && tab.length > 0 ? tab[0] : null;
+			if (activeTab) {
+				return activeTab;
+			}
+			console.error("lrGetActiveTab: empty query result");
+		} catch (ex) {
+			console.error("lrGetActiveTab: error:", ex);
+		}
+		return null;
+	}
+
 	async function singleTabAction(clickData, tab, type, executor) {
 		const target = lr_action.clickDataToTarget(clickData, tab, type);
 		// In chromium-87 contextMenus listener gets
@@ -532,7 +546,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	Object.assign(this, {
 		tabGroupAction,
-		internal: { PREVIEW, LrExecutor, LrExecutorNotifier, run },
+		internal: { PREVIEW, LrExecutor, LrExecutorNotifier, run,
+			getActiveTab,
+		},
 	});
 
 	return this;

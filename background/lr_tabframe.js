@@ -17,20 +17,6 @@
 
 "use strict";
 
-async function getActiveTab() {
-	try {
-		const tab = await bapi.tabs.query({currentWindow: true, active: true});
-		const activeTab = tab != null && tab.length > 0 ? tab[0] : null;
-		if (activeTab) {
-			return activeTab;
-		}
-		console.error("lrGetActiveTab: empty query result");
-	} catch (ex) {
-		console.error("lrGetActiveTab: error:", ex);
-	}
-	return null;
-}
-
 function spliceFrameChains(frameMap, chainMap) {
 	const listSize = frameMap.size;
 	for (let chain of chainMap.values()) {
