@@ -851,7 +851,7 @@ function lr_format_org_tab_group(object) {
 	return { title, tree };
 }
 
-function lr_format_org(object) {
+lr_format_org.format = function (object) {
 	if (!object) {
 		throw new Error("Capture failed");
 	}

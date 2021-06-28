@@ -18,6 +18,7 @@
 "use strict";
 
 var lr_export = function() {
+	this.ORG_PROTOCOL_VERION = "0.2";
 	this.formatMap = new Map();
 	this.methodMap = new Map();
 
@@ -48,45 +49,55 @@ var lr_export = function() {
 		lr_export.registerFormat({
 			format: "org",
 			version: "0.2",
-			formatter: function lrFormatOrg(result, _options) {
-				if (result != null && result.org != null) {
-					return result.org;
-				}
-				if (result == null || result.object == null) {
+			formatter: function lrFormatOrg(capture, _options) {
+				const src = lr_export.findFormat(capture, {
+					format: lr_tabframe.FORMAT,
+					version: lr_tabframe.VERSION,
+				});
+				if (src == null) {
 					throw new Error('No result in "object" format');
 				}
-				const frame = result.object[0];
-				result.org = lr_format_org(result.object);
-				return result.org;
+				const result = lr_format_org.format(src.body);
+				result.src = src.id;
+				return result;
 			},
 		});
 
 		this.registerFormat({
-			format: "object",
-			version: "0.2",
-			formatter: function lrFormatJson(result, _options) {
-				if (result == null || result.object == null) {
-					throw new Error('No result in "object" format');
-				}
-				return { body: result.object };
+			format: lr_tabframe.FORMAT,
+			version: lr_tabframe.VERSION,
+			formatter: function lrFormatJson(capture, _options) {
+				// format "object" should be handled by generic function
+				throw new Error('Format "object" is unavailable');
 			},
 		});
 
 		lr_export.registerFormat({
 			format: "org-protocol",
-			version: "0.2",
+			version: lr_export.ORG_PROTOCOL_VERION,
 			options: {
 				format: "export.methods.orgProtocol.formatterType",
 				version: "export.methods.orgProtocol.formatterVersion",
 				template: "export.methods.orgProtocol.template",
+				clipboardForBody: "export.methods.orgProtocol.clipboardForBody",
 			},
 			formatter: function lrFormatOrgProtocol(result, options) {
-				const { template, format } = options;
-				const { url, body, title } = lr_export.format(result, options);
-				return lrOrgProtocol.makeUrl({
+				const { template, clipboardForBody, ...formatOptions } = options;
+				const src = lr_export.format(result, formatOptions);
+				const { url, body, title } = src;
+				const arg = {
 					template,
-					body, url, title
-				});
+					url, title
+				};
+				const retval = { title, src: src.id };
+				const text = typeof body === "string" ? body : JSON.stringify(body);
+				if (clipboardForBody) {
+					retval.body = text;
+				} else {
+					arg.body = text;
+				}
+				retval.url = lrOrgProtocol.makeUrl(arg);
+				return retval;
 			},
 		});
 	};
@@ -100,7 +111,7 @@ var lr_export = function() {
 		if (handler == null) {
 			throw new Error(`lr_export: Export method ${method} unknown`);
 		}
-		return handler(result, otherOptions);
+		return await handler(result, otherOptions);
 	};
 
 	// RPC endpoint called from preview page, so converts Object to LrMeta.
@@ -115,8 +126,8 @@ var lr_export = function() {
 	 * that is called when
 	 * `lr_export.format(resultObj, { format, version, options, recursionLimit })`
 	 * is invoked. Notice that `recursionLimit` field is mandatory.
-	 * @argument options: Object { name: String setting_name }
-	 * `setting_name` in `options` descriptor is used to get current setting value
+	 * @argument options: Object { name: String settingName }
+	 * `settingName` in `options` descriptor is used to get current setting value
 	 * effective if no such option is passed explicitly.
 	 */
 	this.registerFormat = function({format, version, formatter, options, override}) {
@@ -158,8 +169,8 @@ var lr_export = function() {
 				if (info.options) {
 					const defaultValues = {};
 					versionInfo.options = defaultValues;
-					for (const [option_name, setting_name] of Object.entries(info.options)) {
-						defaultValues[option_name] = lr_settings.getOption(setting_name);
+					for (const [optionName, settingName] of Object.entries(info.options)) {
+						defaultValues[optionName] = lr_settings.getOption(settingName);
 					}
 				}
 			}
@@ -171,7 +182,7 @@ var lr_export = function() {
 	};
 
 	this.format = function(capture, formatOptions) {
-		const { format, version, options } = formatOptions;
+		const { format, version } = formatOptions;
 		let { recursionLimit} = formatOptions;
 		if (!(recursionLimit-- > 0)) {
 			throw new Error("Recursion limit exceeded or not specified");
@@ -181,13 +192,47 @@ var lr_export = function() {
 		if (versionInfo == null) {
 			throw new Error(`Unknown format ${format}-${version}`);
 		}
-		const defaultOptions = {};
-		for (const [option_name, setting_name] of Object.entries(versionInfo.options || {})) {
-			if (options == null || options[optionName] === undefined) {
-				defaultOptions[option_name] = lr_settings.getOption(setting_name);
+		const options = versionInfo.options && {};
+		if (options) {
+			const overrides = formatOptions.options;
+			for (const [optionName, settingName] of Object.entries(versionInfo.options)) {
+				options[optionName] = overrides && optionName in overrides ?
+					overrides[optionName] :
+					lr_settings.getOption(settingName);
 			}
 		}
-		return versionInfo.formatter(capture, { ...defaultOptions, ...(options || {}), recursionLimit });
+
+		const ready = lr_export.findFormat(capture, { format, version, options });
+		const result = ready || versionInfo.formatter(capture, { ...options, recursionLimit });
+		result.id = result.id || bapiGetId();
+		const resultOptions = result.options || options;
+		if (resultOptions) {
+			result.options = resultOptions;
+		}
+		result.format = format;
+		result.version = version;
+		capture.formats[result.id] = result;
+		capture.transport.captureId = result.id;
+		return result;
+	};
+
+	this.findFormat = function(capture, { format, version, options }) {
+		const optionsJson = JSON.stringify(options || {});
+		for (
+			let projection, { captureId } = capture.transport;
+			(projection = captureId && capture.formats[captureId]) != null;
+			captureId = projection.src
+		) {
+			if (format !== projection.format || version !== projection.version) {
+				continue;
+			}
+			const captureOptionsJson = JSON.stringify(projection.options || {});
+			// TODO deep equal
+			if (optionsJson === captureOptionsJson) {
+				return projection;
+			}
+		}
+		return null;
 	};
 
 	return this;

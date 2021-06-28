@@ -18,9 +18,15 @@
 "use strict";
 
 (function lrClipboardWrite() {
-	/** Error instances could not be passed through `sendMessage()` to backend */
+	/**
+	 * Error instances could not be passed through `sendMessage()` to backend
+	 *
+	 * If cursor is in developer tools console, clicking on browser action
+	 * button can raise object that is not `instance of Error` despite it has
+	 * `Error` in prototype chain (maybe it is form other `window`). Firefox-89.
+	 * */
 	function lrToObject(obj) {
-		if (obj instanceof Error) {
+		if (obj instanceof Error || obj instanceof DOMException) {
 			console.error(obj);
 			var error = Object.create(null);
 			if (obj.message != null) {
@@ -43,6 +49,24 @@
 		} else {
 			return obj;
 		}
+	}
+
+	function lrCopyUsingEvent(text) {
+		let status = null;
+		function oncopy(event) {
+			document.removeEventListener("copy", oncopy, true);
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			event.clipboardData.clearData();
+			event.clipboardData.setData("text/plain", text);
+		}
+		document.addEventListener("copy", oncopy, true);
+
+		const result = document.execCommand("copy");
+		if (!result) {
+			throw new Error("Copy using command and event listener failed");
+		}
+		return result;
 	}
 
 	let warnings = [];
@@ -112,20 +136,24 @@
 				const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
 				// const permission = await navigator.permissions.query({name: 'clipboard-write'});
 				// console.log("lrClipboardWrite permission", permission);
-				await navigator.clipboard.writeText(text);
+				try {
+					await navigator.clipboard.writeText(text);
+					return true;
+				} catch (ex) {
+					warnings.push(lrToObject(ex));
+				}
+				return lrCopyUsingEvent(text);
 			}
 		}
 
 		async function lrPostResultFromContentScript() {
-			const {transport, ...capture} = await lrSendMessage("cache.getLastResult");
-			const content = capture[transport.format];
+			const { transport, formats } = await lrSendMessage("cache.getLastResult");
+			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
 				await lrClipboardCopyFromContentScript(content.body);
 			} else if (transport.method === "org-protocol") {
-				if (transport.clipboardForBody) {
-					await lrClipboardCopyFromContentScript(content.body);
-				}
-				await lrLaunchProtocolHandlerFromContentScript(transport.url);
+				await lrClipboardCopyFromContentScript(content.body);
+				await lrLaunchProtocolHandlerFromContentScript(content.url);
 			} else {
 				throw new Error(`Unsupported method ${method}`);
 			}

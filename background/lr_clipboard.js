@@ -38,48 +38,31 @@ var lr_clipboard = function() {
 			usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
 		}
 		const strategyOptions = { tab, usePreview };
-		capture.transport = { format, method: "clipboard" };
+		capture.transport.method = "clipboard";
 		return await lrClipboardAny(capture, strategyOptions);
 	}
 
 	async function lrLaunchOrgProtocolHandler(capture, options = {}) {
-		let { tab, format, template, version, usePreview, transport, ...formatterOptions } = options || {};
+		let { tab, usePreview, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for org-protocol export');
 		}
-		if (!format) {
-			format = lr_settings.getOption("export.methods.orgProtocol.formatterType");
-		}
-		if (!version) {
-			version = lr_settings.getOption("export.methods.orgProtocol.formatterVersion");
-		}
 
-		const note = lr_export.format(capture, { format, version, options: formatterOptions, recursionLimit: 4 });
+		const note = lr_export.format(capture, {
+			format: "org-protocol",
+			version: lr_export.ORG_PROTOCOL_VERION,
+			options: formatterOptions,
+			recursionLimit: 4
+		});
 		if (!note) {
 			throw new Error(`Formatter ${format}-${version} returned empty result`);
 		}
 		if (usePreview == null) {
 			usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
 		}
-		if (transport == null || transport.clipboardForBody == null) {
-			transport = { clipboardForBody: lr_settings.getOption("export.methods.orgProtocol.clipboardForBody") };
-		}
-		if (template == null) {
-			template = lr_settings.getOption("export.methods.orgProtocol.template") || "";
-		}
 		const handlerPopupSuppressed = lr_settings.getOption(
 			"export.methods.orgProtocol.handlerPopupSuppressed");
-		capture.transport = {
-			...transport, format,
-			method: "org-protocol",
-			handlerPopupSuppressed,
-			url: lrOrgProtocol.makeUrl({
-				template,
-				url: capture[format].url,
-				body: transport.clipboardForBody? "": capture[format].body,
-				title: capture[format].title,
-			}),
-		};
+		capture.transport.method = "org-protocol";
 		const strategyOptions = { tab, usePreview, skipBackground: true };
 		return await lrClipboardAny(capture, strategyOptions);
 	}
@@ -114,16 +97,12 @@ var lr_clipboard = function() {
 		if (usePreview || skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return false;
 		}
-		const format = capture.transport && capture.transport.format;
-		if (!format) {
-			throw new Error("Unknown format for clipboard: " + format);
-		}
-		let content = capture[format];
+		const { captureId } = capture && capture.transport;
+		let content = captureId && capture.formats && capture.formats[captureId];
+		content = content.body;
 		if (content == null) {
-			throw new Error("No content provided for clipboard format " + format);
-		}
-		if (content.body) {
-			content = content.body;
+			console.warn("lrClipboardWriteBackground: unsupported capture: %o", capture);
+			throw new Error("Internal error: no capture content");
 		}
 		const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
 		// It seems that result value is unspecified.

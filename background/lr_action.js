@@ -454,7 +454,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		const result = executor.result = await executor.step(
 			{ result: true },
 			async function capture() {
-				return { object: await executor.step(method, params, executor) };
+				return lr_tabframe.makeCapture(await executor.step(method, params, executor));
 			}
 		);
 

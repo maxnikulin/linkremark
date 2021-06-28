@@ -33,20 +33,28 @@ function setTitle(title) {
 		: "LinkRemark Capture Preview";
 }
 
-function setCaptureResult(result) {
+function captureFormatMap(result) {
+	const retval = {};
+	for (let capture, { captureId } = result && result.formats && result.transport || {};
+		null != (capture = captureId && result.formats[captureId]);
+		captureId = capture.src
+	) {
+		if (!(capture.format in retval)) {
+			retval[capture.format] = capture;
+		}
+	}
+	return retval;
+}
+
+function setCaptureResult(capture) {
 	const form = byId("params");
-	const transport = result && result.transport;
-	const format = transport && transport.format;
-	const formattedResult = format && result[format];
-	// Allow "object" format that has no body, url, and title fields
-	const body = formattedResult && formattedResult.body || formattedResult;
+	const body = capture && capture.body || capture;
 	let text = "";
 	if (typeof body === "string") {
 		text = body;
 	} else if (body != null) {
 		text = jsonStringify(body);
 	}
-	const title = formattedResult && formattedResult.title;
 	if (body != null) {
 		form.body.textContent = text;
 		lrNotFatal(function lrAdjustTextAreaHeight(textarea) {
@@ -59,13 +67,14 @@ function setCaptureResult(result) {
 			textarea.rows = Math.min(maxHeight, height + reserve);
 		})(form.body);
 	}
+	const title = capture && capture.title;
 	if (typeof title === "string") {
 		setTitle(title);
 		form.title.value = title;
 	} else {
 		setTitle();
 	}
-	const url = formattedResult && formattedResult.url;
+	const url = capture && capture.url;
 	if (url) {
 		form.url.value = url;
 	}
@@ -91,7 +100,6 @@ async function lrFetchCachedResult() {
 		throw new Error("Got no capture result");
 	}
 	const { result, debugInfo } = cachedResult;
-	lrNotFatal(setCaptureResult)(result);
 	byId("dump").innerText = jsonStringify(debugInfo);
 	if (result && result.error) {
 		expandDebugInfo();
@@ -350,6 +358,10 @@ async function lrPreviewMain() {
 		const settingsPromise = lrNotFatal(fillFromSettings)();
 		await settingsPromise;
 		const captureResult = await captureResultPromise;
+		const formatMap = captureFormatMap(captureResult);
+		// ignore org-protocol
+		const formatted = formatMap.org || formatMap.object;
+		lrNotFatal(setCaptureResult)(formatted);
 		const transport = captureResult && captureResult.transport;
 		const activeMethod = someValue(handlers, h => h.activate(transport));
 		if (activeMethod) {

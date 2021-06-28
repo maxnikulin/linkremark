@@ -191,7 +191,7 @@ class Handler:
         check = check_emacs_org_protocol()
         if check is not True:
             return check
-        return run_emacsclient(data)
+        return run_emacsclient(data["url"])
 
     def _check_format_version(self, data, format, version):
         if format != self._format or version != self._version:
@@ -205,9 +205,9 @@ class Handler:
                         'format': format, 'version': version
                     }
                 })
-        if not isinstance(data, str):
+        if not isinstance(data, dict) or not isinstance(data.get("url"), str):
             return JsonRpcError(
-                'capture: data is not a String (URI)',
+                'capture: data is not an Object with "url" String field',
                 HTTPStatus.BAD_REQUEST, data)
         return None
 

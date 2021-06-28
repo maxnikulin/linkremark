@@ -17,6 +17,32 @@
 
 "use strict";
 
+var lr_tabframe = lr_util.namespace(lr_tabframe, function lr_tabframe() {
+	const lr_tabframe = this;
+
+	const FORMAT = "object";
+	const VERSION = "0.2";
+	function makeCapture(result) {
+		const id = result.id || bapiGetId();
+		return {
+			formats: { [id]: {
+				...result,
+				id,
+				format: FORMAT,
+				version: VERSION,
+			} },
+			transport: {
+				captureId: id,
+			},
+		};
+	}
+
+	Object.assign(this, {
+		FORMAT, VERSION,
+		makeCapture,
+	});
+});
+
 function spliceFrameChains(frameMap, chainMap) {
 	const listSize = frameMap.size;
 	for (let chain of chainMap.values()) {
@@ -332,7 +358,7 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 						async function waitSingleTabCapture(p) {
 							return await p;
 						}, p)
-					result.push(capture);
+					result.push(capture.body);
 					--failures;
 				}
 			} catch (ex) {
@@ -346,9 +372,14 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 		if (failures !== 0) {
 			result.unshift({ _type: "Text", elements: [ `Capture of ${failures} tabs failed` ] });
 		}
+		// TODO add errors to result as warnings
 		return result;
 	});
-	return { _type: "TabGroup", elements };
+
+	return {
+		title: "Tab Group", // i18n
+		body: { _type: "TabGroup", elements },
+	};
 }
 
 async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
@@ -371,13 +402,16 @@ async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
 		const frameChain = await executor.step(
 			{ result: true },
 			lrGatherTabInfo, frameTab, target, windowTab);
-		const result = executor.step(function frameMergeMeta() {
+		const body = executor.step(function frameMergeMeta() {
 			return {
 				_type: "TabFrameChain",
 				elements: frameChain.map(frame => lr_meta.merge(frame)),
 			};
 		});
-		return result;
+		const { url, title } = frameTab;
+		return {
+			body, url, title,
+		};
 	} catch (ex) {
 		executor.notifier.tabFailure(windowTab && windowTab.id)
 		throw ex;
