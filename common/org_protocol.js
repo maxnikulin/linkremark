@@ -60,8 +60,12 @@ var lrOrgProtocol = function() {
 	 * `template` field is optional. Emacs shows prompt if it is omitted.
 	 */
 	this.makeUrl = function(params, base=lrOrgProtocol.URL_CAPTURE) {
-		if (params.template == null || params.template === "") {
-			delete params.template;
+		// Prevent conversion of `undefined` to `"undefined"` string.
+		// Empty template can cause a problem in Emacs.
+		for (const [ key, value ] of Object.entries(params)) {
+			if (value == null || value === "") {
+				delete params[key];
+			}
 		}
 		const url = new URL(base);
 		const query = new URLSearchParams(params);
