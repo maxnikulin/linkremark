@@ -121,12 +121,17 @@ var lr_action = function() {
 		const [descr1, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
 		let { notifier, ...descr } = descr1;
 		notifier = notifier || new LrExecutorNotifier();
+		const executor = new LrExecutor({ notifier });
+
 		function onError(ex) {
 			// TODO ensure that ex is added to executor.debugInfo
 			if (notifier) {
 				// Async function, so `gLrResultCache.put()` in the `finally` block
 				// is executed earlier.
 				notifier.error(ex);
+			}
+			if (executor.result) {
+				executor.result.error = lr_util.errorToObject(ex);
 			}
 			throw ex;
 		}
@@ -135,7 +140,6 @@ var lr_action = function() {
 			return result;
 		}
 
-		const executor = new LrExecutor({ notifier });
 		try {
 			// actually async
 			notifier.start();
