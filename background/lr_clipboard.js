@@ -134,8 +134,27 @@ var lr_clipboard = function() {
 	}
 
 	this.initSync = function() {
-		lr_export.registerMethod("clipboard", lrCopyToClipboard);
-		lr_export.registerMethod("org-protocol", lrLaunchOrgProtocolHandler);
+		lr_export.registerMethod({
+			method: "clipboard",
+			handler: lrCopyToClipboard,
+			permissions: function lrClipboardPermissions() {
+				const optional = bapi.runtime.getManifest().optional_permissions;
+				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
+				const usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
+				return !usePreview && hasOptional ? [ "clipboardWrite" ] : null;
+			},
+		});
+		lr_export.registerMethod({
+			method: "org-protocol",
+			handler: lrLaunchOrgProtocolHandler,
+			permissions: function lrOrgProtocolPermissions() {
+				const optional = bapi.runtime.getManifest().optional_permissions;
+				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
+				const usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
+				const clipboardForBody = lr_settings.getOption("export.methods.orgProtocol.clipboardForBody");
+				return !usePreview && clipboardForBody && hasOptional ? [ "clipboardWrite" ] : null;
+			},
+		});
 
 		lr_settings.registerGroup({
 			name: "export.methods.clipboard",

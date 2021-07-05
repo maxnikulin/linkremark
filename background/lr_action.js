@@ -365,7 +365,22 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return null;
 	}
 
+	/// Asks export permission and calls singleTabActionDo
 	async function singleTabAction(clickData, tab, type, executor) {
+		const exportPermissionPromise = lr_export.requestPermissions();
+		await executor.step(
+			{ result: true, ignoreError: true },
+			async function lrWaitExportPermissionsPromise(promise) {
+				return await promise;
+			},
+			exportPermissionPromise,
+		);
+		return await executor.step(
+			singleTabActionDo, clickData, tab, type, executor);
+	}
+
+	/// Skips permission request. Necessary due to branches of tabGroupAction.
+	async function singleTabActionDo(clickData, tab, type, executor) {
 		const target = lr_action.clickDataToTarget(clickData, tab, type);
 		// In chromium-87 contextMenus listener gets
 		// tab.id == -1 and tab.windowId == -1 for PDF files
@@ -377,14 +392,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	};
 
 	async function tabGroupAction(clickData, tab, executor) {
-		if (!tab.highlighted) {
-			executor.notifier.tabProgress(tab.id);
-			// Tab is neither active nor selected (highlighted). Capture just that tab.
-			await bapi.tabs.update(tab.id, { active: true });
-			return await executor.step(
-				singleTabAction, clickData, tab, null, executor);
-		}
-
 		// Firefox-87:
 		// Do not `await` anything before `permissions.request`, otherwise
 		// user action context is lost, see
@@ -399,9 +406,29 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		//     let hasPermission = await bapi.permissions.contains(permissionObject);
 		// 
 		// before since popup does not appear if permissions have been granted already.
+		// Firefox-89 uses stack of permission requests, not queue, ask them
+		// in reverse order.
+
+		const exportPermissionPromise = lr_export.requestPermissions();
+
+		if (!tab.highlighted) {
+			executor.notifier.tabProgress(tab.id);
+			// Tab is neither active nor selected (highlighted). Capture just that tab.
+			await bapi.tabs.update(tab.id, { active: true });
+			// TODO consider executor.waitPromise method
+			await executor.step(
+				{ result: true, ignoreError: true },
+				async function lrWaitExportPermissionsPromise(promise) {
+					return await promise;
+				},
+				exportPermissionPromise,
+			);
+			return await executor.step(
+				singleTabActionDo, clickData, tab, null, executor);
+		}
 
 		const permissionObject = { permissions: [ "tabs"] };
-		const hasPermissionPromise = bapi.permissions.request(permissionObject);
+		const hasTabPermissionPromise = bapi.permissions.request(permissionObject);
 
 		// User actions in response to permissions request or switching tab
 		// may affect selection, so store current list of tabs to be captured.
@@ -411,7 +438,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			// Firefox-87: Prompt is hidden till user switches to the tab
 			// https://bugzilla.mozilla.org/1679925
 			// so switch to the clicked tab.
-			// TODO: Do it with timeout only if promise has not been granted yet.
+			// TODO: Do it with timeout only if the permission has not been granted yet.
 			// Popup may be still hidden if cursor is in the **empty** URL bar
 			// https://bugzilla.mozilla.org/1707868
 			await bapi.tabs.update(tab.id, { active: true });
@@ -421,10 +448,24 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			executor.notifier.tabProgress(tab.id);
 			// Directly capture the only selected tab, it is allowed due to "activeTab" permission.
 			return await executor.step(
-				singleTabAction, clickData, tab, null, executor);
+				singleTabActionDo, clickData, tab, null, executor);
 		}
 
-		const hasPermission = await hasPermissionPromise;
+		await executor.step(
+			{ result: true, ignoreError: true },
+			async function lrWaitExportPermissionsPromise(promise) {
+				return await promise;
+			},
+			exportPermissionPromise
+		);
+		const hasPermission = await executor.step(
+			{ result: true, ignoreError: true },
+			async function lrWaitTabPermissionsPromise(promise) {
+				return await promise;
+			},
+			hasTabPermissionPromise
+		);
+
 		selectedArray.forEach(selectedTab => executor.notifier.tabProgress(selectedTab.id));
 		const tabTargets = [];
 		for (const selectedTab of selectedArray) {

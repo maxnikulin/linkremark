@@ -113,7 +113,16 @@ var lr_native_messaging = function() {
 			],
 		});
 
-		lr_export.registerMethod("native-messaging", lrSendToNative);
+		lr_export.registerMethod({
+			method: "native-messaging",
+			handler: lrSendToNative,
+			permissions: function lrNativeMessagingPermissions() {
+				const permission = "nativeMessaging";
+				const optional = bapi.runtime.getManifest().optional_permissions;
+				const hasOptional = optional && optional.indexOf(permission) >= 0;
+				return hasOptional ? [ permission ] : null;
+			},
+		});
 	};
 	Object.assign(this, { hello });
 	return this;

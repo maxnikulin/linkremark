@@ -115,16 +115,25 @@ Requested on demand when not granted.
 
 *** Input data to the clipboard (=clipboardWrite=)
 
-Chrome: "Modify data you copy and paste".
+Chrome: "Modify data you copy and paste", but it is currently
+requested for Firefox only.
 
-Hopefully in Firefox the extension works a bit better with this permission.
-It is not strictly necessary however. The extension is still able
-to copy text to clipboard in response to user action even without
-this permission. The only drawback is transient preview tab in rare cases
-(e.g. for PDF files). Native messaging backend does not use clipboard at all
-and org-protocol touches clipboard only in non-default configuration.
+In Firefox, without such permission, an extension can not copy data
+to clipboard except if it is immediate action in response to e.g.
+click on a button. Clicking on extension button is not the case
+since a lot of work should be done before data become ready for copy,
+so it is not considered as "in response to user action".
+Enable this permission if you prefer to avoid preview page
+as an intermediate state.
 
-Full functionality is available even with disabled permission.
+Browsers consider overwriting clipboard content as a potentially
+dangerous action, so they perform, some measures to protect users.
+Security model in Chrome is different from Firefox, so this permission
+does not do anything really useful in Chrome. However unlike Firefox
+it allows to call ~document.execCommand("copy")~ from content scripts,
+so the extension can do its job. For privileged tabs (e.g. PDF files)
+preview page is unavoidable in Chrome and can appear for a second.
+Sorry for this inconvenience.
 
 * Usage
 

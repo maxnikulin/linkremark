@@ -107,11 +107,31 @@ var lr_export = function() {
 		if (method == null) {
 			method = lr_settings.getOption("export.method");
 		}
-		const handler = this.methodMap.get(method);
-		if (handler == null) {
+		const descriptor = this.methodMap.get(method);
+		if (descriptor == null) {
 			throw new Error(`lr_export: Export method ${method} unknown`);
 		}
-		return await handler(result, otherOptions);
+		return await descriptor.handler(result, otherOptions);
+	};
+
+	this.requestPermissions = async function() {
+		const method = lr_settings.getOption("export.method");
+		const descriptor = this.methodMap.get(method);
+		if (descriptor == null) {
+			throw new Error(`lr_export.requestPermissions: Export method ${method} unknown`);
+		}
+		let { permissions } = descriptor;
+		if (lr_util.isFunction(permissions)) {
+			permissions = permissions();
+		}
+		if (permissions) {
+			// For logging purposes only
+			return {
+				permissions,
+				result: await bapi.permissions.request({ permissions }),
+			};
+		}
+		return true;
 	};
 
 	// For RPC endpoints
@@ -155,13 +175,14 @@ var lr_export = function() {
 		versionMap.set(version, { formatter, options });
 	};
 
-	this.registerMethod = function(method, handler, override = false) {
+	this.registerMethod = function(options) {
+		const { method } = options;
 		lr_util.assertAsyncFunction(
-			handler, 'export: registerMethod "handler" argument must be callable');
-		if (!override && this.methodMap.has(method)) {
+			options.handler, 'export: registerMethod "handler" argument must be callable');
+		if (!options.override && this.methodMap.has(method)) {
 			throw new Error(`Export method ${method} already registered`);
 		}
-		this.methodMap.set(method, handler);
+		this.methodMap.set(method, options);
 	};
 
 	this.getAvailableMethods = function() {
