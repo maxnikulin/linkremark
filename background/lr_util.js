@@ -49,33 +49,7 @@ var lr_util = function() {
 		return Object.prototype.toString.call(func) === '[object GeneratorFunction]';
 	};
 
-	this.errorToObject = function(obj) {
-		var error = {};
-		if (obj.message != null) {
-			error.message = obj.message;
-		} else {
-			error.message = "" + obj;
-		}
-		if (obj.name != null) {
-			error.name = "" + obj.name;
-		} else {
-			error.name = Object.prototype.toString.call(obj);
-		}
-		for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
-			const value = obj[prop];
-			if (value == null) {
-				continue;
-			}
-			if (typeof value !== "string") {
-				error[prop] = value;
-				continue;
-			}
-			// Make `stack` readable in `JSON.stringify()` dump.
-			const lines = value.split("\n");
-			error[prop] = lines.length > 1 ? lines : value;
-		}
-		return error;
-	};
+	this.errorToObject = lr_common.errorToObject;
 
 	this.setFuncName = function(func, name) {
 		if (name) {

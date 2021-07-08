@@ -57,6 +57,7 @@
 		"scripts": [
 			"background/init.js",
 			"common/bapi.js",
+			"common/lr_common.js",
 			"background/lr_util.js",
 			"background/lr_multimap.js",
 			"background/lr_formatter.js",
