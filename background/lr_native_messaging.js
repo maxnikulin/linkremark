@@ -18,29 +18,34 @@
 "use strict";
 
 var lr_native_messaging = function() {
-	async function hello(capture, {backend} = {}) {
-		if (backend == null || backend === "") {
-			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
-		}
-		if (backend == null || backend === "") {
-			throw new Error("Native messaging backend is not specified");
-		}
-		const connection = new LrNativeConnection(backend);
+	async function hello(params) {
+		const { connection, hello } = await connectionWithHello(params);
+		connection.disconnect();
+		return hello;
+	}
+
+	async function lrSendToNative(capture, params) {
+		const { backend, connection, hello } = await connectionWithHello(params);
 		try {
-			const hello = await connection.send("hello", {
-				formats: lr_export.getAvailableFormats(),
-				version: bapi.runtime.getManifest().version,
-			});
-			if (typeof hello != 'object') {
-				throw new Error('Response to "hello" is not an object describing capabilities')
+			if (!hello.format || !hello.version) {
+				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
 			}
-			return hello;
+			const {format, version, options} = hello;
+			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
+			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
+			return await connection.send("capture", {data, format, version, options});
 		} finally {
 			connection.disconnect();
 		}
 	}
 
-	async function lrSendToNative(capture, {backend} = {}) {
+	/** Wrap the call with try-finally to ensure that connection is closed.
+	 *
+	 * There is no way to ensure resource release in JS. Even generators
+	 * may be destroyed without executing of `finally`.
+	 */
+	async function connectionWithHello(params) {
+		let { backend, timeout } = params || {};
 		if (backend === undefined) {
 			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
 		}
@@ -49,17 +54,22 @@ var lr_native_messaging = function() {
 		}
 		const connection = new LrNativeConnection(backend);
 		try {
-			const hello = await connection.send("hello", {
-				formats: lr_export.getAvailableFormats(),
-				version: bapi.runtime.getManifest().version,
-			});
-			if (typeof hello != 'object' || !hello.format || !hello.version) {
-				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
+			const hello = await Promise.race([
+				connection.send("hello", {
+					formats: lr_export.getAvailableFormats(),
+					version: bapi.runtime.getManifest().version,
+				}),
+				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout || 3000)),
+			]);
+			if (!hello || typeof hello !== 'object') {
+				throw new Error('Response to "hello" is not an key-value Object');
 			}
-			const {format, version, options} = hello;
-			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
-			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
-			return await connection.send("capture", {data, format, version, options});
+			return { backend, connection, hello };
+		} catch (ex) {
+			connection.disconnect();
+			throw ex;
+		}
+	}
 		} finally {
 			connection.disconnect();
 		}
@@ -124,6 +134,6 @@ var lr_native_messaging = function() {
 			},
 		});
 	};
-	Object.assign(this, { hello });
+	Object.assign(this, { hello, connectionWithHello });
 	return this;
 }.call(lr_native_messaging || {});
