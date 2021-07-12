@@ -36,7 +36,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			}
 			top._result = obj;
 			top.step(function putResultToCache(obj, debugInfo) {
-				gLrResultCache.put(obj, debugInfo);
+				gLrRpcStore.put(obj, debugInfo);
 			}, obj, top.debugInfo);
 			return obj;
 		}
@@ -127,7 +127,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		function onError(ex) {
 			// TODO ensure that ex is added to executor.debugInfo
 			if (notifier) {
-				// Async function, so `gLrResultCache.put()` in the `finally` block
+				// Async function, so `gLrRpcStore.put()` in the `finally` block
 				// is executed earlier.
 				notifier.error(ex);
 			}
@@ -164,7 +164,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		} catch (ex) {
 			onError(ex);
 		} finally {
-			gLrResultCache.put(executor.result, executor.debugInfo);
+			gLrRpcStore.put(executor.result, executor.debugInfo);
 		}
 	};
 

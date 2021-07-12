@@ -17,6 +17,7 @@
 
 "use strict";
 
+var gLrRpcStore;
 // Is not used in other scripts. Global is just for debug convenience.
 var gLrRpcServer;
 
@@ -48,6 +49,7 @@ function lrMainSync() {
 	lr_clipboard.initSync();
 	lrAddListeners();
 	lrInstallMenu();
+	gLrRpcStore = new lr_rpc_store.LrRpcStore();
 	gLrRpcServer = new LrRpcServer();
 	bapi.runtime.onMessage.addListener(gLrRpcServer.listener);
 }
@@ -55,9 +57,9 @@ function lrMainSync() {
 async function lrMainAsync() {
 	await lr_settings.initAsync();
 	await lr_export.initAsync();
-	gLrRpcServer.register("cache.getLast", gLrResultCache.handleLast);
-	gLrRpcServer.register("cache.getLastResult", gLrResultCache.handleLastResult);
-	gLrRpcServer.register("cache.getTargetElement", gLrResultCache.handleTargetElement);
+	gLrRpcServer.register("cache.getLast", gLrRpcStore.handleLast);
+	gLrRpcServer.register("cache.getLastResult", gLrRpcStore.handleLastResult);
+	gLrRpcServer.register("cache.getTargetElement", gLrRpcStore.handleTargetElement);
 	gLrRpcServer.register("polyfill.closeTab", lr_rpc_commands.closeTab);
 	gLrRpcServer.register("nativeMessaging.hello", lr_native_messaging.hello);
 	gLrRpcServer.register("export.process", lr_export.processMessage.bind(lr_export));

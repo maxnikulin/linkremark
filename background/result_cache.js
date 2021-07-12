@@ -17,38 +17,42 @@
 
 "use strict";
 
-class LrResultCache {
-	constructor() {
-		this.handleLast = this.getLast.bind(this);
-		this.handleTargetElement = this.getTargetElement.bind(this);
-		this.handleLastResult = this.getLastResult.bind(this);
-	}
-	put(result, debugInfo = null) {
-		this.lastResult = result;
-		this.lastDebugInfo = debugInfo;
-	};
-	async getLastResult() {
-		if (this.lastResult == null) {
-			throw new Error("No capture result have been stored");
+var lr_rpc_store = lr_util.namespace(lr_rpc_store, function lr_rpc_store() {
+	class LrRpcStore {
+		constructor() {
+			this.handleLast = this.getLast.bind(this);
+			this.handleTargetElement = this.getTargetElement.bind(this);
+			this.handleLastResult = this.getLastResult.bind(this);
 		}
-		return this.lastResult;
-	};
-	getLastDebugInfo() {
-		return this.lastDebugInfo;
-	};
-	getLast(_args, _port) {
-		return { result: this.lastResult, debugInfo: this.lastDebugInfo };
-	};
-	clear() {
-		this.lastResult = this.lastDebugInfo = null;
-	};
-	putTargetElement(object) {
-		this.targetElement = object;
-	};
-	getTargetElement() {
-		// FIXME check that tab & frame are the same
-		return this.targetElement != null ? this.targetElement.targetElementId : null;
-	};
-}
+		put(result, debugInfo = null) {
+			this.lastResult = result;
+			this.lastDebugInfo = debugInfo;
+		};
+		async getLastResult() {
+			if (this.lastResult == null) {
+				throw new Error("No capture result have been stored");
+			}
+			return this.lastResult;
+		};
+		getLastDebugInfo() {
+			return this.lastDebugInfo;
+		};
+		getLast(_args, _port) {
+			return { result: this.lastResult, debugInfo: this.lastDebugInfo };
+		};
+		clear() {
+			this.lastResult = this.lastDebugInfo = null;
+		};
+		putTargetElement(object) {
+			this.targetElement = object;
+		};
+		getTargetElement() {
+			// FIXME check that tab & frame are the same
+			return this.targetElement != null ? this.targetElement.targetElementId : null;
+		};
+	}
 
-var gLrResultCache = new LrResultCache();
+	Object.assign(this, { LrRpcStore });
+
+	return this;
+});

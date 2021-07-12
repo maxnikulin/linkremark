@@ -396,7 +396,7 @@ async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
 			if (!(targetElementId != null && tabId >= 0)) {
 				return "No targetElementId or tabId";
 			}
-			gLrResultCache.putTargetElement({tabId, frameId, targetElementId});
+			gLrRpcStore.putTargetElement({tabId, frameId, targetElementId});
 			return true
 		});
 		const frameChain = await executor.step(
