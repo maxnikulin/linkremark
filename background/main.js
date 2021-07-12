@@ -57,9 +57,9 @@ function lrMainSync() {
 async function lrMainAsync() {
 	await lr_settings.initAsync();
 	await lr_export.initAsync();
-	gLrRpcServer.register("cache.getLast", gLrRpcStore.handleLast);
-	gLrRpcServer.register("cache.getLastResult", gLrRpcStore.handleLastResult);
-	gLrRpcServer.register("cache.getTargetElement", gLrRpcStore.handleTargetElement);
+	gLrRpcServer.register("store.getResult", gLrRpcStore.handleResult);
+	gLrRpcServer.register("store.getCapture", gLrRpcStore.handleCapture);
+	gLrRpcServer.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
 	gLrRpcServer.register("polyfill.closeTab", lr_rpc_commands.closeTab);
 	gLrRpcServer.register("nativeMessaging.hello", lr_native_messaging.hello);
 	gLrRpcServer.register("export.process", lr_export.processMessage.bind(lr_export));

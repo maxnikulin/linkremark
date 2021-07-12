@@ -163,20 +163,23 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 }
 
 async function lrPreviewGetCapture(dispatch, getState) {
-	const cached = await lrSendMessage("cache.getLast");
-	const { debugInfo, result } = cached || {};
-	const error = result && result.error;
+	const cached = await lrSendMessage("store.getResult");
+	if (cached === "NO_CAPTURE") {
+		// TODO log that nothing captured yet
+		return;
+	}
+	const { debugInfo, capture, error } = cached || {};
 	if (debugInfo) {
 		lrDebugInfoAdd(debugInfo);
-		if (error || !result) {
+		if (error || !capture) {
 			lrDebugInfoExpand();
 		}
 	}
 	if (!cached) {
 		throw new Error("Internal error: unable to get capture result");
 	}
-	if (result != null) {
-		dispatch(gLrPreviewActions.captureResult(result));
+	if (capture != null) {
+		dispatch(gLrPreviewActions.captureResult(capture));
 	} else {
 		dispatch(gLrPreviewLog.finished({
 			id: bapiGetId(),
@@ -197,7 +200,7 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		dispatch(gLrPreviewActions.exportFormatSelected(format));
 	}
 
-	const method = result && result.transport && result.transport.method;
+	const method = capture && capture.transport && capture.transport.method;
 	if (error) {
 		throw new Error(error.message || error);
 	} else if (method) {

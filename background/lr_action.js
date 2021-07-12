@@ -29,22 +29,16 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			this.debugInfo = [];
 		}
 
-		set result(obj) {
-			let top = this;
-			for ( ; top.parent != null ; top = top.parent) {
-				;
-			}
-			top._result = obj;
-			top.step(function putResultToCache(obj, debugInfo) {
-				gLrRpcStore.put(obj, debugInfo);
-			}, obj, top.debugInfo);
-			return obj;
-		}
-
 		get result() {
 			let top = this;
 			for ( ; top.parent != null ; top = top.parent) {
 				;
+			}
+			if (!top._result) {
+				top._result = { debugInfo: top.debugInfo };
+				top.step(function putResultToCache(obj) {
+					gLrRpcStore.putResult(obj);
+				}, top._result);
 			}
 			return top._result;
 		}
@@ -127,13 +121,11 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		function onError(ex) {
 			// TODO ensure that ex is added to executor.debugInfo
 			if (notifier) {
-				// Async function, so `gLrRpcStore.put()` in the `finally` block
+				// Async function, so `gLrRpcStore.putResult()` in the `finally` block
 				// is executed earlier.
 				notifier.error(ex);
 			}
-			if (executor.result) {
-				executor.result.error = lr_util.errorToObject(ex);
-			}
+			executor.result.error = lr_util.errorToObject(ex);
 			throw ex;
 		}
 		function onCompleted(result) {
@@ -164,7 +156,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		} catch (ex) {
 			onError(ex);
 		} finally {
-			gLrRpcStore.put(executor.result, executor.debugInfo);
+			gLrRpcStore.putResult(executor.result);
 		}
 	};
 
@@ -492,7 +484,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	async function captureAndExportResult(activeTab, method, params, executor) {
-		const result = executor.result = await executor.step(
+		const capture = executor.result.capture = await executor.step(
 			{ result: true },
 			async function capture() {
 				return lr_tabframe.makeCapture(await executor.step(method, params, executor));
@@ -500,10 +492,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		);
 
 		const exportResult = await executor.step(
-			async function exportActionResult(result, options) {
-				return await lr_export.process(result, options);
+			async function exportActionResult(capture, options) {
+				return await lr_export.process(capture, options);
 			},
-			result, { tab: activeTab });
+			capture, { tab: activeTab });
 		if (exportResult === PREVIEW) {
 			executor.notifier.debugInfo = false;
 		} else if (!exportResult) {

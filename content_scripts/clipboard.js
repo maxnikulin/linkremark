@@ -147,7 +147,7 @@
 		}
 
 		async function lrPostResultFromContentScript() {
-			const { transport, formats } = await lrSendMessage("cache.getLastResult");
+			const { transport, formats } = await lrSendMessage("store.getCapture");
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
 				await lrClipboardCopyFromContentScript(content.body);

@@ -130,7 +130,7 @@
 
 	async function getTargetElement(errorCb) {
 		try {
-			const targetElementId = await lrSendMessage("cache.getTargetElement", []);
+			const targetElementId = await lrSendMessage("store.getTargetElement", []);
 			const menus = typeof browser !== "undefined" ? browser.menus : chrome.menus;
 			if (targetElementId != null) {
 				return menus.getTargetElement(targetElementId);

@@ -18,41 +18,58 @@
 "use strict";
 
 var lr_rpc_store = lr_util.namespace(lr_rpc_store, function lr_rpc_store() {
+	const NO_CAPTURE = "NO_CAPTURE";
+
 	class LrRpcStore {
 		constructor() {
-			this.handleLast = this.getLast.bind(this);
+			this.handleCapture = this.getCapture.bind(this);
 			this.handleTargetElement = this.getTargetElement.bind(this);
-			this.handleLastResult = this.getLastResult.bind(this);
+			this.handleResult = this.getResult.bind(this);
+			this.clear();
 		}
-		put(result, debugInfo = null) {
-			this.lastResult = result;
-			this.lastDebugInfo = debugInfo;
+		putResult(result) {
+			this.result = result;
 		};
-		async getLastResult() {
-			if (this.lastResult == null) {
-				throw new Error("No capture result have been stored");
+		async getCapture() {
+			if (this.result === NO_CAPTURE) {
+				throw new Error("Nothing has captured yet");
+			} else if (this.result == null || this.result.capture == null) {
+				throw new Error("Capture was unsuccessful");
 			}
-			return this.lastResult;
+			return this.result.capture;
 		};
-		getLastDebugInfo() {
-			return this.lastDebugInfo;
-		};
-		getLast(_args, _port) {
-			return { result: this.lastResult, debugInfo: this.lastDebugInfo };
+		getResult(_args, _port) {
+			if (this.result == null) {
+				throw new Error("Capture was unsuccessful");
+			}
+			return this.result;
 		};
 		clear() {
-			this.lastResult = this.lastDebugInfo = null;
+			this.result = NO_CAPTURE;
+			this.targetElement = null;
 		};
 		putTargetElement(object) {
 			this.targetElement = object;
 		};
-		getTargetElement() {
-			// FIXME check that tab & frame are the same
-			return this.targetElement != null ? this.targetElement.targetElementId : null;
+		getTargetElement(_, port) {
+			if (this.targetElement == null || this.targetElement.targetElementId == null) {
+				console.warn("LrRpcStore: targetElement requested despite no Id is stored");
+			};
+
+			if (this.targetElement == null) {
+				return null;
+			}
+			const { tabId, frameId } = this.targetElement;
+			if (port.tab.id !== tabId || port.frameId !== frameId) {
+				console.error("LrRpcStore: stored for %o requested from %o",
+					{ tabId, frameId }, { tabId: port.tab.id, frameId: port.frameId });
+				throw new Error("Target element requested from wrong frame");
+			}
+			return this.targetElement.targetElementId;
 		};
 	}
 
-	Object.assign(this, { LrRpcStore });
+	Object.assign(this, { NO_CAPTURE, LrRpcStore });
 
 	return this;
 });
