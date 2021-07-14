@@ -346,7 +346,8 @@ class LrTitle {
 		this.props = props;
 		props = props || {};
 		let header;
-		let title = String(props.title || props.error) || "Sandbox & Debug Info";
+		const titleValue = props.title || props.error;
+		let title = titleValue != null ? String(titleValue) : "Sandbox & Debug Info";
 		let shortStatus = "";
 		let headerStatus = "";
 		if (props.error) {
