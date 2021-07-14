@@ -32,6 +32,8 @@ INVALID_REQUEST = -32600
 METHOD_NOT_FOUND = -32601
 INTERNAL_ERROR = -32603
 
+go_net_rpc_jsonrpc_compat = True
+
 logger = logging.getLogger("lr_webextensions.jsonrpc")
 
 
@@ -115,6 +117,8 @@ def process(handler, message: Dict[str, Any]) -> Dict[str, Any]:
     try:
         result = None
         params = message.get(PARAMS_KEY)
+        if go_net_rpc_jsonrpc_compat and isinstance(params, list) and len(params) == 1:
+            params = params[0]
         if params is None:
             result = method_handler()
         elif isinstance(params, dict):

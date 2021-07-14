@@ -37,17 +37,22 @@ class LrNativeConnectionActive {
 		this.port.onMessage.addListener(this.onMessage);
 	};
 
+	/** `params` is wrapped into array
+	 * to keep compatibility with JSON-RPC 1.0 as it is implemented by builtin
+	 * Go "net/rpc/jsonrpc" package.
+	 */
 	async send(method, params) {
 		const response = await this.doSend({
 			jsonrpc: "2.0",
 			id: LrNativeConnectionActive.getId(),
 			method: method,
-			params: params,
+			params: [ params ],
 		});
-		if (response && typeof response.result !== 'undefined') {
-			return response.result;
-		} else if (response && response.error) {
+		if (response && response.error) {
 			throw new Error("Backend error: " + JSON.stringify(response.error));
+		} else if (response && typeof response.result !== 'undefined') {
+			// Go "net/rpc/jsonrpc" sends "response.result = null"
+			return response.result;
 		}
 		throw new Error("JSON-RPC error: invalid response");
 	};
