@@ -108,7 +108,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			func = args.shift();
 		}
 		descr = descr || {};
-		descr.step = descr.step || func.name;
+		descr.step = descr.step || (func && func.name);
 		return [descr, func, args];
 	};
 
