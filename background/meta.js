@@ -893,6 +893,48 @@ lr_meta.mergeMicrodata = function(frameInfo, meta) {
 	}
 };
 
+lr_meta.mapToUrls = function(meta) {
+	const result = [];
+	const linkUrl = meta.get("linkUrl");
+	if (linkUrl) {
+		const urls = linkUrl.map(e => e.value);
+		const link = { _type: "Link", urls };
+		const linkText = meta.getAnyValue("linkText");
+		if (linkText) {
+			link.text = linkText.substring(0, 72);
+		}
+		result.push(link);
+	}
+	const srcUrl = meta.get("srcUrl");
+	if (srcUrl) {
+		const urls = linkUrl.map(e => e.value);
+		const image = { _type: "Image", urls };
+		const imageText = meta.getAnyValue("imageAlt") || meta.getAnyValue("imageTitle");
+		if (imageText) {
+			image.text = imageText.substring(0, 72);
+		}
+		result.push(image);
+	}
+	const urls = [];
+	const doi = meta.get("doi");
+	if (doi) {
+		urls.push(...doi.map(e => e.value));
+	}
+	const urlProp = meta.get("url");
+	if (urlProp) {
+		urls.push(...urlProp.map(e => e.value));
+	}
+	if (urls.length > 0) {
+		const frame = { _type: "Frame", urls };
+		const title = meta.get("title", "tab.title") || meta.getAnyValue("title");
+		if (title) {
+			frame.title = title.substring(0, 72);
+		}
+		result.push(frame);
+	}
+	return result;
+};
+
 lr_meta.html_entity_string = Object.assign(Object.create(null), {
 	amp: "&",
 	quot: '"',

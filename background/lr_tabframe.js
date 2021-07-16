@@ -223,7 +223,9 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
 			});
 			return !(retvalArray && retvalArray[0] == 314);
 		} catch (ex) {
-			console.debug("lrCheckFrameScriptsForbidden: content scripts are not allowed: %o", ex);
+			console.debug(
+				"lrCheckFrameScriptsForbidden: tab %o (%o) frame %o: content scripts are not allowed: %o",
+				tabId, tab && tab.url, frameId, ex);
 			return true;
 		}
 		return null;
@@ -579,4 +581,72 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 	}
 
 	return chain;
+}
+
+function lrCaptureObjectMapTabGroupUrls(obj) {
+	if (!obj.elements) {
+		console.warn("lrCaptureObjectMapTabGroupUrls: no elements: %o", obj);
+		return null;
+	}
+	const children = obj.elements.filter(e => !!e).map(lrCaptureObjectMapUrls).filter(e => !!e);
+	switch (children.length) {
+		case 0:
+			return null;
+		case 1:
+			return children[1];
+		default:
+			return {
+				_type: obj._type,
+				children,
+			};
+	}
+	return null;
+}
+
+function lrCaptureObjectMapTabFrameChain(obj) {
+	const children = [];
+	for (const frame of obj.elements) {
+		children.push(...lr_meta.mapToUrls(frame));
+	}
+	if (!(children.length > 0)) {
+		console.warn("lrCaptureObjectMapTabFrameChain: no elements found: %o", obj);
+		return null;
+	}
+	if (children.length === 1) {
+		const tab = children[0];
+		if (tab._type === "Frame") {
+			tab._type = "Tab";
+		}
+		return tab;
+	}
+	let title;
+	for (const e of children) {
+		if (e.title) {
+			title = e.title;
+		}
+	}
+	const tab = { _type: "Tab", children };
+	if (title) {
+		tab.title = title;
+	}
+	return tab;
+}
+
+function lrCaptureObjectMapUrls(projection) {
+	if (!projection) {
+		console.warn("lrCaptureObjectMapUrls: no object: %o", obj);
+		return null;
+	}
+	switch (projection._type) {
+		case "Text":
+			return null;
+		case "TabGroup":
+			return lrCaptureObjectMapTabGroupUrls(projection);
+		case "TabFrameChain":
+			return lrCaptureObjectMapTabFrameChain(projection);
+		default:
+			console.warn("lrCaptureObjectMapUrls: unsupported type: %s %o",
+				projection._type, projection);
+	}
+	return null;
 }

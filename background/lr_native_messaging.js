@@ -18,6 +18,8 @@
 "use strict";
 
 var lr_native_messaging = function() {
+	const TIMEOUT = 3000;
+
 	async function hello(params) {
 		const { connection, hello } = await connectionWithHello(params);
 		connection.disconnect();
@@ -39,19 +41,25 @@ var lr_native_messaging = function() {
 		}
 	}
 
-	/** Wrap the call with try-finally to ensure that connection is closed.
-	 *
-	 * There is no way to ensure resource release in JS. Even generators
-	 * may be destroyed without executing of `finally`.
-	 */
-	async function connectionWithHello(params) {
-		let { backend, timeout } = params || {};
+	function _getBackend(params) {
+		let backend = params && params.backend;
 		if (backend === undefined) {
 			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
 		}
 		if (!backend) {
 			throw new Error("Native messaging backend is not specified");
 		}
+		return backend;
+	}
+
+	/** Wrap the call with try-finally to ensure that connection is closed.
+	 *
+	 * There is no way to ensure resource release in JS. Even generators
+	 * may be destroyed without executing of `finally`.
+	 */
+	async function connectionWithHello(params) {
+		const timeout = params && params.timeout;
+		const backend = _getBackend(params);
 		const connection = new LrNativeConnection(backend);
 		try {
 			const hello = await Promise.race([
@@ -59,7 +67,7 @@ var lr_native_messaging = function() {
 					formats: lr_export.getAvailableFormats(),
 					version: bapi.runtime.getManifest().version,
 				}),
-				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout || 3000)),
+				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout || TIMEOUT)),
 			]);
 			if (!hello || typeof hello !== 'object') {
 				throw new Error('Response to "hello" is not an key-value Object');
@@ -70,6 +78,120 @@ var lr_native_messaging = function() {
 			throw ex;
 		}
 	}
+
+	function _queryArrayFromObject(obj, queryArray) {
+		const queue = [ obj ];
+		while (queue.length > 0) {
+			const element = queue.pop();
+			if (element.urls) {
+				const id = bapiGetId();
+				element.id = id;
+				queryArray.push({ id, variants: element.urls });
+				continue;
+			}
+			if (element.children) {
+				queue.push(...element.children);
+			}
+		}
+	}
+
+	function _resultMapToObject(obj, resultMap) {
+		const queue = [ { item: obj } ];
+		while (queue.length > 0) {
+			const { item, post } = queue.pop();
+			if (!post) {
+				const id = item.id;
+				if (id != null) {
+					const mentions = resultMap.get(id);
+					if (mentions != null && (mentions.total > 0 || mentions.url != null)) {
+						item.children = [ mentions ];
+					} else {
+						item.drop = true;
+					}
+				} else if (item.children && item.children.length > 0) {
+					queue.push({ item, post: true });
+					queue.push(...item.children.map(it => ({ item: it })));
+				} else {
+					item.drop = true;
+				}
+			} else {
+				if (item.children) {
+					item.children = item.children.filter(it => !it.drop);
+				}
+				if (!item.children || !(item.children.length > 0)) {
+					item.drop = true;
+				}
+			}
+		}
+		return !obj.drop ? obj : null;
+	}
+
+	async function _queryMentions(queryArray, params) {
+		const hasPermissions = await bapi.permissions.contains(
+			{ permissions: [ "nativeMessaging" ] });
+		if (!hasPermissions) {
+			return { response: "NO_PERMISSIONS" };
+		}
+		const { backend, connection, hello } = await connectionWithHello(params);
+		try {
+			if (
+				!hello.capabilities || !hello.capabilities.indexOf
+				|| !(hello.capabilities.indexOf("urlMentions") >= 0)
+			) {
+				return { response: "UNSUPPORTED" };
+			}
+			const response = new Map();
+			for (const query of queryArray) {
+				const { variants, id } = query;
+				const mentions = await connection.send("linkremark.urlMentions", { variants })
+				if (mentions && mentions.total > 0) {
+					response.set(id, mentions);
+				}
+			}
+			if (response.size === 0) {
+				return { response: "NO_MENTIONS", hello };
+			}
+			return { response, hello };
+		} finally {
+			connection.disconnect();
+		}
+	}
+
+	async function mentions(obj, params) {
+		const queryArray = [];
+		_queryArrayFromObject(obj, queryArray);
+		if (!(queryArray.length > 0)) {
+			return "NO_URLS";
+		}
+		const result = await _queryMentions(queryArray, params);
+		if (result == null) {
+			return result;
+		} else if (typeof result.response === "string") {
+			return { mentions: result.response, hello: result.hello };
+		}
+		const mentions = _resultMapToObject(obj, result.response) || "NO_MENTIONS";
+		return { mentions, hello: result.hello };
+	}
+
+	async function mentionsEndpoint(params) {
+		const { backend, variants } = params[0];
+		const id = bapiGetId();
+		const result = await _queryMentions([ { id, variants } ], { backend });
+		const { response } = result;
+		const mentions = typeof response === "string" ? response : response.get(id);
+		return { hello: result.hello, mentions };
+	}
+
+	async function visitEndpoint(args) {
+		const [ query, params ] = args;
+		const timeout = params && params.timeout || TIMEOUT;
+		const backend = _getBackend(params);
+		const connection = new LrNativeConnection(backend);
+		try {
+			return await Promise.race([
+				connection.send("linkremark.visit", query),
+				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout)),
+			]);
 		} finally {
 			connection.disconnect();
 		}
@@ -134,6 +256,6 @@ var lr_native_messaging = function() {
 			},
 		});
 	};
-	Object.assign(this, { hello, connectionWithHello });
+	Object.assign(this, { hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint });
 	return this;
 }.call(lr_native_messaging || {});

@@ -84,13 +84,14 @@ async function lrCloseWindow() {
 
 function lrRequestNativeMessagingPermission() {
 	const permission = "nativeMessaging";
-	const optional = bapi.runtime.getManifest().optional_permissions;
+	const manifest = bapi.runtime.getManifest();
+	const optional = manifest.optional_permissions;
 	const hasOptional = optional && optional.indexOf(permission) >= 0;
 	if (!hasOptional) {
-		return;
+		return manifest.permissions.indexOf(permission) >= 0;
 	}
-	bapi.permissions.request({ permissions: [ permission ] })
-		.catch(ex => console.error("request ${permission} permission: %s", ex));
+	return bapi.permissions.request({ permissions: [ permission ] })
+		.catch(ex => { console.error("request ${permission} permission: %s", ex); throw ex; });
 }
 
 function lrAdjustTextAreaHeight(textarea) {
@@ -165,6 +166,7 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 async function lrPreviewGetCapture(dispatch, getState) {
 	const cached = await lrSendMessage("store.getResult");
 	if (cached === "NO_CAPTURE") {
+		lrPreviewMentionsOpen();
 		// TODO log that nothing captured yet
 		return;
 	}
@@ -198,6 +200,18 @@ async function lrPreviewGetCapture(dispatch, getState) {
 	}
 	if (format) {
 		dispatch(gLrPreviewActions.exportFormatSelected(format));
+	}
+
+	try {
+		const mentions = cached && cached.mentions;
+		if (mentions) {
+			dispatch(gLrMentionsActions.mentionsResult(mentions));
+			if (!(["NO_MENTIONS", "UNSUPPORTED"].indexOf(mentions.mentions) >= 0)) {
+				lrPreviewMentionsOpen();
+			}
+		}
+	} catch (error) {
+		lrPreviewLogException({ dispatch, getState }, { message: "Init mentions failure", error });
 	}
 
 	const method = capture && capture.transport && capture.transport.method;
@@ -455,7 +469,7 @@ class LrTabGroup {
 
 class LrPreviewLog {
 	constructor(props) {
-		this.dom = E('ul', { className: 'limitedWidth' });
+		this.dom = E('ul', { className: 'limitedWidth log' });
 		this.updateProps(props);
 	}
 	updateProps(props) {
@@ -951,7 +965,7 @@ const gLrPreviewLog = {
 function lrPreviewLogException(store, data) {
 	console.error("lrPreviewLogException: %o", data);
 	try {
-		const { message, error } = data || {
+		const { message, error, id } = data || {
 			message: "Internal error",
 			error: new Error("Attempt to log nothing"),
 		};
@@ -966,7 +980,7 @@ function lrPreviewLogException(store, data) {
 		try {
 			if (store) {
 				const errorMessage = message ? `${message}: ${error.message || String(error)}` : String(error);
-				store.dispatch(gLrPreviewLog.finished({ id: bapiGetId(), error: errorMessage }));
+				store.dispatch(gLrPreviewLog.finished({ id: id != null ? id : bapiGetId(), error: errorMessage }));
 			}
 		} catch (ex) {
 			console.error("lrPreviewLogException: internal error: dispatch to store: %o", ex);
@@ -1077,6 +1091,43 @@ function lrCreateCaptureView(store) {
 	return fragment;
 }
 
+function lrPreviewMentionsOpen() {
+	var mentionsDetails = byId("mentions");
+	mentionsDetails.setAttribute("open", true);
+}
+
+function lrCreateMentionsView(store) {
+	var mentionsDetails = byId("mentions");
+	mentionsDetails.append(
+		(new (store.connect(
+			function lrMentionsQueryMapStateToProps(state) {
+				return state.mentions && state.mentions.query;
+			},
+			function lrMentionsQueryMapDispatchToProps(dispatch) {
+				return {
+					onchange: nameValSrc => dispatch(gLrMentionsActions.mentionsQueryChanged(nameValSrc)),
+					onexec: () => dispatch(function (dispatch, getState) {
+						return gLrMentionsActions.mentionsExec(dispatch, () => getState().mentions);
+					}),
+				};
+			},
+		)(LrMentionsQuery))()).dom,
+		(new (store.connect(
+			function lrMentionsResultMapStateToProps(state) {
+				return state.mentions && state.mentions;
+			},
+			function lrMentionsResultMapDispatchToProps(dispatch) {
+				return {
+					onclick: data => dispatch(function(dispatch, getState) {
+						const action = gLrMentionsActions.visit(data);
+						return action(dispatch, () => getState().mentions);
+					}),
+				};
+			},
+		)(LrMentionsResult))()).dom,
+	);
+}
+
 function lrInitEventSources() {
 	const permissionEvents = new LrPermissionsEvents();
 	const stateStore = new LrStateStore(LrCombinedReducer(
@@ -1085,6 +1136,7 @@ function lrInitEventSources() {
 			[ "transport", lrExportReducer ],
 			[ "capture", lrCaptureReducer ],
 			[ "log", lrPreviewLogReducer ],
+			[ "mentions", lrMentionsReducer ],
 		]),
 	), { transport: { method: "clipboard", format: "missed" }});
 	stateStore.registerComponent(permissionEvents, null, dispatch => permissionEvents.subscribe(dispatch));
@@ -1098,7 +1150,7 @@ async function lrPreviewMain(eventSources) {
 
 	try {
 		const log = new (store.connect(
-			function lrPreviewNotificationsStateToProps(state) {
+			function lrPreviewLogStateToProps(state) {
 				return { items: state.log };
 			}
 		)(LrPreviewLog))();
@@ -1120,9 +1172,18 @@ async function lrPreviewMain(eventSources) {
 		lrPreviewLogException(store, { message: "Settings button init failure", error: ex });
 	}
 
-	// no try-catch since the page is useless in the case of failure
-	const captureView = lrCreateCaptureView(store);
-	captureActions.appendChild(captureView);
+	try {
+		const captureView = lrCreateCaptureView(store);
+		captureActions.appendChild(captureView);
+	} catch (ex) {
+		lrPreviewLogException(store, { message: "Capture UI init failure", error: ex });
+	}
+
+	try {
+		lrCreateMentionsView(store);
+	} catch (ex) {
+		lrPreviewLogException(store, { message: "Mentions UI init failure", error: ex });
+	}
 
 	const dispatch = action => store.dispatch(action);
 
@@ -1133,6 +1194,14 @@ async function lrPreviewMain(eventSources) {
 			const method = settings && settings["export.method"];
 			if (method && method != "native-messaging") {
 				dispatch(gLrPreviewActions.exportMethodSelected(method));
+			}
+			const backend = settings && settings["export.methods.nativeMessaging.backend"];
+			if (backend) {
+				dispatch(gLrMentionsActions.mentionsQueryChanged({
+					name: "name",
+					value: backend,
+					source: "settings",
+				}));
 			}
 		}));
 	} catch (error) {

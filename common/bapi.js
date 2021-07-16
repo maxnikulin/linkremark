@@ -142,6 +142,7 @@ function bapiChrome(chrome) {
 			getMessage: asis,
 		},
 		permissions: {
+			contains: promisify,
 			getAll: promisify,
 			remove: promisify,
 			request: promisify,

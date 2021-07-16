@@ -491,6 +491,17 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			}
 		);
 
+		const mentions = executor.result.mentions = await executor.step(
+			{ ignoreError: false }, // FIXME should be a warning
+			async function checkUrls(capture) {
+				const { body } = capture.formats[capture.transport.captureId];
+				const urlObj = lrCaptureObjectMapUrls(body);
+				return lr_native_messaging.mentions(urlObj);
+			},
+			capture);
+
+		console.debug("captureAndExportResult: mentions %o", mentions);
+
 		const exportResult = await executor.step(
 			async function exportActionResult(capture, options) {
 				return await lr_export.process(capture, options);
