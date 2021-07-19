@@ -1154,7 +1154,7 @@ async function lrPreviewMain(eventSources) {
 				return { items: state.log };
 			}
 		)(LrPreviewLog))();
-		captureActions.appendChild(log.dom);
+		captureActions.parentNode.insertBefore(log.dom, captureActions);
 	} catch (ex) {
 		lrPreviewLogException(store, { message: "Action log init failure", error: ex });
 	}
