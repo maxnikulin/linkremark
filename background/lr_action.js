@@ -492,7 +492,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		);
 
 		const mentions = executor.result.mentions = await executor.step(
-			{ ignoreError: false }, // FIXME should be a warning
+			{ ignoreError: true, result: true }, // FIXME should be a warning
 			async function checkUrls(capture) {
 				const { body } = capture.formats[capture.transport.captureId];
 				const urlObj = lrCaptureObjectMapUrls(body);
@@ -500,14 +500,17 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			},
 			capture);
 
-		console.debug("captureAndExportResult: mentions %o", mentions);
+		const dryRun = mentions && typeof mentions.mentions !== "string";
 
 		const exportResult = await executor.step(
 			async function exportActionResult(capture, options) {
 				return await lr_export.process(capture, options);
 			},
-			capture, { tab: activeTab });
-		if (exportResult === PREVIEW) {
+			capture, { tab: activeTab, dryRun });
+
+		if (dryRun) {
+			throw new Error("URL is present in your notes");
+		} else if (exportResult === PREVIEW) {
 			executor.notifier.debugInfo = false;
 		} else if (!exportResult) {
 			throw new Error("Export failed");

@@ -19,7 +19,7 @@
 
 var lr_clipboard = function() {
 	async function lrCopyToClipboard(capture, options = null) {
-		let { tab, format, version, usePreview, ...formatterOptions } = options || {};
+		let { tab, format, version, usePreview, dryRun, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for clipboard export');
 		}
@@ -37,13 +37,16 @@ var lr_clipboard = function() {
 		if (usePreview == null) {
 			usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
 		}
-		const strategyOptions = { tab, usePreview };
 		capture.transport.method = "clipboard";
+		if (dryRun) {
+			return true;
+		}
+		const strategyOptions = { tab, usePreview };
 		return await lrClipboardAny(capture, strategyOptions);
 	}
 
 	async function lrLaunchOrgProtocolHandler(capture, options = {}) {
-		let { tab, usePreview, ...formatterOptions } = options || {};
+		let { tab, usePreview, dryRun, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for org-protocol export');
 		}
@@ -60,9 +63,10 @@ var lr_clipboard = function() {
 		if (usePreview == null) {
 			usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
 		}
-		const handlerPopupSuppressed = lr_settings.getOption(
-			"export.methods.orgProtocol.handlerPopupSuppressed");
 		capture.transport.method = "org-protocol";
+		if (dryRun) {
+			return true;
+		}
 		const strategyOptions = { tab, usePreview, skipBackground: true };
 		return await lrClipboardAny(capture, strategyOptions);
 	}

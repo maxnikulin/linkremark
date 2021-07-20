@@ -27,7 +27,8 @@ var lr_native_messaging = function() {
 	}
 
 	async function lrSendToNative(capture, params) {
-		const { backend, connection, hello } = await connectionWithHello(params);
+		const { dryRun, ...connectionParams } = params || {};
+		const { backend, connection, hello } = await connectionWithHello(connectionParams);
 		try {
 			if (!hello.format || !hello.version) {
 				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
@@ -35,6 +36,10 @@ var lr_native_messaging = function() {
 			const {format, version, options} = hello;
 			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
 			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
+			capture.transport.method = "native-messaging";
+			if (dryRun) {
+				return true;
+			}
 			return await connection.send("capture", {data, format, version, options});
 		} finally {
 			connection.disconnect();
@@ -138,7 +143,7 @@ var lr_native_messaging = function() {
 				!hello.capabilities || !hello.capabilities.indexOf
 				|| !(hello.capabilities.indexOf("urlMentions") >= 0)
 			) {
-				return { response: "UNSUPPORTED" };
+				return { response: "UNSUPPORTED", hello };
 			}
 			const response = new Map();
 			for (const query of queryArray) {
@@ -165,7 +170,7 @@ var lr_native_messaging = function() {
 		}
 		const result = await _queryMentions(queryArray, params);
 		if (result == null) {
-			return result;
+			return { mentions: "INTERNAL_ERROR" };
 		} else if (typeof result.response === "string") {
 			return { mentions: result.response, hello: result.hello };
 		}

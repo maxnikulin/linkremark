@@ -202,8 +202,8 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		dispatch(gLrPreviewActions.exportFormatSelected(format));
 	}
 
+	const mentions = cached && cached.mentions;
 	try {
-		const mentions = cached && cached.mentions;
 		if (mentions) {
 			dispatch(gLrMentionsActions.mentionsResult(mentions));
 			if (!(["NO_MENTIONS", "UNSUPPORTED"].indexOf(mentions.mentions) >= 0)) {
@@ -215,14 +215,15 @@ async function lrPreviewGetCapture(dispatch, getState) {
 	}
 
 	const method = capture && capture.transport && capture.transport.method;
-	if (error) {
-		throw new Error(error.message || error);
-	} else if (method) {
-		if (method != "native-messaging") {
+	if (method) {
+		if (mentions || method != "native-messaging") {
 			dispatch(gLrPreviewActions.exportMethodSelected(method));
 		}
 		dispatch(gLrPreviewActions.focusTransportMethod(method));
-
+	}
+	if (error) {
+		throw new Error(error.message || error);
+	} else if (method) {
 		const params = new URLSearchParams(window.location.search);
 		const action = params.get("action");
 		if (action == "launch") {
@@ -1211,7 +1212,7 @@ async function lrPreviewMain(eventSources) {
 	try {
 		await dispatch(lrWithTimeout(1000, lrPreviewGetCapture));
 	} catch (error) {
-		lrPreviewLogException(store, { message: "Failed to get capture", error });
+		lrPreviewLogException(store, { message: "A problem with the capture", error });
 	}
 
 	return eventSources;
