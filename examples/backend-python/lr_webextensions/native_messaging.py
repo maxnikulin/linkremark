@@ -1,5 +1,5 @@
 
-# Copyright (C) 2020 Max Nikulin
+# Copyright (C) 2020-2021 Max Nikulin
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
