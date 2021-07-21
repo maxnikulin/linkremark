@@ -7,6 +7,19 @@ MANIFEST_FIREFOX_TEST_src = $(MANIFEST_FIREFOX_src) $(MANIFEST_TEST_src)
 MANIFEST_CHROME_src = manifest-common.json manifest-part-chrome.json
 MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
 
+PAGES_SRC = pages/lr_dom.js pages/settings.html pages/settings.js 
+PAGES_SRC += pages/lr.css pages/mentions.js pages/preview.js 
+PAGES_SRC += pages/preview_model.js pages/preview.html pages/ui_events.js 
+
+CONTENT_SRC += content_scripts/capture.js content_scripts/clipboard.js 
+CONTENT_SRC += content_scripts/image.js content_scripts/link.js 
+CONTENT_SRC += content_scripts/meta.js content_scripts/microdata.js 
+CONTENT_SRC += content_scripts/referrer.js 
+
+ICONS_SRC += icons/lr-light-16.png icons/lr-32.png 
+ICONS_SRC += icons/lr-light-32.png icons/lr-96.png 
+ICONS_SRC += icons/lr-128.png icons/lr-16.png icons/lr-48.png 
+
 # For development with almost no build step.
 firefox: manifest-firefox.json
 	ln -sf manifest-firefox.json manifest.json
@@ -52,29 +65,7 @@ firefox-dist: firefox
 	file="linkremark-$${out}.unsigned.xpi" ; \
 	$(RM) "$$file" ; \
 	zip "$$file" manifest.json $$background \
-		"pages/lr_dom.js" \
-		"pages/settings.html" \
-		"pages/settings.js" \
-		"pages/lr.css" \
-		"pages/mentions.js" \
-		"pages/preview.js" \
-		"pages/preview_model.js" \
-		"pages/preview.html" \
-		"pages/ui_events.js" \
-		"content_scripts/link.js" \
-		"content_scripts/image.js" \
-		"content_scripts/capture.js" \
-		"content_scripts/clipboard.js" \
-		"content_scripts/meta.js" \
-		"content_scripts/microdata.js" \
-		"content_scripts/referrer.js" \
-		"icons/lr-light-16.png" \
-		"icons/lr-32.png" \
-		"icons/lr-light-32.png" \
-		"icons/lr-96.png" \
-		"icons/lr-128.png" \
-		"icons/lr-16.png" \
-		"icons/lr-48.png" \
+		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
