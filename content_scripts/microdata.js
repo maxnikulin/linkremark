@@ -28,9 +28,10 @@
 (function lrMicrodata(){
 	const LR_DISCARD = Symbol("LrDiscard");
 	const LR_PROPERTY_COUNT = Symbol("LrPropertyCount");
-	const LR_PROPERTY_COUNT_LIMIT = 8;
+	const LR_PROPERTY_COUNT_LIMIT = 16;
 	const LR_OTHER_PROPERTIES = Symbol("LrOtherProperties");
 	const LR_OTHER_PROPERTIES_LIMIT = 16;
+	const LR_TOTAL_LIMIT = 1024;
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -66,7 +67,7 @@
 		}
 	}
 
-	class LrMultiMap extends Map {
+	class LrCsMultiMap extends Map {
 		set(key, value) {
 			let entry = super.get(key);
 			if (entry === undefined) {
@@ -90,7 +91,7 @@
 			let named = null;
 			let unnamed = null;
 			for (let [key, value] of this) {
-				value = Array.from(value, e => (e instanceof LrMultiMap ? e.toJSON() : e));
+				value = Array.from(value, e => (e instanceof LrCsMultiMap ? e.toJSON() : e));
 				value = value.length > 1 ? value : value[0];
 				if (key == null) {
 					unnamed = value;
@@ -111,8 +112,17 @@
 		}
 	}
 
-	class LrLimitedMultiMap extends LrMultiMap {
-		constructor(limits) {
+	class LrCounter {
+		constructor(limit) {
+			this.limit = limit > 0 ? limit : LR_TOTAL_LIMIT;
+		}
+		allowed() {
+			return this.limit-- > 0;
+		}
+	}
+
+	class LrLimitedMultiMap extends LrCsMultiMap {
+		constructor(limits, counter) {
 			super();
 			this.limits = new Map([
 				[LR_PROPERTY_COUNT, LR_PROPERTY_COUNT_LIMIT],
@@ -123,22 +133,46 @@
 					this.limits.set(k, v);
 				}
 			}
+			this.counter = counter;
+			this.skippedCount = 0;
 		}
 		set(key, value) {
+			if (this.counter && !this.counter.allowed()) {
+				return null;
+			}
 			if (this.has(key)) {
 				const count = this.get(key).size;
 				const limit = this.limits.get(key) || this.limits.get(LR_OTHER_PROPERTIES_LIMIT);
 				const allow = limit == null || count < limit;
 				if (!allow) {
+					this._addSkipped(key);
 					return null;
 				}
 			} else {
 				const allow = this.limits.has(key) || this.size < this.limits.get(LR_PROPERTY_COUNT);
 				if (!allow) {
+					this._addSkipped(key);
 					return null;
 				}
 			}
 			return super.set(key, value);
+		}
+		_addSkipped(key) {
+			if (this.skippedCount < LR_PROPERTY_COUNT_LIMIT) {
+				super.set("@skipped", key);
+			}
+			++this.skippedCount;
+		}
+		toJSON(counter) {
+			const skipped = this.get("@skipped");
+			if (this.skippedCount > (skipped && skipped.size)) {
+				super.set("@skipped", this.skippedCount);
+			}
+			const totalOverflow = counter && -counter.limit;
+			if (totalOverflow > 0) {
+				super.set("@overflow", totalOverflow);
+			}
+			return super.toJSON();
 		}
 	}
 
@@ -180,7 +214,12 @@
 		const DOM_DEPTH_LIMIT = 128;
 		const MICRODATA_DEPTH_LIMIT = 16;
 
-		const metaFrameStack = [ { node: undefined, properties: new LrLimitedMultiMap() } ];
+		const counter = new LrCounter(LR_TOTAL_LIMIT);
+		function makeProp() {
+			return new LrLimitedMultiMap(null, counter);
+		}
+
+		const metaFrameStack = [ { node: undefined, properties: makeProp() } ];
 		const stack = []
 		let item;
 		let children;
@@ -238,7 +277,7 @@
 			}
 			if (itemscope || itemprop) {
 				const topMetaFrame = lrArrayLast(metaFrameStack);
-				const newFrame = { node, properties: new LrLimitedMultiMap() };
+				const newFrame = { node, properties: makeProp() };
 				if (topMetaFrame.properties.set(itemprop, newFrame.properties)) {
 					metaFrameStack.push(newFrame);
 					if (itemscope) {
@@ -258,7 +297,7 @@
 				}
 			}
 		}
-		return metaFrameStack[0].properties.toJSON();
+		return metaFrameStack[0].properties.toJSON(counter);
 	}
 
 	function lrNodeId(node) {
