@@ -105,8 +105,10 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		} else if (/^https?:\/[\/]/.test(cleaned)) {
 			try {
 				const url = new URL(cleaned);
-				// strip leading slash
-				cleaned = (url.pathname + url.search + url.hash).substring(1);
+				// Strip leading slash.
+				// Should search and hash be discarded?
+				cleaned = (url.pathname + url.search + url.hash);
+				cleaned = cleaned.replace(/^\/*/, ""); // */
 			} catch (ex) {
 				console.debug("lr_meta.sanitizeDOI: failed to strip resolver: %o %o", cleaned, ex);
 			}
