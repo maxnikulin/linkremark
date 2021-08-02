@@ -276,7 +276,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				contexts: [ "tab" ],
 				enabled: true,
 				id: "LR_TAB",
-				title: "Remark for tab or group",
+				title: "Remark for highlighted tab(s)",
 			});
 		}
 	};
