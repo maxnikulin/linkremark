@@ -163,7 +163,7 @@ class LrMentionsResult {
 			const elements = item._type === "Body" ? [] : [ captionElement ];
 			if (children) {
 				queue.push({ item, post: true });
-				queue.push(...children.map(it => ({item: it})));
+				queue.push(...children.slice().reverse().map(it => ({item: it})));
 				if (item._type !== "Body") {
 					const ul = E('ul');
 					elements.push(ul);
