@@ -255,9 +255,13 @@
 						}
 					} else {
 						prop.name = null;
+						// TODO srcset
+						const imgSrc = node.nodeName.toUpperCase() === "IMG" && node.src;
 						let href = node.getAttribute("href") && node.href;
 						const text = node.nodeName === "TEXTAREA" ? node.textContent : node.innerText;
-						if (href) {
+						if (imgSrc) {
+							prop.value = imgSrc;
+						} else if (href) {
 							prop.value = href;
 						} else if (text) {
 							prop.value = text.substring(0, 4096);
