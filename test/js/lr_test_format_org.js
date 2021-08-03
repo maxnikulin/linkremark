@@ -110,6 +110,23 @@ var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_
 		lr_test.assertEq(result, lr_format_org.preferredPageTitle(meta));
 	});
 
+	var test_titleFromSelectionRanges = function() {
+		const meta = new LrMeta();
+		const content = [
+			{
+				property: "selection",
+				key: "window.getSelection.range",
+				value: "Selection one",
+			}, {
+				property: "selection",
+				key: "window.getSelection.range",
+				value: "Selection two",
+			}
+		];
+		lr_meta.mergeContent({ content: { result: content } }, meta);
+		lr_test.assertEq("Selection one … Selection two", lr_format_org.preferredPageTitle(meta));
+	}
+
 	function test_titleEmpty() {
 		const meta = new LrMeta();
 		const title = lr_format_org.preferredPageTitle(meta);
@@ -137,6 +154,7 @@ var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_
 		test_limitSimple,
 		cases_title,
 		test_title,
+		test_titleFromSelectionRanges,
 		cases_truncate,
 		test_truncate,
 	});
