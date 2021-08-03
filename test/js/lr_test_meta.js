@@ -57,9 +57,35 @@ var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
 	this.test_validDOI = lr_test.parametrize(
 		this.casesValid,
 		function test_validDOI(input, doi, comment) {
-			const result = lr_meta.sanitizeDOI(input);
+			const result = lr_meta.doSanitizeDOI({ value: input });
 			lr_test.assertEq(doi, result.value);
 			lr_test.assertTrue(!result.error);
+		});
+
+	const casesIsDoiUrl = [
+		[ "http://dx.doi.org/10.0.1", { doi: true, url: false }, "http, doi.org resolver" ],
+		[ "https://hdl.handle.net/10.0.2", { doi: true, url: false }, "https, handle.net resolver" ],
+		[ "https://doi.pangea.de/10.0.3", { doi: true, url: false }, "pangea.de resolver" ],
+		[ "https://oadoi.org/10.0.4", { doi: true, url: true }, "oadoi alternative resolver" ],
+		[ "http://doai.io/10.0.5", { doi: true, url: true }, "doai alternative resolver" ],
+		[ "doi:10.0.6", { doi: true, url: false }, "raw doi" ],
+		[ "hdl:10.0.7", { doi: true, url: false }, "raw hdl" ],
+		[ "info:doi/10.0.8", { doi: true, url: false }, "raw info:doi" ],
+		[ "info:hdl/10.0.9", { doi: true, url: false }, "raw info:hdl" ],
+		[ "https://orgmode.org/", { doi: false, url: true }, "reject general URLs" ],
+		[ "ftp://dx.doi.org/10.1.1", { doi: false, url: true }, "reject unusual protocol" ],
+		[ "https://dx.doi.org/not-a-doi", { doi: false, url: true }, "reject not 10.* code" ],
+		[ "10.1.2", { doi: false, url: true }, "reject doi without explicit schema" ],
+		[ "http://doai.io/not-a-doi-alt", { doi: false, url: true }, "reject not 10.* code for alternatives" ],
+		[ "two words", { doi: false, url: true }, "reject URL consructor error" ],
+	];
+
+	this.test_isDoiUrl = lr_test.parametrize(
+		casesIsDoiUrl,
+		function test_isDoiUrl(url, expect, comment) {
+			const actual = lr_meta.isDoiUrl(url);
+			lr_test.assertTrue(actual.doi === expect.doi && actual.url === expect.url,
+				`Should ${JSON.stringify(expect)} == ${JSON.stringify(actual)}`);
 		});
 
 	/* Have not managed to invent argument that causes TypeError exception
@@ -71,6 +97,10 @@ var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
 		lr_test.assertEq("bad doi with space", result.value);
 	};
 	*/
+
+	Object.assign(this, {
+		casesIsDoiUrl,
+	});
 
 	lr_test.suites.push(this);
 	return this;

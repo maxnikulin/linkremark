@@ -78,7 +78,7 @@
 
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
-	const FRAGMENT_COUNT_LIMIT = 50;
+	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
 	function lrNormalize(value, sizeLimit) {

@@ -21,81 +21,125 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	var lr_meta = this;
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
+	// selection, 10x10 table
+	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
-	function sanitizeLength(value, error, limit = DEFAILT_SIZE_LIMIT) {
+	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
+		const { value, ...error } = valueError;
 		if (!value || typeof value === "number") {
-			return { value, ...(error ? { error } : {}) };
+			return valueError;
 		}
 		if (typeof value !== "string") {
 			console.warn("lr_meta.sanitizeLength: not a string %o", value);
-			value = "" + value;
+			value = String(value);
 		}
-		if (value.length > limit) {
+		if (!(value.length <= limit)) {
 			return {
 				value: value.substring(0, limit),
+				...error,
 				error: {
 					name: "LrOverflowError",
 					size: value.length,
 				},
 			};
 		}
-		return { value, ...(error ? { error } : {}) }
+		return { value, ...error }
 	}
 
-	function sanitizeText(value, error, limit = TEXT_SIZE_LIMIT) {
-		return sanitizeLength(value, error, limit);
+	function* sanitizeLength(valueError, limit) {
+		yield doSanitizeLength(valueError, limit);
 	}
 
-	function sanitizeUrl(href, error) {
-		if (!href) {
-			return { value: href };
+	/// Actually a generator
+	function sanitizeText(valueError, limit = TEXT_SIZE_LIMIT) {
+		return sanitizeLength(valueError, limit);
+	}
+
+	/// returns { doi, url }
+	function isDoiUrl(href) {
+		try {
+			const url = new URL(href);
+			if (url.protocol === "https:" || url.protocol === "http:") {
+				// Default port is stripped by the parser.
+				if (
+					url.hostname === "dx.doi.org"
+					|| url.hostname === "doi.pangea.de"
+					|| url.hostname === "hdl.handle.net"
+				) {
+					// canonical resolvers
+					return url.pathname.startsWith("/10.") ? { doi: true, url: false } : { doi: false, url: true };
+				}
+				if (
+					url.hostname === "oadoi.org"
+					|| url.hostname === "doai.io"
+				) {
+					// URL of paywall alternatives may have value in addition to doi.
+					return { doi: url.pathname.startsWith("/10."), url: true };
+				}
+			}
+			if (url.protocol === "doi:" || url.protocol === "hdl:") {
+				return { doi: true, url: false }
+			}
+			if (url.protocol === "info:") {
+				const p = url.pathname.toLowerCase();
+				if (url.hostname === "" && (p.startsWith("doi/") || p.startsWith("hdl/"))) {
+					return { doi: true, url: false };
+				} else {
+					return { doi: false, url: true };
+				}
+			}
+		} catch (ex) {
+			console.warn("lr_meta.isDoiUrl: %o", ex);
 		}
-		const isURL = href instanceof URL;
+		return { doi: false, url: true };
+	}
+
+	function doSanitizeUrl(valueError) {
+		let { value, ...error } = valueError;
+		const isURL = value instanceof URL;
 		if (isURL) {
-			href = href.href;
+			value = value.href;
 		}
-		if (typeof href !== 'string') {
-			return { value: null, error: "TypeError" };
+		if (typeof value !== 'string') {
+			return { value: null, ...error, error: "TypeError" };
 		}
-		if (href.startsWith("javascript:")) {
-			return { value: "javascript:", error: "LrForbiddenUrlSchema" };
-		} else if (href.startsWith("data:")) {
+		if (value.startsWith("javascript:")) {
+			return { value: "javascript:", ...error, error: "LrForbiddenUrlSchema" };
+		} else if (value.startsWith("data:")) {
 			return { value: "data:", error: "LrForbiddenUrlSchema" };
 		}
-		const retval = sanitizeLength(href, error);
+		const retval = doSanitizeLength({value, ...error});
 		if (retval.error) {
 			return retval;
 		}
-		href = retval.value;
-		if (!isURL) {
-			try {
-				href = (new URL(href)).href;
-			} catch (ex) {
-				console.debug("lr_meta.sanitizeUrl: not an URL: %s %o", href, ex);
-				retval.error = "LrNotURL";
+		value = retval.value;
+		try {
+			if (!isURL) {
+				value = (new URL(value)).href;
 			}
+			if (value && value[value.length - 1] === "#") {
+				value = value.substring(0, value.length - 1);
+			}
+		} catch (ex) {
+			console.debug("lr_meta.sanitizeUrl: not an URL: %s %o", value, ex);
+			retval.error = "LrNotURL";
 		}
-		if (href && href.search("#") === href.length - 1) {
-			href = href.substring(0, href.length - 1);
-		}
-		retval.value = href;
+		retval.value = value;
 		return retval;
 	}
 
-	function sanitizeDOI(doi, error) {
-		if (!doi) {
-			return error ? { value: doi, error } : { value: doi };
+	function doSanitizeDOI(valueError) {
+		const { value, ...error } = valueError;
+		if (typeof value !== 'string') {
+			return { value: null, ...error, error: "TypeError" };
 		}
-		if (typeof doi !== 'string') {
-			return { value: null, error: "TypeError" };
-		}
-		const retval = sanitizeLength(doi, error);
+		const retval = doSanitizeLength(valueError);
 		if (retval.error) {
 			return retval;
 		}
 		// https://en.wikipedia.org/wiki/Digital_object_identifier#Resolution
-		let cleaned = doi;
+		let cleaned = value;
 		const reDoiSchema = /^(?:doi|hdl):/i;
 		const reInfoSchema = /^info:(?:doi|hdl)\//;
 		if (reDoiSchema.test(cleaned)) {
@@ -127,20 +171,64 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return retval;
 	}
 
-	function sanitizeTextArray(fragmentArray, error) {
+	function* sanitizeDOI(valueError) {
+		yield doSanitizeDOI(valueError);
+	}
+
+	function* sanitizeUrl(valueError) {
+		const { value, heuristicsDone } = valueError;
+		if (!heuristicsDone && value && typeof value === 'string') {
+			const { doi, url } = isDoiUrl(value);
+			if (doi) {
+				const doiResult = doSanitizeDOI(valueError);
+				if (doiResult.value) {
+					doiResult.key = "doi";
+					yield doiResult;
+				}
+			}
+			if (!url) {
+				return;
+			}
+		}
+		yield { ...doSanitizeUrl(valueError), heuristicsDone: true };
+	}
+
+	function* sanitizeTextArray(valueError) {
+		const { value, ...arrayError } = valueError;
+		const fragmentArray = value;
 		if (!Array.isArray(fragmentArray)) {
-			return { value: [], error: "TypeError" };
+			yield { value: [], ...error, error: "TypeError" };
+			return;
 		}
 		const result = [];
 		let available = TEXT_SIZE_LIMIT;
+		let error = arrayError;
+
+		function reduceError(current, update) {
+			if (current.error || !update) {
+				return current;
+			}
+			return { ...current, error: update }
+		}
+
 		for (const fragment of fragmentArray) {
-			error = error || (fragment && fragment.error);
+			if (!(result.length < FRAGMENT_COUNT_LIMIT)) {
+				error = reduceError(error, { name: "LrOverflowError", size: fragmentArray.length });
+				break;
+			}
+			if (!fragment) {
+				result.push({ value: "", error: "TypeError" });
+				error = reduceError(error, "TypeError");
+				continue;
+			}
+			error = reduceError(error, fragment.error);
 			const value = fragment.value;
 			if (!value) {
 				result.push(fragment);
 				continue;
 			} else if (typeof value !== "string") {
 				result.push({...fragment, value: "", error: "TypeError"});
+				error = reduceError(error, "TypeError");
 				continue;
 			}
 			if (value.length <= available) {
@@ -149,27 +237,32 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 				continue;
 			}
 			if (available < DEFAILT_SIZE_LIMIT) {
-				available = 0;
+				const err = { name: "LrOverflowError", size: value.length };
+				result.push({ value: "", error: err });
+				error = reduceError(error, err);
+				break;
 			}
-			const sanitized = sanitizeLength(value, fragment.error, available);
-			result.push({...fragment, ...sanitized});
-			error = error || sanitized.error;
+			const sanitized = doSanitizeLength(fragment, available);
+			result.push(sanitized);
+			error = reduceError(error, sanitized.error);
 		}
-		return { value: result, error };
+		yield { value: result, ...error };
 	}
 
-	function sanitizeObject(obj, error) {
+	function* sanitizeObject(valueError) {
+		const { value, ...error } = valueError;
 		try {
-			const length = JSON.stringify(obj).length;
+			const length = JSON.stringify(value).length;
 			if (!(length < 2*TEXT_SIZE_LIMIT)) {
-				return { error: {
+				yield { ...error, error: {
 					name: "LrOverflowError",
 					size: value.length,
 				} };
+				return;
 			}
-			return { value: obj };
+			yield { value, ...error };
 		} catch (ex) {
-			return { error: lr_util.errorToObject(ex) };
+			yield { ...error, error: lr_util.errorToObject(ex) };
 		}
 	}
 
@@ -220,6 +313,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
+		doSanitizeLength, isDoiUrl, doSanitizeUrl, doSanitizeDOI,
 		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
 		sanitizeObject,
 		sanitizeTextArray,
@@ -385,6 +479,7 @@ class LrMeta {
 				linkUrl: lr_meta.sanitizeUrl,
 				srcUrl: lr_meta.sanitizeUrl,
 				referrer: lr_meta.sanitizeUrl,
+				favicon: lr_meta.sanitizeUrl,
 				title: lr_meta.sanitizeLength,
 				selection: lr_meta.sanitizeText,
 				linkText: lr_meta.sanitizeText,
@@ -392,18 +487,42 @@ class LrMeta {
 				json_ld: lr_meta.sanitizeObject,
 			})),
 		});
+		Object.defineProperty(this, "propertyRemap", {
+			enumerable: false,
+			value: new Map(Object.entries({
+				doi: "url",
+			})),
+		});
 	};
+	// It does not pass value through sanitizer
 	set(property, value, key) {
+		console.error("LrMeta.set is deprecated %o %o %o", property, key, value);
 		if (value == null) {
 			return false;
 		}
 		this.ensureVariants(property).set(value, "" + key);
 		return true;
 	};
-	addDescriptor(property, descriptor) {
+	addDescriptor(property, descriptor, params) {
+		try {
+			return this.doAddDescriptor(property, descriptor, params);
+		} catch (ex) { // FIXME pass to executor
+			console.error("lr_meta.addDescriptor: %o %o %o", property, ex, descriptor);
+		}
+		return false;
+	};
+	doAddDescriptor(property, descriptor, params) {
+		const { skipEmpty } = params || {};
 		if (descriptor == null) {
+			if (skipEmpty) {
+				return false;
+			}
+			throw new Error("Meta descriptor is null");
+		}
+		if (skipEmpty && (descriptor.value == null || descriptor.value == "")) {
 			return false;
 		}
+
 		if (!property || typeof property !== "string") {
 			console.error("LrMeta.addDescriptor: bad property name: %o %o", property, descriptor);
 			return false;
@@ -412,17 +531,24 @@ class LrMeta {
 			console.error("LrMeta.addDescriptor: descriptor is not an object: %o %o", property, descriptor);
 			return false;
 		}
-		let { value, error, ...other } = descriptor;
+		let { key, keys, ...valueError } = descriptor;
 		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
-		const sanitizedResult = sanitizer(value, error);
-		const keyObject = {};
-		if (!descriptor.key && !descriptor.keys) {
+		if (!key && !keys) {
 			console.error("LrMeta.addDescriptor: missed key: %o %o", property, descriptor);
-			keyObject.key = "unspecified." + property;
+			key = "unspecified." + property;
 		}
+		property = this.propertyRemap.get(property) || property;
 		const variants = this.ensureVariants(property);
-		// Value is added only if sanitizer set it
-		variants.addDescriptor({...other, error, ...sanitizedResult, ...keyObject});
+		for (const sanitizedResult of sanitizer(valueError)) {
+			const keyObject = {};
+			if (key) {
+				keyObject.key = sanitizedResult.key ? `${key}.${sanitizedResult.key}` : key;
+			} else if (keys) {
+				keyObject.keys = sanitizedResult.key ? keys.map(k => `${k}.${sanitizedResult.key}`) : keys;
+			}
+			// Value is added only if sanitizer set it
+			variants.addDescriptor({...sanitizedResult, ...keyObject});
+		}
 		return true;
 	}
 
@@ -473,13 +599,15 @@ class LrMeta {
 			console.error("LrMeta.addStructure: bad property name: %o %o", property, descriptor);
 			return false;
 		}
-		const sanitizer = this.sanitizerMap.get(property); // TODO || lr_meta.sanitizeStructure;
+		const sanitizer = this.sanitizerMap.get(property);
 		if (!sanitizer) {
 			console.error("LrMeta.addStructure: sanitizer for %s is not defined", property);
+			sanitizer = lr_meta.sanitizeObject;
 		}
-		let { value, error, ...other } = descriptor;
-		const sanitizedResult = sanitizer ? sanitizer(value, error) : {};
-		this[property] = { value, error, ...other, ...sanitizedResult, type: "structure" };
+		for (const sanitizedResult of sanitizer(descriptor)) {
+			this[property] = { ...sanitizedResult, type: "structure" };
+			break;
+		}
 		return true;
 	}
 
@@ -517,39 +645,19 @@ class LrMeta {
 	};
 };
 
-lr_meta.normalizeUrl = function(href) {
-	if (!href) {
-		return href;
-	} else if (href.startsWith("javascript:")) {
-		return "javascript:";
-	} else if (href.startsWith("data:")) {
-		return "data:";
-	} else if (href.search("#") === href.length - 1) {
-		return href.substring(0, href.length - 1);
-	}
-	return href;
-};
-
-lr_meta.copyProperty = function(value, metaMap, property, key) {
-	if (value == null || value === "") {
-		return;
-	}
-	metaMap.set(property, value, key);
-};
-
 lr_meta.mergeTab = function(frameInfo, meta) {
 	const tab = frameInfo.tab;
 	if (tab == null) {
 		return;
 	}
-	lr_meta.copyProperty(lr_meta.normalizeUrl(tab.url), meta, "url", "tab.url");
-	lr_meta.copyProperty(tab.title, meta, "title", "tab.title");
-	lr_meta.copyProperty(lr_meta.normalizeUrl(tab.favIconUrl), meta, "favicon", "tab.favicon");
+	meta.addDescriptor("url", { value: tab.url, key: "tab.url" }, { skipEmpty: true });
+	meta.addDescriptor("title", { value: tab.title, key: "tab.title" }, { skipEmpty: true });
+	meta.addDescriptor("favicon", { value: tab.favIconUrl, key: "tab.favicon" }, { skipEmpty: true });
 };
 
 lr_meta.mergeFrame = function(frameInfo, meta) {
 	if (frameInfo.frame && !frameInfo.frame.synthetic) {
-		lr_meta.copyProperty(lr_meta.normalizeUrl(frameInfo.frame.url), meta, "url", "frame.url");
+		meta.addDescriptor("url", { value: frameInfo.frame.url, key: "frame.url" }, { skipEmpty: true });
 	}
 };
 
@@ -581,25 +689,24 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 	if (clickData == null) {
 		return;
 	}
-	meta.addDescriptor("selection", clickData.selectionText && {
-		value: clickData.selectionText,
-		key: "clickData.selectionText",
-	});
-	meta.addDescriptor("linkText", clickData.linkText && {
-		value: clickData.linkText,
-		key: "clickData.linkText"
-	});
-	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.linkUrl), meta, "linkUrl", "clickData.linkUrl");
-	lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.frameUrl), meta, "url", "clickData.frameUrl");
+	const skip = { skipEmpty: true }
+	meta.addDescriptor(
+		"selection",
+		{ value: clickData.selectionText, key: "clickData.selectionText" },
+		skip
+	);
+	meta.addDescriptor("linkText", { value: clickData.linkText, key: "clickData.linkText" }, skip);
+	meta.addDescriptor("linkUrl", { value: clickData.linkUrl, key: "clickData.linkUrl" }, skip);
+	meta.addDescriptor("url", { value: clickData.frameUrl, key: "clickData.frameUrl" }, skip);
 	if (frameInfo.frame.frameId === 0) {
-		lr_meta.copyProperty(lr_meta.normalizeUrl(clickData.pageUrl), meta, "url", "clickData.pageUrl");
+		meta.addDescriptor("url", { value: clickData.pageUrl, key: "clickData.pageUrl" }, skip);
 	}
-	lr_meta.copyProperty(clickData.mediaType, meta, "mediaType", "clickData.mediaType");
-	lr_meta.copyProperty(
-		lr_meta.normalizeUrl(clickData.srcUrl),
-		meta,
+	meta.addDescriptor("mediaType", { value: clickData.mediaType, key: "clickData.mediaType" }, skip);
+	meta.addDescriptor(
 		clickData.captureObject === "frame" || clickData.captureObject === "link" ? "url" : "srcUrl",
-		"clickData.srcUrl");
+		{ value: clickData.srcUrl, key: "clickData.srcUrl" },
+		skip
+	);
 	if (clickData.captureObject) {
 		meta.target = clickData.captureObject;
 	}
@@ -918,10 +1025,6 @@ lr_meta.mapToUrls = function(meta) {
 		result.push(image);
 	}
 	const urls = [];
-	const doi = meta.get("doi");
-	if (doi) {
-		urls.push(...doi.map(e => e.value));
-	}
 	const urlProp = meta.get("url");
 	if (urlProp) {
 		urls.push(...urlProp.map(e => e.value));

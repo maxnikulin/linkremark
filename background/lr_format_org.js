@@ -407,8 +407,16 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	]);
 
 	function urlWeight(url_src) {
-		const weight = urlWeightMap.get(url_src);
-		return weight != null ? weight : 1;
+		let weight = urlWeightMap.get(url_src);
+		if (weight == null) {
+			weight = 1;
+		}
+		if (url_src.startsWith("doi:")) {
+			weight *= 8;
+		} else if (/\.doi$/i.test(url_src)) {
+			weight *= 7;
+		}
+		return weight;
 	}
 
 	function* urlVariants(meta) {
@@ -583,15 +591,6 @@ function lr_format_org_frame(frame, options = {}) {
 		LrOrgDefinitionItem, LrOrgHeading, LrOrgSeparatorLine, LrOrgWordSeparator, LrOrgLink,
 	} = lr_org_tree;
 	const body = [];
-	try {
-		for (let variant of lr_property_variants(frame, "doi")) {
-			body.push(LrOrgDefinitionItem(
-				{ term: "DOI" },
-				LrOrgLink({ href: variant.value })));
-		}
-	} catch (ex) {
-		console.error("LR: while formatting doi: %o", ex);
-	}
 
 	for (let variant of lr_format_org.urlVariants(frame) || []) {
 		body.push(LrOrgDefinitionItem({ term: "URL" }, LrOrgLink({ href: variant.value })));

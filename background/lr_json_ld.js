@@ -83,9 +83,9 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		return setProperty(json, "name", meta, field, { ...props, key, recursive: false });
 	}
 
-	function setProperty(src, srcField, meta, field, { key, recursive, recursionLimit, ...props }) {
+	function setProperty(src, srcField, meta, property, { key, recursive, recursionLimit, ...props }) {
 		if (! (--recursionLimit >= 0)) {
-			console.warn("LR: ld+json: setProperty: recursion limit reached %s %s", field, key);
+			console.warn("LR: ld+json: setProperty: recursion limit reached %s %s", property, key);
 			return false;
 		}
 		let value = srcField == null ? src : (src && src[srcField]);
@@ -97,11 +97,11 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		if (value == null || value === "") {
 			return result;
 		} else if (typeof value === "string") {
-			return meta.set(field, value, key);
+			return meta.addDescriptor(property, { value, key: "" + key });
 		} else if (Array.isArray(value)) {
 			let i = 0;
 			for (const item of value) {
-				result = setProperty(item, null, meta, field,
+				result = setProperty(item, null, meta, property,
 					{ ...props, key: key.concat("" + i++), recursive, recursionLimit }) || result;
 			}
 		} else if (value["@type"]) {
@@ -111,14 +111,14 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 				const handler = propertyHandlerMap.get(type);
 				if (handler) {
 					// run always
-					result = handler(value, meta, field,
+					result = handler(value, meta, property,
 						{ ...props, key: typedKey, recursive: false, recursionLimit }) || result;
 				}
 				// run only if unhandled
-				result = result || handlePropertyGeneric(value, meta, field,
+				result = result || handlePropertyGeneric(value, meta, property,
 					{ ...props, key: typedKey, recursive: false, recursionLimit });
 			} else {
-				console.warn("LR: ld+json: recursion is not allower for %s(%s): %s", field, key, value);
+				console.warn("LR: ld+json: recursion is not allower for %s(%s): %s", property, key, value);
 			}
 		}
 		return result;
@@ -141,8 +141,8 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		return [result, key];
 	}
 
-	function handleImageObjectProperty(json, meta, field, { key, ...props }) {
-		return meta.set(field, lr_meta.normalizeUrl(json.url), key.concat("url"));
+	function handleImageObjectProperty(json, meta, property, { key, ...props }) {
+		return meta.addDescriptor(property, { value: json.url, key: "" + key.concat("url") }, { skipEmpty: true });
 		// @id likely contains anchor on the page, not an image URL
 	};
 
@@ -188,13 +188,13 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			setProperty(json, property, meta, target, nonrecursiveProps);
 		}
 		setProperty(json, "image", meta, "image", { ...props, recursive: true });
-		meta.set("url", lr_meta.normalizeUrl(json.url), props.key.concat("url"));
+		setProperty(json, "url", meta, "url", nonrecursiveProps);
 		const id = json["@id"];
 		if (id) {
 			try {
 				const url = new URL(id);
 				if (url.hostname) {
-					meta.set("url", lr_meta.normalizeUrl(id), props.key.concat("id"));
+					meta.addDescriptor("url", { value: id, key: "" + props.key.concat("id") });
 				}
 			} catch (ex) {
 				console.debug(
