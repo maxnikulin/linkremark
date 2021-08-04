@@ -479,13 +479,6 @@ function lr_preferred_title(meta) {
 	return valueVariants.length > 0 ? valueVariants[0] : null;
 }
 
-function lr_property_variants(meta, property) {
-	if (!meta) {
-		return null;
-	}
-	return meta.get(property) || [];
-}
-
 function lr_format_org_description(meta) {
 	if (!meta) {
 		return null;
@@ -501,17 +494,13 @@ function lr_format_org_description(meta) {
 }
 
 function lrOrgCollectProperties(result, frame) {
-	const imageVariants = lr_property_variants(frame, 'image');
-	if (imageVariants && imageVariants.length > 0) {
-		for (let img of imageVariants) {
-			result.push(["URL_IMAGE", img.value]);
-		}
+	for (let img of frame.descriptors('image')) {
+		// FIXME error
+		result.push(["URL_IMAGE", img.value]);
 	}
-	const modifiedVariants = lr_property_variants(frame, 'lastModified');
-	if (modifiedVariants && modifiedVariants.length > 0) {
-		for (let time of modifiedVariants) {
-			result.push(["LAST_MODIFIED", ...lr_formatter.parseDate(time.value)]);
-		}
+	for (let time of frame.descriptors('lastModified')) {
+		// FIXME error
+		result.push(["LAST_MODIFIED", ...lr_formatter.parseDate(time.value)]);
 	}
 	return result;
 }
@@ -604,8 +593,8 @@ function lr_format_org_frame(frame, options = {}) {
 	}
 	const dateProperties = new Set(["published_time", "modified_time"]);
 	for (let property of ['author', 'published_time', 'modified_time', 'site_name']) {
-		const variants = lr_property_variants(frame, property);
-		for (const entry of variants || []) {
+		const variants = Array.from(frame.descriptors(property));
+		for (const entry of variants) {
 			try {
 				if (
 					property === 'site_name'
@@ -618,7 +607,7 @@ function lr_format_org_frame(frame, options = {}) {
 				const value = dateProperties.has(property) ? lr_formatter.parseDate(entry.value) : entry.value;
 				body.push(LrOrgDefinitionItem({ term: property }, value));
 			} catch (ex) {
-				console.error("lr_format_org_frame: ignoring error for: %s %o", entry, ex);
+				console.error("lr_format_org_frame: ignoring error for: %o %o", entry, ex);
 			}
 		}
 	}
@@ -650,9 +639,8 @@ function lr_format_org_frame(frame, options = {}) {
 
 // FIXME: add wrapper to catch exceptions
 function lr_format_org_referrer(frame) {
-	const referrerVariants = lr_property_variants(frame, 'referrer');
 	const result = [];
-	for (let entry of referrerVariants || []) {
+	for (let entry of frame.descriptors('referrer')) {
 		if (!entry.value) {
 			console.warn("lr_format_org_referrer: skipping due to missed href: %o", entry);
 			continue;
@@ -677,7 +665,7 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 	const { LrOrgLink, LrOrgDefinitionItem } = lr_org_tree;
 	const url = meta.getAnyValue('srcUrl');
 	const properties = baseProperties.slice();
-	for (const url of lr_property_variants(meta, "srcUrl")) {
+	for (const url of meta.descriptors("srcUrl")) {
 		if (url.value && !url.error) {
 			properties.push(["URL_IMAGE", url.value]);
 		}
@@ -685,8 +673,7 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 
 	const description = [];
 	for (const [property, name] of [["srcUrl", "image URL"], ["imageAlt", "alt"], ["imageTitle", "title"]]) {
-		const variants = lr_property_variants(meta, property) || [];
-		for (let v of variants) {
+		for (let v of meta.descriptors(property)) {
 			const body = property === "srcUrl" ? LrOrgLink({ descriptor: v }) : v.value;
 			description.push(LrOrgDefinitionItem({ term: name }, body));
 		}

@@ -349,6 +349,13 @@ class LrMetaVariants {
 		}
 		this.keyMap.set(key, valueEntry);
 	};
+	*descriptors(key = undefined) {
+		if (key === undefined) {
+			yield* this.array || [];
+		} else {
+			yield* this.keyMap.values(key);
+		}
+	}
 	addDescriptor(descriptor) {
 		if (!descriptor) {
 			console.warn("LrMetaVariants.addDescriptor: empty argument");
@@ -484,6 +491,16 @@ class LrMeta {
 		this.ensureVariants(property).set(value, "" + key);
 		return true;
 	};
+	*descriptors(property, key = undefined) {
+		if (property == null) {
+			console.error("LrMeta.descriptors(%o, %o): no property specified", property, key);
+			return;
+		}
+		const variants = this.propertyMap.get(property);
+		if (variants !== undefined) {
+			yield* variants.descriptors(key);
+		}
+	}
 	addDescriptor(property, descriptor, params) {
 		try {
 			return this.doAddDescriptor(property, descriptor, params);
