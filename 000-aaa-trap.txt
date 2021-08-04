@@ -1,4 +1,0 @@
-This file is just a trap for Firefox file selector
-opened to load temporary add-on. Actually it need a directory
-(with manifest.json file) but it asks for a file.
-This file allows to avoid choosing directory "background" by default.

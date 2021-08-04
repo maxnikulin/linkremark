@@ -1,0 +1,7 @@
+This file is added just for convenience to pick it in file selection
+dialog during loading of temporary extension in Firefox.
+It is selected by default and creates a descriptive entry
+in the list of recent documents.
+This file allows to avoid choosing directory "background" by default.
+Actually Firefox needs a directory (with manifest.json file)
+but it asks for a file.
