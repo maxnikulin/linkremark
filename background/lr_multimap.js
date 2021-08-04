@@ -36,9 +36,37 @@ var lr_multimap = lr_util.namespace(lr_multimap, function lr_multimap() {
 				super.set(key, set);
 			}
 			set.add(value);
+			return this;
+		}
+		has(key, value = undefined) {
+			const set = super.get(key);
+			if (set === undefined) {
+				return false;
+			} else if (value === undefined) {
+				return true;
+			}
+			return set.has(value);
+		}
+		delete(key, value = undefined) {
+			if (value === undefined) {
+				return super.delete(key);
+			}
+			const set = super.get(key);
+			const retval = set !== undefined && set.delete(value);
+			if (retval && set.size === 0) {
+				super.delete(key);
+			}
+			return retval;
 		}
 
-		*values() {
+		*values(key = undefined) {
+			if (key !== undefined) {
+				const set = super.get(key);
+				if (set !== undefined) {
+					yield *set;
+				}
+				return;
+			}
 			for (const set of super.values()) {
 				yield* set;
 			}

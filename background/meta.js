@@ -327,34 +327,21 @@ class LrMetaVariants {
 	constructor(variantArray) {
 		this.array = variantArray;
 		this.valueMap = new Map();
-		this.keyMap = new Map();
+		this.keyMap = new lr_multimap.LrMultiMap();
 		for (const variant of variantArray) {
 			this.valueMap.set(variant.value, variant);
+			console.assert(!("key" in variant), "Descriptors passed to LrMetaVariants should not have 'key' property");
 			for (const key of variant.keys) {
 				this.keyMap.set(key, variant);
 			}
 		}
 	};
 	set (value, key) {
-		// FIXME allow multiple values with the same key
-		const keyEntry = this.keyMap.get(key);
-		if (keyEntry != null) {
-			if (keyEntry.value === value) {
-				return;
-			}
-			const keyIndex = keyEntry.keys.indexOf(key);
-			if (keyIndex >= 0) {
-				keyEntry.keys.splice(keyIndex, 1);
-				if (keyEntry.keys.length === 0) {
-					this.valueMap.delete(keyEntry.value);
-					this.keyMap.delete(key);
-					this.array.splice(this.array.indexOf(keyEntry), 1);
-				}
-			}
-		}
 		let valueEntry = this.valueMap.get(value);
 		if (valueEntry != null) {
-			valueEntry.keys.push(key);
+			if (!this.keyMap.has(key, valueEntry)) {
+				valueEntry.keys.push(key);
+			}
 		} else {
 			valueEntry = { value, keys: [key] };
 			this.array.push(valueEntry);
@@ -368,13 +355,9 @@ class LrMetaVariants {
 			return false;
 		}
 		const { key, keys, value, ...attributes } = descriptor;
-		// FIXME allow multiple values with the same key
-		const keyVariants = [];
+		const keyVariants = keys || [];
 		if (key) {
 			keyVariants.push(key);
-		}
-		if (keys) {
-			keyVariants.push(...keys);
 		}
 		if (!(keyVariants.length > 0)) {
 			console.error("LrMetaVariants: no keys %s", keyVariants);
@@ -396,32 +379,25 @@ class LrMetaVariants {
 		}
 
 		for (const keyItem of keyVariants) {
-			const keyEntry = this.keyMap.get(keyItem);
-			if (keyEntry != null) {
-				if (keyEntry.value === value) {
-					continue;
-				}
-				const keyIndex = keyEntry.keys.indexOf(keyItem);
-				if (keyIndex >= 0) {
-					keyEntry.keys.splice(keyIndex, 1);
-					if (keyEntry.keys.length === 0) {
-						this.valueMap.delete(keyEntry.value);
-						this.keyMap.delete(keyItem);
-						this.array.splice(this.array.indexOf(keyEntry), 1);
-					}
-				}
+			if (this.keyMap.has(keyItem, valueEntry)) {
+				continue;
 			}
 			valueEntry.keys.push(keyItem);
 			this.keyMap.set(keyItem, valueEntry);
 		}
 		return true;
 	}
+	// FIXME remove
 	getValueByKey(key) {
-		const entry = this.keyMap.get(key);
-		return entry && entry.value;
+		for (const descriptor of this.keyMap.values(key)) {
+			return descriptor && descriptor.value;
+		}
 	};
+	// FIXME remove
 	getDescriptorByKey(key) {
-		return this.keyMap.get(key);
+		for (const descriptor of this.keyMap.values(key)) {
+			return descriptor;
+		}
 	}
 	replace(value, replacement) {
 		if (value === replacement) {
@@ -433,20 +409,25 @@ class LrMetaVariants {
 		if (replacement == null) {
 			throw new Error('value for replacement is null');
 		}
-		if (replacement == null) {
+		if (value == null) {
 			throw new Error('value is null');
 		}
 		const entry = this.valueMap.get(value);
+		if (entry == null) {
+			console.error("LrMetaVariants.replace: no entry for value '%o'", value);
+			throw new Error("Unknown value");
+		}
 		let replacementEntry = this.valueMap.get(replacement);
 		if (replacementEntry == null) {
-			replacementEntry = {value: replacement, keys: []};
+			replacementEntry = { ...entry, value: replacement, keys: [] };
 			this.valueMap.set(replacement, replacementEntry);
 			this.array[this.array.indexOf(entry)] = replacementEntry;
 		}
 		for (const key of entry.keys) {
+			this.keyMap.delete(key, entry); 
 			this.keyMap.set(key, replacementEntry);
-			replacementEntry.keys.push(key);
 		}
+		replacementEntry.keys.push(...entry.keys);
 		this.valueMap.delete(value);
 	};
 	deleteValue(value) {
@@ -456,7 +437,7 @@ class LrMetaVariants {
 		}
 		this.valueMap.delete(value);
 		for (const key of entry.keys) {
-			this.keyMap.delete(key);
+			this.keyMap.delete(key, value);
 		}
 		this.array.splice(this.array.indexOf(entry), 1);
 		return true;

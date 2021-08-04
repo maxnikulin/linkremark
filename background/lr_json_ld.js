@@ -102,7 +102,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			let i = 0;
 			for (const item of value) {
 				result = setProperty(item, null, meta, property,
-					{ ...props, key: key.concat("" + i++), recursive, recursionLimit }) || result;
+					{ ...props, key: "" + key, recursive, recursionLimit }) || result;
 			}
 		} else if (value["@type"]) {
 			const type = value["@type"];
