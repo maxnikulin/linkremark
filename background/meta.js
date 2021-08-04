@@ -1046,6 +1046,9 @@ lr_meta.html_entity_string = Object.assign(Object.create(null), {
 	apos: "'",
 	gt: ">",
 	lt: "<",
+	mdash: "\u2014",
+	ndash: "\u2013",
+	nbsp: "\u00a0",
 	laquo: "«",
 	raquo: "»",
 });
