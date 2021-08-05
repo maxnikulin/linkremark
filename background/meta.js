@@ -1014,7 +1014,7 @@ lr_meta.mapToUrls = function(meta) {
 	}
 	const srcUrl = meta.get("srcUrl");
 	if (srcUrl) {
-		const urls = linkUrl.map(e => e.value);
+		const urls = srcUrl.map(e => e.value);
 		const image = { _type: "Image", urls };
 		const imageText = meta.getAnyValue("imageAlt") || meta.getAnyValue("imageTitle");
 		if (imageText) {
