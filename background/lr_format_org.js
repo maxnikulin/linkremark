@@ -30,22 +30,6 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		}
 	}
 
-	function first(...args) {
-		for (const iterable of args) {
-			if (iterable == null) {
-				continue;
-			} else if (typeof iterable === "string" || !iterable[Symbol.iterator]) {
-				return iterable;
-			}
-
-			for (const variant of iterable) {
-				if (variant) {
-					return variant;
-				}
-			}
-		}
-	}
-
 	function* preferShort(descriptorIterator) {
 		if (!descriptorIterator) {
 			return;
@@ -179,7 +163,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 				});
 			}
 			splitVariants.sort((a, b) => a.penalty - b.penalty);
-			const best = first(splitVariants);
+			const best = lr_iter.first(splitVariants);
 			return best && best.index;
 		}
 
@@ -222,7 +206,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 			}
 			const titleComponents = [
 				{
-					value: first(valuesFromDescriptors(preferShort(meta.get("author")))),
+					value: lr_iter.first(valuesFromDescriptors(preferShort(meta.get("author")))),
 					min: 16,
 					target: 24,
 					stiff: 24,
@@ -236,7 +220,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 					flexThreshold: 48,
 				},
 				{
-					value: first(valuesFromDescriptors(siteNameVariants(meta))),
+					value: lr_iter.first(valuesFromDescriptors(siteNameVariants(meta))),
 					min: 8,
 					target: 24,
 					stiff: 0,
@@ -247,7 +231,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 			if (truncated && truncated.length > 0) {
 				return truncated.join(componentSeparator);
 			}
-			const href = first(valuesFromDescriptors(urlVariants(meta)));
+			const href = lr_iter.first(valuesFromDescriptors(urlVariants(meta)));
 			if (href) {
 				const link = lr_org_tree.LrOrgLink({ lengthLimit: 75 - fallbackTitle.length, href });
 				return [ fallbackTitle, componentSeparator, link ];
@@ -359,17 +343,17 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	function makeImageTitle(meta) {
 		const { LrOrgWordSeparator, LrOrgLink } = lr_org_tree;
 		const components = [ 'Image:' ]; // TODO i18n
-		let text = first(
+		let text = lr_iter.first(lr_iter.combine(
 			valuesFromDescriptors(meta.get('imageAlt')),
 			valuesFromDescriptors(meta.get('imageTitle')),
 			selectionLineGen(meta),
-		);
+		));
 		if (text) {
 			components.push(LrOrgWordSeparator, truncate(text, 30, 72, 80));
 		}
 		const remaining = components.reduce((r, c) => r - c.length, 82);
 		if (remaining > 25) {
-			const descriptor = first(meta.get('srcUrl'));
+			const descriptor = lr_iter.first(meta.get('srcUrl'));
 			if (descriptor) {
 				components.push(LrOrgWordSeparator, LrOrgLink({ descriptor, lengthLimit: remaining }));
 			}
@@ -380,17 +364,17 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	function makeLinkTitle(meta) {
 		const { LrOrgWordSeparator, LrOrgLink } = lr_org_tree;
 		const components = [ 'Link:' ]; // TODO i18n
-		let text = first(
+		let text = lr_iter.first(lr_iter.combine(
 			valuesFromDescriptors(meta.get('linkText')),
 			valuesFromDescriptors(meta.get('linkTitle')),
 			selectionLineGen(meta),
-		);
+		));
 		if (text) {
 			components.push(LrOrgWordSeparator, truncate(text, 30, 72, 80));
 		}
 		const remaining = components.reduce((r, c) => r - c.length, 82);
 		if (remaining > 25) {
-			const descriptor = first(meta.get('linkUrl'));
+			const descriptor = lr_iter.first(meta.get('linkUrl'));
 			if (descriptor) {
 				components.push(LrOrgWordSeparator, LrOrgLink({ descriptor, lengthLimit: remaining }));
 			}
@@ -450,7 +434,6 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		limitComponentsLength,
 		urlVariants,
 		internal: {
-			first,
 			preferShort,
 			titleCandidatesIterator,
 			cleanupTitleVariant,
