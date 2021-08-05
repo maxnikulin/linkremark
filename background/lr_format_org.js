@@ -646,11 +646,14 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 	}
 
 	const { LrOrgLink, LrOrgDefinitionItem } = lr_org_tree;
-	const url = meta.getAnyValue('srcUrl');
+	let url;
 	const properties = baseProperties.slice();
-	for (const url of meta.descriptors("srcUrl")) {
-		if (url.value && !url.error) {
-			properties.push(["URL_IMAGE", url.value]);
+	for (const descr of lr_meta.errorsLast(meta.descriptors("srcUrl"))) {
+		if (descr.error != null) {
+			break;
+		} else if (descr.value) {
+			url = url || descr.value;
+			properties.push(["URL_IMAGE", descr.value]);
 		}
 	}
 

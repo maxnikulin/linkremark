@@ -25,6 +25,48 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
+	function *errorsLast(descriptorsIterable) {
+		const withErrors = [];
+		for (const descriptor of descriptorsIterable) {
+			if (descriptor.error != null) {
+				withErrors.push(descriptor);
+				continue;
+			}
+			yield descriptor;
+		}
+		yield *withErrors;
+	}
+
+	function firstText(...iterableArgs) {
+		let descriptor;
+		for (const d of errorsLast(lr_iter.combine(...iterableArgs))) {
+			if (d.value) {
+				descriptor = d;
+				break;
+			} else {
+				descriptor = descriptor || d;
+			}
+		}
+		if (!descriptor) {
+			return null;
+		}
+		const components = [];
+		// TODO attributes?
+		if (descriptor.value != null) {
+			components.push(String(descriptor.value));
+		}
+		if (descriptor.error) {
+			const text = errorText(descriptor.error);
+			if (text) {
+				components.push("(!)", text);
+			}
+		}
+		if (components.length > 0) {
+			return components.join(" ");
+		}
+		return null;
+	}
+
 	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
 		const { value, ...error } = valueError;
 		if (!value || typeof value === "number") {
@@ -319,6 +361,8 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		sanitizeTextArray,
 		errorText,
 		objectToMeta,
+		errorsLast,
+		firstText,
 	});
 	return this;
 });
@@ -620,11 +664,6 @@ class LrMeta {
 		const variants = this.propertyMap.get(property);
 		return variants && variants.getDescriptorByKey(key);
 	}
-	getAnyValue(property) {
-		const variants = this.propertyMap.get(property);
-		return variants && variants.array && variants.array[0] &&
-			variants.array[0].value;
-	};
 	replace(property, value, replacement) {
 		const variants = this.propertyMap.get(property);
 		variants.replace(value, replacement);
@@ -1006,7 +1045,7 @@ lr_meta.mapToUrls = function(meta) {
 	if (linkUrl) {
 		const urls = linkUrl.map(e => e.value);
 		const link = { _type: "Link", urls };
-		const linkText = meta.getAnyValue("linkText");
+		const linkText = lr_meta.firstText(meta.descriptors("linkText"));
 		if (linkText) {
 			link.text = linkText.substring(0, 72);
 		}
@@ -1016,7 +1055,10 @@ lr_meta.mapToUrls = function(meta) {
 	if (srcUrl) {
 		const urls = srcUrl.map(e => e.value);
 		const image = { _type: "Image", urls };
-		const imageText = meta.getAnyValue("imageAlt") || meta.getAnyValue("imageTitle");
+		const imageText = lr_meta.firstText(
+			meta.descriptors("imageAlt"),
+			meta.descriptors("imageTitle")
+		);
 		if (imageText) {
 			image.text = imageText.substring(0, 72);
 		}
@@ -1029,7 +1071,10 @@ lr_meta.mapToUrls = function(meta) {
 	}
 	if (urls.length > 0) {
 		const frame = { _type: "Frame", urls };
-		const title = meta.get("title", "tab.title") || meta.getAnyValue("title");
+		const title = lr_meta.firstText(
+			meta.descriptors("title", "tab.title"),
+			meta.descriptors("title")
+		);
 		if (title) {
 			frame.title = title.substring(0, 72);
 		}
