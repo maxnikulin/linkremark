@@ -146,15 +146,30 @@ var lr_native_messaging = function() {
 				return { response: "UNSUPPORTED", hello };
 			}
 			const response = new Map();
+			let error;
 			for (const query of queryArray) {
-				const { variants, id } = query;
-				const mentions = await connection.send("linkremark.urlMentions", { variants })
-				if (mentions && mentions.total > 0) {
-					response.set(id, mentions);
+				try {
+					const { variants, id } = query;
+					const mentions = await connection.send("linkremark.urlMentions", { variants })
+					if (mentions && mentions.total > 0) {
+						response.set(id, mentions);
+					}
+				} catch (ex) {
+					if (error) {
+						// TODO report to executor
+						console.error("lr_native_messaging._queryMentions: error: %o %o", ex, variants);
+					} else {
+						error = ex;
+					}
 				}
 			}
 			if (response.size === 0) {
+				if (error) {
+					throw error;
+				}
 				return { response: "NO_MENTIONS", hello };
+			} else if (error) {
+				console.error("lr_native_messaging._queryMentions: error: %o", ex);
 			}
 			return { response, hello };
 		} finally {

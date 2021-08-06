@@ -67,6 +67,24 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return null;
 	}
 
+	function* validUrls(...iterableDescriptors) {
+		for (const descriptor of lr_iter.combine(...iterableDescriptors)) {
+			if (descriptor.error != null) {
+				continue;
+			}
+			const value = descriptor.value;
+			if (value == null) {
+				console.warn("lr_meta.validUrls: descriptor has neither value nor error: %o", descriptor);
+			} else if (typeof value === "string") {
+				yield value;
+			} else if (value instanceof URL) {
+				yield value.href;
+			} else {
+				console.warn("lr_meta.validUrls: unsupported value type: %o", descriptor);
+			}
+		}
+	}
+
 	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
 		const { value, ...error } = valueError;
 		if (!value || typeof value === "number") {
@@ -363,6 +381,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		objectToMeta,
 		errorsLast,
 		firstText,
+		validUrls,
 	});
 	return this;
 });
@@ -1041,20 +1060,18 @@ lr_meta.mergeMicrodata = function(frameInfo, meta) {
 
 lr_meta.mapToUrls = function(meta) {
 	const result = [];
-	const linkUrl = meta.get("linkUrl");
-	if (linkUrl) {
-		const urls = linkUrl.map(e => e.value);
-		const link = { _type: "Link", urls };
+	const linkUrls = [...lr_meta.validUrls(meta.descriptors("linkUrl"))];
+	if (linkUrls.length > 0) {
+		const link = { _type: "Link", urls: linkUrls };
 		const linkText = lr_meta.firstText(meta.descriptors("linkText"));
 		if (linkText) {
 			link.text = linkText.substring(0, 72);
 		}
 		result.push(link);
 	}
-	const srcUrl = meta.get("srcUrl");
-	if (srcUrl) {
-		const urls = srcUrl.map(e => e.value);
-		const image = { _type: "Image", urls };
+	const srcUrls = [...lr_meta.validUrls(meta.descriptors("srcUrl"))];
+	if (srcUrls.length > 0) {
+		const image = { _type: "Image", urls: srcUrls };
 		const imageText = lr_meta.firstText(
 			meta.descriptors("imageAlt"),
 			meta.descriptors("imageTitle")
@@ -1064,16 +1081,13 @@ lr_meta.mapToUrls = function(meta) {
 		}
 		result.push(image);
 	}
-	const urls = [];
-	const urlProp = meta.get("url");
-	if (urlProp) {
-		urls.push(...urlProp.map(e => e.value));
-	}
+	const urls = [...lr_meta.validUrls(meta.descriptors("url"))];
 	if (urls.length > 0) {
 		const frame = { _type: "Frame", urls };
 		const title = lr_meta.firstText(
 			meta.descriptors("title", "tab.title"),
 			meta.descriptors("title")
+			// TODO selection text if no link or image
 		);
 		if (title) {
 			frame.title = title.substring(0, 72);
