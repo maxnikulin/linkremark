@@ -37,6 +37,14 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		yield *withErrors;
 	}
 
+	function firstValue(...iterableArgs) {
+		for (const descriptor of errorsLast(lr_iter.combine(...iterableArgs))) {
+			if (descriptor.value != null) {
+				return descriptor.value;
+			}
+		}
+	}
+
 	function firstText(...iterableArgs) {
 		let descriptor;
 		for (const d of errorsLast(lr_iter.combine(...iterableArgs))) {
@@ -381,6 +389,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		objectToMeta,
 		errorsLast,
 		firstText,
+		firstValue,
 		validUrls,
 	});
 	return this;
@@ -764,7 +773,10 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 		skip
 	);
 	if (clickData.captureObject) {
-		meta.target = clickData.captureObject;
+		meta.addDescriptor("target", {
+			value: clickData.captureObject,
+			key: "clickData.captureObject",
+		});
 	}
 };
 
@@ -926,13 +938,13 @@ lr_meta.removeNonCanonicalSlash = function(meta) {
 };
 
 /**
- * Discard `meta.target` if all `linkUrl` values present
+ * Discard `target` property if all `linkUrl` values present
  * in `url` properties if hash (fragment anchor) part of URLs are removed.
  * Link considered external in the case of invalid or "data:" URL.
  * "javascript:" links are considered as having target withing the same page.
  */
 lr_meta.removeSelfLink = function(meta) {
-	if (meta.target !== 'link') {
+	if (lr_meta.firstValue(meta.descriptors("target", "clickData.captureObject")) !== 'link') {
 		return meta;
 	}
 	let foreignCandidates = [];
@@ -984,7 +996,7 @@ lr_meta.removeSelfLink = function(meta) {
 		meta.move(link, 'linkUrl', 'url');
 	}
 
-	delete meta.target;
+	delete meta.deleteValue("target", "link");
 	return meta;
 };
 

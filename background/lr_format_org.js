@@ -601,7 +601,7 @@ function lr_format_org_frame(frame, options = {}) {
 	if (description) {
 		body.push(LrOrgDefinitionItem({ term: "description" }, description));
 	}
-	if (frame.target !== "link") {
+	if (lr_meta.firstValue(frame.descriptors("target")) !== "link") {
 		// Link to particular part of the same page is not formatted as a link.
 		body.push(...lr_format_org_link_text_properties(frame));
 	}
@@ -749,7 +749,7 @@ function lr_format_org_tab_frame_chain(object) {
 	const frameChain = object.elements;
 	const baseProperties = [["DATE_ADDED", new Date()]];
 	let result = null;
-	const target = frameChain[0] && frameChain[0].target;
+	const target = lr_meta.firstValue(frameChain[0].descriptors("target"));
 	switch (target) {
 		case "image":
 			result = lr_format_org_image(frameChain, target, baseProperties);
