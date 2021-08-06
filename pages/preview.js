@@ -204,11 +204,11 @@ async function lrPreviewGetCapture(dispatch, getState) {
 
 	const mentions = cached && cached.mentions;
 	try {
+		if (!lrMentionsIsSilent(mentions && mentions.mentions)) {
+			lrPreviewMentionsOpen();
+		}
 		if (mentions) {
 			dispatch(gLrMentionsActions.mentionsResult(mentions));
-			if (!(["NO_MENTIONS", "UNSUPPORTED"].indexOf(mentions.mentions) >= 0)) {
-				lrPreviewMentionsOpen();
-			}
 		}
 	} catch (error) {
 		lrPreviewLogException({ dispatch, getState }, { message: "Init mentions failure", error });

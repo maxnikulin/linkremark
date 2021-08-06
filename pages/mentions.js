@@ -179,7 +179,7 @@ class LrMentionsResult {
 	}
 }
 
-function lrMentionsReducer(state = { mentions: "NO_MENTIONS" }, { type, data }) {
+function lrMentionsReducer(state = { mentions: "MENTIONS_STATUS_UNKNOWN" }, { type, data }) {
 	switch(type) {
 		case "mentions/result":
 			return { ...state, mentions: data && data.mentions, hello: data && data.hello };
@@ -203,6 +203,10 @@ function lrMentionsReducer(state = { mentions: "NO_MENTIONS" }, { type, data }) 
 			});
 	}
 	return state
+}
+
+function lrMentionsIsSilent(mentions) {
+	return ["NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"].indexOf(mentions) >= 0;
 }
 
 var gLrMentionsActions = {
