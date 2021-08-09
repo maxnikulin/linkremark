@@ -261,11 +261,15 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		yield { ...doSanitizeUrl(valueError), heuristicsDone: true };
 	}
 
-	function* sanitizeTextArray(valueError) {
+	function* sanitizeTextOrArray(valueError) {
 		const { value, ...arrayError } = valueError;
 		const fragmentArray = value;
 		if (!Array.isArray(fragmentArray)) {
-			yield { value: [], ...error, error: "TypeError" };
+			if (typeof value === 'string') {
+				yield* sanitizeText(valueError);
+			} else {
+				yield { value: [], ...error, error: "TypeError" };
+			}
 			return;
 		}
 		const result = [];
@@ -368,10 +372,6 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		}
 		const meta = new LrMeta();
 		for (const [ property, variants ] of Object.entries(obj)) {
-			if (!Array.isArray(variants)) {
-				meta.addStructure(property, variants);
-				continue;
-			}
 			for (const v of variants) {
 				meta.addDescriptor(property, v);
 			}
@@ -384,7 +384,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		doSanitizeLength, isDoiUrl, doSanitizeUrl, doSanitizeDOI,
 		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
 		sanitizeObject,
-		sanitizeTextArray,
+		sanitizeTextOrArray,
 		errorText,
 		objectToMeta,
 		errorsLast,
@@ -541,9 +541,8 @@ class LrMeta {
 				referrer: lr_meta.sanitizeUrl,
 				favicon: lr_meta.sanitizeUrl,
 				title: lr_meta.sanitizeLength,
-				selection: lr_meta.sanitizeText,
 				linkText: lr_meta.sanitizeText,
-				selectionTextFragments: lr_meta.sanitizeTextArray,
+				selection: lr_meta.sanitizeTextOrArray,
 				json_ld: lr_meta.sanitizeObject,
 			})),
 		});
@@ -661,26 +660,6 @@ class LrMeta {
 		return this.ensureVariants(toProperty).addDescriptor(descriptor);
 	}
 
-	addStructure(property, descriptor) {
-		if (descriptor == null) {
-			return false;
-		}
-		if (!property || typeof property !== "string") {
-			console.error("LrMeta.addStructure: bad property name: %o %o", property, descriptor);
-			return false;
-		}
-		const sanitizer = this.sanitizerMap.get(property);
-		if (!sanitizer) {
-			console.error("LrMeta.addStructure: sanitizer for %s is not defined", property);
-			sanitizer = lr_meta.sanitizeObject;
-		}
-		for (const sanitizedResult of sanitizer(descriptor)) {
-			this[property] = { ...sanitizedResult, type: "structure" };
-			break;
-		}
-		return true;
-	}
-
 	get(property, key=null) {
 		const variants = this.propertyMap.get(property);
 		if (variants == null || key == null) {
@@ -731,21 +710,13 @@ lr_meta.mergeContent = function(frameInfo, meta) {
 	if (content == null) {
 		return;
 	}
-	const selectionFragments = [];
 	for (const entry of content) {
 		const { property, ...descriptor } = entry || {};
-		if (descriptor.key === 'window.getSelection.range') {
-			selectionFragments.push(descriptor);
-		} else if (property) {
+		if (property) {
 			meta.addDescriptor(property, descriptor);
 		} else {
 			console.warn("lr_meta.mergeContent: unspecified property %o", descriptor);
 		}
-	}
-	if (selectionFragments.length === 1) {
-		meta.addDescriptor('selection', selectionFragments[0]);
-	} else if (selectionFragments.length > 1) {
-		meta.addStructure('selectionTextFragments', { value: selectionFragments });
 	}
 }
 

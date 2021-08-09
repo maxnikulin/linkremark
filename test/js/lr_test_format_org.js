@@ -116,11 +116,11 @@ var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_
 			{
 				property: "selection",
 				key: "window.getSelection.range",
-				value: "Selection one",
-			}, {
-				property: "selection",
-				key: "window.getSelection.range",
-				value: "Selection two",
+				value: [ {
+						value: "Selection one",
+					}, {
+						value: "Selection two",
+					}],
 			}
 		];
 		lr_meta.mergeContent({ content: { result: content } }, meta);

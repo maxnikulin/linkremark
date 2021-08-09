@@ -150,16 +150,25 @@
 		}
 
 		let error;
-		let hasResult = false;
 
-		function pushResult(item) {
-			result.push({ ...item,
+		let resultItem;
+		function pushResultItem(item) {
+			resultItem = {
+				...item,
 				key: "window.getSelection.range",
 				property: "selection",
-			});
-			if (item.value) {
-				hasResult = true;
-			}
+			};
+			result.push(resultItem);
+		}
+
+		let fragmentArray;
+		function pushResultNext(item) {
+			fragmentArray.push(item);
+		}
+		let pushResult = function pushResultFirst(item) {
+			fragmentArray = [ item ];
+			pushResultItem({ value: fragmentArray });
+			pushResult = pushResultNext;
 		}
 
 		try {
@@ -223,12 +232,15 @@
 		}
 
 		if (error) {
-			pushResult({ error: lrToObject(error) });
-			if (!hasResult) {
+			error = lrToObject(error);
+			if (resultItem != null) {
+				resultItem.error = error;
+			} else {
+				pushResultItem({ error: lrToObject(error) });
 				throw error;
 			}
 		}
-		return hasResult;
+		return fragmentArray != null;
 	}
 	/**
 	 * Formatter will not be able to add " ... "

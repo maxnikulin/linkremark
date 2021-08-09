@@ -64,22 +64,22 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	function* selectionLineGen(meta) {
-		const selectionFragments = meta.selectionTextFragments && meta.selectionTextFragments.value;
-		const hasText = selectionFragments && Array.isArray(selectionFragments)
-			&& selectionFragments.some(x => x && x.value);
-		if (hasText) {
-			yield selectionFragments.map(x => x && x.value)
-				.filter(x => !!x).join(" … ").replace(/\s+/g, " ");
-			return;
-		}
-		const capturedSelection =
-			// Selection contains several ranges, first one is too long
-			meta.get('selection', 'window.getSelection.range')
-			// selection with single range
-			|| meta.get('selection', 'window.getSelection.text')
-			|| meta.get('selection', 'clickData.selectionText');
-		if (capturedSelection) {
-			yield capturedSelection;
+		for (const key of [
+			'window.getSelection.range',
+			'window.getSelection.text',
+			'clickData.selectionText',
+		]) {
+			const fragments = [];
+			for (const descriptor of meta.descriptors('selection', key)) {
+				const { value } = descriptor;
+				if (Array.isArray(value)) {
+					fragments.push(...value.map(e => e.value).filter(e => !!e));
+				}
+				if (fragments.length > 0) {
+					yield fragments.join(" … ").replace(/\s+/g, " ");
+					break;
+				}
+			}
 		}
 	}
 
@@ -488,12 +488,12 @@ function lrOrgCollectProperties(result, frame) {
 	return result;
 }
 
-function lr_format_selection_body(selection) {
-	if (selection == null || selection === "") {
-		return [];
-	} else if (Array.isArray(selection)) {
+function lr_format_selection_body(descriptor) {
+	const selection = descriptor.value;
+	if (Array.isArray(selection)) {
+		let lastError;
 		const { LrOrgMarkup, LrOrgSeparatorLine, LrOrgWordSeparator } = lr_org_tree;
-		return selection.reduce(function(result, descriptor) {
+		const formatted = selection.reduce(function(result, descriptor) {
 			const element = descriptor.value;
 			const { error } = descriptor;
 			if (result.length > 0) {
@@ -521,34 +521,64 @@ function lr_format_selection_body(selection) {
 				result.push(element);
 			}
 			if (error) {
-				result.push(`\n(${lr_meta.errorText(error)})`);
+				lastError = lr_meta.errorText(error);
+				result.push(`\n(${lastError})`);
 			}
 			return result;
 		}, []);
+		if (descriptor.error) {
+			const arrayError = lr_meta.errorText(descriptor.error);
+			if (lastError !== arrayError) {
+				formatted.push(`\n(${arrayError})`);
+			}
+		}
+		return formatted;
 	}
-	return [ "" + selection ];
+	const retval = [];
+	if (selection != null && selection !== "") {
+		retval.push(String(selection));
+	}
+	if (descriptor.error) {
+		retval.push(`\n(${lr_meta.errorText(descriptor.error)})`);
+	}
+	return retval;
 }
 
 function lr_format_org_selection(frame) {
-	let selection = frame.selectionTextFragments && frame.selectionTextFragments.value;
-	let hasText = selection && Array.isArray(selection) && selection.some(x => x.value);
-	if (!hasText) {
-		const selectionWhole = frame.getDescriptor("selection", "window.getSelection.text");
-		hasText = selectionWhole && selectionWhole.value;
-		if (hasText) {
-			selection = [ selectionWhole ];
+	try {
+		return lr_do_format_org_selection(frame);
+	} catch(ex) {
+		console.error("lr_format_org_selection: error: %o", ex);
+	}
+	return [ "(!) Internal error in selection formatter" ];
+}
+
+function lr_do_format_org_selection(frame) {
+	function* selectionVariants(meta) {
+		for (const key of [
+			"window.getSelection.range",
+			"window.getSelection.text",
+			"clickData.selectionText",
+		]) {
+			yield *meta.descriptors("selection", key);
 		}
 	}
-	if (!hasText) {
-		const selectionWhole =
-			// several ranges selected, first one causes overflow
-			frame.getDescriptor("selection", "window.getSelection.range")
-			|| frame.getDescriptor("selection", "clickData.selectionText");
-		hasText = selectionWhole && selectionWhole.value;
-		if (hasText) {
-			selection = [ selectionWhole ];
+	let selection;
+	for (const descriptor of selectionVariants(frame)) {
+		if (descriptor.value && descriptor.error == null) {
+			selection = descriptor;
+			break;
 		}
 	}
+	if (!selection) {
+		for (const descriptor of selectionVariants(frame)) {
+			if (descriptor.value || descriptor.error != null) {
+				selection = descriptor;
+				break;
+			}
+		}
+	}
+
 	if (!selection) {
 		return [];
 	}
