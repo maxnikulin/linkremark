@@ -472,12 +472,6 @@ class LrMetaVariants {
 			return descriptor && descriptor.value;
 		}
 	};
-	// FIXME remove
-	getDescriptorByKey(key) {
-		for (const descriptor of this.keyMap.values(key)) {
-			return descriptor;
-		}
-	}
 	replace(value, replacement) {
 		if (value === replacement) {
 			return;
@@ -667,10 +661,6 @@ class LrMeta {
 		}
 		return variants.getValueByKey(key);
 	};
-	getDescriptor(property, key) {
-		const variants = this.propertyMap.get(property);
-		return variants && variants.getDescriptorByKey(key);
-	}
 	replace(property, value, replacement) {
 		const variants = this.propertyMap.get(property);
 		variants.replace(value, replacement);
