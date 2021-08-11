@@ -790,7 +790,7 @@ lr_meta.merge = function(frameInfo) {
 		return meta;
 	}
 
-	if (frameInfo.scripts_forbidden) {
+	if (frameInfo.summary && frameInfo.summary.scripts_forbidden) {
 		meta.addDescriptor("error", {
 			value: { message: "Content scripts are forbidden in a privileged frame" },
 			key: "content_script"

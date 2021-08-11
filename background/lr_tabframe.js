@@ -230,15 +230,16 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
 		}
 		return null;
 	}
+	const summary = wrappedFrame.summary = wrappedFrame.summary || {};
 	try {
-		if (wrappedFrame.scripts_forbidden == null) {
-			wrappedFrame.scripts_forbidden = await lrExecutePermissionForbiddenCheckScript(tabId, frameId);
+		if (summary.scripts_forbidden == null) {
+			summary.scripts_forbidden = await lrExecutePermissionForbiddenCheckScript(tabId, frameId);
 		}
 	} catch (ex) {
 		console.error("lrCheckFrameScriptsForbidden: tab %o frame %o error %o",
 			tab, frameId, ex);
 	}
-	return wrappedFrame.scripts_forbidden;
+	return summary.scripts_forbidden;
 }
 
 /**
@@ -246,7 +247,7 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
  */
 async function lrExecuteFrameScript(tab, wrappedFrame, file, property) {
 	try {
-		if (wrappedFrame.scripts_forbidden) {
+		if (wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden) {
 			return;
 		}
 		if (!(tab && tab.id >= 0)) {
@@ -545,7 +546,7 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 	try {
 		const wrappedFrame = chain.find(f => f.frame && f.frame.frameId === (clickData && clickData.frameId));
 		if (tab && tab.id >= 0) {
-			if (!(wrappedFrame && wrappedFrame.scripts_forbidden)) {
+			if (!(wrappedFrame && wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden)) {
 				let script, target;
 				if (clickData && clickData.captureObject === 'image') {
 					script = "content_scripts/image.js";
