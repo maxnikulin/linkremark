@@ -349,7 +349,7 @@
 	}
 
 	try {
-		return { result: lrCollectMicrodata() };
+		return { result: [ { property: "schema_org", value: lrCollectMicrodata(), key: "microdata" } ] };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}

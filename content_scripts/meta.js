@@ -97,6 +97,7 @@
 
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
+	const JSON_LD_COUNT_LIMIT = 4;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
 	function lrNormalize(value, sizeLimit) {
@@ -236,23 +237,24 @@
 
 	}
 
-	function lrExtractLD_JSON(item) {
+	function lrExtractLD_JSON(result, template) {
 		const scriptList = document.querySelectorAll('script[type="application/ld+json"]');
 		if (scriptList == null || !(scriptList.length > 0)) {
 			return null;
 		}
-		if (scriptList.length != 1) {
-			item.error = {
-				name: 'LrValueError',
-				message: 'Non-unique script ld+json object',
-				count: scriptList.length,
+		let i = 0;
+		for ( ; i < scriptList.length ; ++i) {
+			if (i >= JSON_LD_COUNT_LIMIT) {
+				// TODO different errors for long script and count limit
+				result.push({ ...template, error: new LrOverflowError(scriptList.length) });
+				break;
 			}
-		}
-		const value = scriptList[0].innerText;
-		if (value.length < 8*TEXT_SIZE_LIMIT) {
-			item.value = value;
-		} else {
-			item.error = new LrOverflowError(value.length);
+			const value = scriptList[0].innerText;
+			if (value.length < 8*TEXT_SIZE_LIMIT) {
+				result.push({ ...template, value });
+			} else {
+				result.push({ ...template, error: new LrOverflowError(value.length) });
+			}
 		}
 	}
 
@@ -382,17 +384,14 @@
 		} catch (ex) {
 			result.push({ property: "error", key: "lr.meta.head_links", error: lrToObject(ex) });
 		}
-		let item = {
-			property: "json_ld",
-			key: "document.script",
+		let template = {
+			property: "schema_org",
+			key: "document.script.ld_json",
 		};
 		try {
-			lrExtractLD_JSON(item);
+			lrExtractLD_JSON(result, template);
 		} catch (ex) {
-			item.error = lrToObject(ex);
-		}
-		if (item.value || item.error) {
-			result.push(item);
+			result.push({ ...template, error: lrToObject(ex) });
 		}
 		return { result };
 	} catch (ex) {

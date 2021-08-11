@@ -123,7 +123,7 @@ var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_
 					}],
 			}
 		];
-		lr_meta.mergeContent({ content: { result: content } }, meta);
+		lr_meta.mergeContentScript({ content: { result: content } }, "content", meta);
 		lr_test.assertEq("Selection one … Selection two", lr_format_org.preferredPageTitle(meta));
 	}
 

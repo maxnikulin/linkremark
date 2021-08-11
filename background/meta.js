@@ -21,6 +21,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	var lr_meta = this;
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
+	const JSON_SIZE_LIMIT = 8*TEXT_SIZE_LIMIT;
 	// selection, 10x10 table
 	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
@@ -94,7 +95,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	}
 
 	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
-		const { value, ...error } = valueError;
+		let { value, ...error } = valueError;
 		if (!value || typeof value === "number") {
 			return valueError;
 		}
@@ -338,6 +339,32 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		}
 	}
 
+	function *sanitizeSchemaOrg(valueError) {
+		const { value, ...other } = valueError;
+		if (typeof value === "string") {
+			const { value, ...other } = doSanitizeLength(valueError, JSON_SIZE_LIMIT);
+			if (other.error != null) {
+				yield other;
+				return;
+			}
+			try {
+				const obj = JSON.parse(lr_meta.unescapeEntities(value, { json: true }));
+				yield { ...other, value: obj };
+			} catch (ex) {
+				if (ex instanceof SyntaxError) {
+					yield { ...other, error: lr_util.errorToObject(ex) }
+				} else {
+					throw ex;
+				}
+			}
+			return;
+		} else if (value !== null && typeof value === 'object' ) {
+			yield *sanitizeObject(valueError);
+		} else {
+			yield { error: "TypeError", ...other };
+		}
+	}
+
 	function errorText(error) {
 		if (!error) {
 			return "";
@@ -385,6 +412,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
 		sanitizeObject,
 		sanitizeTextOrArray,
+		sanitizeSchemaOrg,
 		errorText,
 		objectToMeta,
 		errorsLast,
@@ -537,7 +565,7 @@ class LrMeta {
 				title: lr_meta.sanitizeLength,
 				linkText: lr_meta.sanitizeText,
 				selection: lr_meta.sanitizeTextOrArray,
-				json_ld: lr_meta.sanitizeObject,
+				schema_org: lr_meta.sanitizeSchemaOrg,
 			})),
 		});
 		Object.defineProperty(this, "propertyRemap", {
@@ -695,21 +723,6 @@ lr_meta.mergeFrame = function(frameInfo, meta) {
 	}
 };
 
-lr_meta.mergeContent = function(frameInfo, meta) {
-	const content = frameInfo.content && frameInfo.content.result;
-	if (content == null) {
-		return;
-	}
-	for (const entry of content) {
-		const { property, ...descriptor } = entry || {};
-		if (property) {
-			meta.addDescriptor(property, descriptor);
-		} else {
-			console.warn("lr_meta.mergeContent: unspecified property %o", descriptor);
-		}
-	}
-}
-
 lr_meta.mergeClickData = function(frameInfo, meta) {
 	const clickData = frameInfo.clickData;
 	if (clickData == null) {
@@ -741,53 +754,32 @@ lr_meta.mergeClickData = function(frameInfo, meta) {
 	}
 };
 
-lr_meta.mergeRelations = function(frameInfo, meta) {
-	const relations = frameInfo && frameInfo.referrer && frameInfo.referrer.result;
-	if (relations == null) {
-		return;
-	}
-	for (const entry of relations) {
-		const { property, ...descriptor } = entry || {};
-		if (property) {
-			meta.addDescriptor(property, descriptor);
+lr_meta.mergeContentScript = function (frameInfo, field, meta) {
+	try {
+		// TODO limit length of all attributes
+		const scriptValue = frameInfo[field];
+		if (scriptValue == null) {
+			return;
 		}
+		const error = scriptValue.error;
+		if (error) {
+			meta.addDescriptor("error", { value: error,  key: `content_script.${field}` });
+		}
+		const result = scriptValue.result;
+		if (result != null) {
+			for (const entry of result) {
+				const { property, ...descriptor } = entry;
+				if (!property || typeof property !== 'string') {
+					console.warn("lr_meta: unspecified property from %o: %o", field, entry);
+					meta.addDescriptor("error", { value: "Unspecified property", key: `content_script.${field}` });
+					return;
+				}
+				meta.addDescriptor(property, descriptor);
+			}
+		}
+	} catch (ex) {
+		meta.addDescriptor("error", { value: lr_util.errorToObject(ex), key: `content_script.${field}` });
 	}
-};
-
-lr_meta.mergeLink = function(frameInfo, meta) {
-	const array = frameInfo.link && frameInfo.link.result;
-	if (!array) {
-		return;
-	}
-	for (const entry of array) {
-		const { property, ...descriptor } = entry || {};
-		meta.addDescriptor(property, descriptor);
-	}
-	return meta;
-};
-
-lr_meta.mergeImage = function(frameInfo, meta) {
-	const array = frameInfo.image && frameInfo.image.result;
-	if (array == null) {
-		return;
-	}
-	for (const entry of array) {
-		const { property, ...descriptor } = entry || {};
-		meta.addDescriptor(property, descriptor);
-	}
-	return meta;
-};
-
-lr_meta.mergeHead = function(frameInfo, meta) {
-	const array = frameInfo && frameInfo.meta && frameInfo.meta.result || null;
-	if (!array) {
-		return meta;
-	}
-	for (const entry of array) {
-		const { property, ...descriptor } = entry || {};
-		meta.addDescriptor(property, descriptor);
-	}
-	return meta;
 }
 
 lr_meta.merge = function(frameInfo) {
@@ -796,18 +788,24 @@ lr_meta.merge = function(frameInfo) {
 		return meta;
 	}
 
+	if (frameInfo.scripts_forbidden) {
+		meta.addDescriptor("error", {
+			value: { message: "Content scripts are forbidden in a privileged frame" },
+			key: "content_script"
+		});
+	} else {
+		for (const field of [ "referrer", "meta", "content", "image", "link", "microdata" ]) {
+			lr_meta.mergeContentScript(frameInfo, field, meta);
+		}
+	}
+
 	const mergeMethods = [
-		this.mergeHead,
 		this.mergeTab,
 		this.mergeFrame,
-		this.mergeContent,
 		this.mergeClickData,
-		this.mergeRelations,
-		this.mergeLdJson,
-		this.mergeMicrodata,
-		this.mergeImage,
-		this.mergeLink,
+		this.mergeSchemaOrg,
 	];
+
 	for (const method of mergeMethods) {
 		try {
 			method.call(this, frameInfo, meta)
@@ -961,39 +959,29 @@ lr_meta.removeSelfLink = function(meta) {
 	return meta;
 };
 
-lr_meta.mergeLdJson = function(frameInfo, meta) {
-	const variants = meta.get("json_ld");
-	if (!variants) {
-		return;
-	}
-	for (const entry of variants) {
+lr_meta.mergeSchemaOrg = function(_frameInfo, meta) {
+	for (const descriptor of meta.descriptors("schema_org")) {
 		try {
-			if (entry.error || !entry.value) {
+			const { value } = descriptor;
+			if (!value) {
 				continue;
 			}
-			try {
-				// FIXME It breaks meta value index.
-				entry.value = JSON.parse(lr_meta.unescapeEntities(entry.value, {json: true}));
-			} catch (ex) {
-				if (!(ex instanceof SyntaxError)) {
-					throw ex;
-				}
-				entry.value = JSON.parse(entry.value);
-			}
-			if (entry.value) {
-				lr_json_ld.mergeJsonLd(entry.value, meta);
+			if (descriptor.keys.indexOf('microdata') >= 0) {
+				lr_meta.mergeMicrodata(meta, value);
+			} else {
+				lr_json_ld.mergeJsonLd(value, meta);
 			}
 		} catch (ex) {
-			entry.error = lr_util.errorToObject(ex);
+			console.error("lr_meta.mergeSchemaOrg: %o", ex);
+			meta.addDescriptor("error", {
+				value: lr_util.errorToObject(ex),
+				key: `schema_org.${descriptor.key}`,
+			});
 		}
 	}
 };
 
-lr_meta.mergeMicrodata = function(frameInfo, meta) {
-	const microdata = frameInfo.microdata && frameInfo.microdata.result;
-	if (!microdata) {
-		return;
-	}
+lr_meta.mergeMicrodata = function(meta, microdata) {
 	if (Array.isArray(microdata)) {
 		lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
 		return;
