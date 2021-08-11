@@ -92,8 +92,8 @@ function focusedFrameChain(frameMap) {
 	for (const frameInfo of frameMap.values()) {
 		const {frameId} = frameInfo.frame;
 		// assert !frameMap.has(frameId)
-		const referrer = frameInfo.referrer;
-		if (referrer && (referrer.hasFocus || activeOptions.has(referrer.activeElementNode))) {
+		const { summary } = frameInfo;
+		if (summary && (summary.hasFocus || activeOptions.has(summary.activeElementNode))) {
 			chainMap.set(frameId, [frameInfo]);
 		}
 	}
@@ -480,18 +480,21 @@ async function lrExecuteReferrerScript(tab, frames) {
 	}
 	for (const wrappedFrame of frames) {
 		try {
-			const referrer = wrappedFrame.referrer;
-			const result = referrer && referrer.result;
-			if (!result) {
+			const referrer = wrappedFrame.referrer && wrappedFrame.referrer.result;
+			if (!referrer) {
 				continue;
 			}
-			for (const property of result) {
-				switch (property.key) {
+			const summary = wrappedFrame.summary = wrappedFrame.summary || {};
+			for (const { property, key, value } of referrer) {
+				if (property !== "frame_relations") {
+					continue;
+				}
+				switch (key) {
 					case "document.hasFocus":
-						referrer.hasFocus = property.value;
+						summary.hasFocus = value;
 						break;
 					case "document.activeElement.nodeName":
-						referrer.activeElementNode = property.value;
+						summary.activeElementNode = value;
 						break;
 					default:
 						break;
