@@ -96,7 +96,8 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 
 	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
 		let { value, ...error } = valueError;
-		if (!value || typeof value === "number") {
+		const t = typeof value;
+		if (value == null || t === "number" || t === "boolean") {
 			return valueError;
 		}
 		if (typeof value !== "string") {
@@ -566,6 +567,7 @@ class LrMeta {
 				linkText: lr_meta.sanitizeText,
 				selection: lr_meta.sanitizeTextOrArray,
 				schema_org: lr_meta.sanitizeSchemaOrg,
+				error: lr_meta.sanitizeObject,
 			})),
 		});
 		Object.defineProperty(this, "propertyRemap", {
