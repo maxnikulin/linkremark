@@ -333,9 +333,8 @@ function lrPmStateToTitleProps(state) {
 		if (summary.wait) {
 			props.state = "wait";
 		} else if (summary.entry) {
-			if (summary.entry.error) {
-				props.error = summary.entry.error;
-				props.state = "error";
+			if (summary.entry.name) {
+				props.state = lr_common.isWarning(summary.entry) ? "warning" : "error";
 			} else {
 				props.state = "success";
 			}

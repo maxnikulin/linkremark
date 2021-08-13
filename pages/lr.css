@@ -272,6 +272,9 @@ h1 {
 .error {
 	background-color: #ffa0a0;
 }
+.warning {
+	background-color: yellow;
+}
 pre {
 	white-space: pre-wrap;
 	/* Respect user font size preference despite explicit body font 1rem */

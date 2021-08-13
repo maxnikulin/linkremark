@@ -193,9 +193,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 		async error(ex) {
 			try {
+				const isWarning = lr_common.isWarning(ex);
+				const newState = lr_notify.state[isWarning ? "WARNING" : "ERROR"];
 				const promises = []
-				for (const [id, state] of this.tabs) {
-					promises.push(lr_notify.notify({ state: lr_notify.state.ERROR, tabId: id }));
+				for (const [id, currentState] of this.tabs) {
+					const state = currentState === lr_notify.state.PROGRESS ? newState : currentState;
+					promises.push(lr_notify.notify({ state, tabId: id }));
 				}
 				await Promise.all(promises);
 			} catch (ex) {
@@ -206,7 +209,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				lr_action.openPreview({ id: this.actionTabId });
 			}
 		}
-		async completed(ex) {
+		async completed(_result) {
 			try {
 				const success = Array.from(this.tabs.values()).every(x => x === lr_notify.state.PROGRESS);
 				const state = success ? lr_notify.state.SUCCESS : lr_notify.state.WARNING;
@@ -510,7 +513,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			capture, { tab: activeTab, dryRun });
 
 		if (dryRun) {
-			throw new Error("URL is present in your notes");
+			throw new LrWarning("URL is present in your notes");
 		} else if (exportResult === PREVIEW) {
 			executor.notifier.debugInfo = false;
 		} else if (!exportResult) {

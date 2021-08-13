@@ -17,9 +17,8 @@
 
 "use strict";
 
-var lr_common = new function lr_common() {
-	const lr_common = this;
-	this.errorToObject = function(obj) {
+var lr_common = Object.assign(lr_common || new function lr_common() {}, {
+	errorToObject(obj) {
 		if (obj == null) {
 			return null;
 		}
@@ -50,6 +49,18 @@ var lr_common = new function lr_common() {
 			error[prop] = lines.length > 1 ? lines : value;
 		}
 		return error;
-	};
-	return this;
-};
+	},
+	isWarning(obj) {
+		return obj != null && String(obj.name).endsWith("Warning");
+	},
+});
+
+class LrWarning extends Error {
+	constructor(message, options) {
+		super(message, options);
+		if (options != null && options.cause && !this.cause) {
+			this.cause = options.cause;
+		}
+	}
+	get name() { return Object.getPrototypeOf(this).constructor.name; };
+}

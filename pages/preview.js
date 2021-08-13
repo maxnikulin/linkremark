@@ -185,7 +185,8 @@ async function lrPreviewGetCapture(dispatch, getState) {
 	} else {
 		dispatch(gLrPreviewLog.finished({
 			id: bapiGetId(),
-			error: new Error("No capture result received"),
+			message: "No capture result received",
+			name: "Error",
 		}));
 		return;
 	}
@@ -222,7 +223,15 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		dispatch(gLrPreviewActions.focusTransportMethod(method));
 	}
 	if (error) {
-		throw new Error(error.message || error);
+		const ex = new Error(error.message || error);
+		if (error.name) {
+			Object.defineProperty(ex, "name", {
+				value: error.name,
+				writable: true,
+				configurable: true,
+			});
+		}
+		throw ex;
 	} else if (method) {
 		const params = new URLSearchParams(window.location.search);
 		const action = params.get("action");
@@ -259,7 +268,7 @@ function lrMakeTransportAction({ method, close }) {
 		} catch (ex) {
 			console.error("lrTransportAction: %o", ex);
 			dispatch(gLrPreviewLog.finished({
-				id, error: `Export failed: ${method}: ${ex}` }));
+				id, message: `Export failed: ${method}: ${ex}`, name: "Error" }));
 		}
 	}
 }
@@ -314,7 +323,8 @@ function lrMakeUpdateProjectionAction(format) {
 			// TODO report progress
 			dispatch(gLrPreviewLog.finished({
 				id: bapiGetId(),
-				error: `Formatting to ${format} failed: ${ex}`,
+				message: `Formatting to ${format} failed: ${ex}`,
+				name: "Error",
 			}));
 		}
 	};
@@ -365,11 +375,12 @@ class LrTitle {
 		let title = titleValue != null ? String(titleValue) : "Sandbox & Debug Info";
 		let shortStatus = "";
 		let headerStatus = "";
-		if (props.error) {
+		if (props.state === "warning" ) {
+			shortStatus = "W";
+			headerStatus = "Warning";
+		} else if (props.state === "error") {
 			shortStatus = "E";
-			if (props.title) {
-				headerStatus = "Error";
-			}
+			headerStatus = "Error";
 		} else if (props.state === "success") {
 			shortStatus = "v";
 		} else if (props.state === "wait") {
@@ -487,10 +498,13 @@ class LrPreviewLog {
 		const updatedMap = new Map(items.map(n => [ n.id, n ]));
 
 		function cls(entry) {
-			return entry.error ? "error" : ( 'time' in entry ? 'success' : '');
+			if (entry.name) {
+				return lr_common.isWarning(entry) ? "warning" : "error"; // FIXME
+			}
+			return 'time' in entry ? 'success' : '';
 		}
 		function msg(entry) {
-			return entry.error ? String(entry.error) : entry.message;
+			return entry.message;
 		}
 		function create(entry) {
 			const li =  E('li', { className: cls(entry) }, msg(entry));
@@ -981,7 +995,12 @@ function lrPreviewLogException(store, data) {
 		try {
 			if (store) {
 				const errorMessage = message ? `${message}: ${error.message || String(error)}` : String(error);
-				store.dispatch(gLrPreviewLog.finished({ id: id != null ? id : bapiGetId(), error: errorMessage }));
+				const name = (error && error.name) || "Error";
+				store.dispatch(gLrPreviewLog.finished({
+					id: id != null ? id : bapiGetId(),
+					message: errorMessage,
+					name: String(name),
+				}));
 			}
 		} catch (ex) {
 			console.error("lrPreviewLogException: internal error: dispatch to store: %o", ex);
