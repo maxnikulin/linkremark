@@ -360,6 +360,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	/// Asks export permission and calls singleTabActionDo
 	async function singleTabAction(clickData, tab, type, executor) {
 		const exportPermissionPromise = lr_export.requestPermissions();
+		executor.notifier.tabProgress(tab.id);
 		await executor.step(
 			{ result: true, ignoreError: true },
 			async function lrWaitExportPermissionsPromise(promise) {
