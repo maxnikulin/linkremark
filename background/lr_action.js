@@ -20,6 +20,11 @@
 var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	var lr_action = this;
 	const PREVIEW = "PREVIEW";
+	for (const name of ["IGNORE_ERROR", "ERROR_IS_WARNING"]) {
+		Object.defineProperty(lr_action, name, {
+			get() { return name; },
+		});
+	}
 
 	class LrExecutor {
 		constructor(params) {
@@ -61,10 +66,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				}
 				return result;
 			} catch (ex) {
-				descr.error = lr_util.errorToObject(ex);
-				if (!descr.ignoreError) {
-					throw ex;
-				}
+				this._onException(descr, ex);
 			}
 		}
 
@@ -82,10 +84,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				}
 				return result;
 			} catch (ex) {
-				descr.error = lr_util.errorToObject(ex);
-				if (!descr.ignoreError) {
-					throw ex;
-				}
+				this._onException(descr, ex);
 			}
 		}
 
@@ -96,6 +95,23 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return this.step({ children: child.debugInfo, ...descr }, func, ...args);
 		}
 
+		_onException(descr, ex) {
+			try {
+				descr.error = lr_util.errorToObject(ex);
+				switch(descr.errorAction) {
+					case lr_action.ERROR_IS_WARNING:
+						console.warn("LrExecutor: %o %o", descr.step, ex);
+						return;
+					case lr_action.IGNORE_ERROR:
+						return;
+					default:
+						break;
+				}
+			} catch (e) {
+				console.error("LrExecutor internal error: %o %o", e, ex);
+			}
+			throw ex;
+		}
 	}
 
 	LrExecutor._normArgs = function(func, ...args) {
@@ -366,7 +382,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		const exportPermissionPromise = lr_export.requestPermissions();
 		executor.notifier.tabProgress(tab.id);
 		await executor.step(
-			{ result: true, ignoreError: true },
+			{ result: true, errorAction: lr_action.IGNORE_ERROR },
 			async function lrWaitExportPermissionsPromise(promise) {
 				return await promise;
 			},
@@ -414,7 +430,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			await bapi.tabs.update(tab.id, { active: true });
 			// TODO consider executor.waitPromise method
 			await executor.step(
-				{ result: true, ignoreError: true },
+				{ result: true, errorAction: lr_action.IGNORE_ERROR },
 				async function lrWaitExportPermissionsPromise(promise) {
 					return await promise;
 				},
@@ -449,14 +465,14 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 
 		await executor.step(
-			{ result: true, ignoreError: true },
+			{ result: true, errorAction: lr_action.IGNORE_ERROR },
 			async function lrWaitExportPermissionsPromise(promise) {
 				return await promise;
 			},
 			exportPermissionPromise
 		);
 		const hasPermission = await executor.step(
-			{ result: true, ignoreError: true },
+			{ result: true, errorAction: lr_action.IGNORE_ERROR },
 			async function lrWaitTabPermissionsPromise(promise) {
 				return await promise;
 			},
@@ -497,7 +513,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		);
 
 		const mentions = executor.result.mentions = await executor.step(
-			{ ignoreError: true, result: true }, // FIXME should be a warning
+			{ errorAction: lr_action.ERROR_IS_WARNING, result: true },
 			async function checkUrls(capture) {
 				const { body } = capture.formats[capture.transport.captureId];
 				const urlObj = lrCaptureObjectMapUrls(body);

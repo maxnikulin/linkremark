@@ -340,7 +340,7 @@ function lrReportStep(func, collector, props=null) {
 async function lrCaptureTabGroup(tabTargetArray, executor) {
 	const promises = executor.child(function launchTabGroupCaptures(executor) {
 		return tabTargetArray.map(tabTarget => executor.step(
-			{ ignoreError: true },
+			{ errorAction: lr_action.IGNORE_ERROR },
 			function launchTabCapture() {
 				const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
 				return executor.child(
