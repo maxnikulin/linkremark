@@ -36,9 +36,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			}
 			if (!top._result) {
 				top._result = { debugInfo: top.debugInfo };
-				top.step(function putResultToCache(obj) {
-					gLrRpcStore.putResult(obj);
-				}, top._result);
 			}
 			return top._result;
 		}
@@ -117,12 +114,18 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		let { notifier, ...descr } = descr1;
 		notifier = notifier || new LrExecutorNotifier();
 		const executor = new LrExecutor({ notifier });
+		try {
+			executor.step(function putResultToStore(executor) {
+				gLrRpcStore.putResult(executor.result);
+			}, executor);
+		} catch(ex) {
+			// Some export methods may succeed even when result store is broken.
+			console.error("lr_action.run: trying to ignore error: %o", ex);
+		}
 
 		function onError(ex) {
 			// TODO ensure that ex is added to executor.debugInfo
 			if (notifier) {
-				// Async function, so `gLrRpcStore.putResult()` in the `finally` block
-				// is executed earlier.
 				notifier.error(ex);
 			}
 			executor.result.error = lr_util.errorToObject(ex);
@@ -155,8 +158,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return onCompleted(result);
 		} catch (ex) {
 			onError(ex);
-		} finally {
-			gLrRpcStore.putResult(executor.result);
 		}
 	};
 
