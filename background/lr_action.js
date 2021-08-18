@@ -92,20 +92,88 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			let [descr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
 			const child = new LrExecutor(this);
 			args.push(child);
-			return this.step({ children: child.debugInfo, ...descr }, func, ...args);
+			try {
+				return this.step({ children: child.debugInfo, ...descr }, func, ...args);
+			} finally {
+				const error = child.ownError();
+				if (error) {
+					this._errors = this._errors || [];
+					this._errors.push(error);
+				}
+			}
+		}
+
+		totalError() {
+			try {
+				let error = null;
+				for (let executor = this; executor != null; executor = executor.parent) {
+					if (executor._errors == null) {
+						continue;
+					}
+					const curError = ((error !== null ? 1 : 0) + executor._errors.length) === 1 ?
+						executor._errors[0] : executor._aggregateError;
+					if (error == null) {
+						error = curError;
+						continue;
+					}
+					if (curError.errors == null) {
+						error = new LrTmpAggregateError([curError, error]);
+					} else {
+						const newError = Object.create(curError);
+						newError.errors = curError.slice();
+						newError.errors.push(error);
+						error = newError;
+					}
+				}
+				return error;
+			} catch (ex) {
+				// TODO notify: global warning
+				console.error("LrExecutor.totalError: internal error: %o", ex);
+			}
+		}
+
+		ownError() {
+			try {
+				if (this._errors == null) {
+					return this._errors;
+				} else if (this._errors.length === 1) {
+					return this._errors[0];
+				}
+				return this._aggregateError.fix();
+			} catch (ex) {
+				// TODO notify: global warning
+				console.error("LrExecutor.ownError: internal error: %o", ex);
+			}
 		}
 
 		_onException(descr, ex) {
 			try {
-				descr.error = lr_util.errorToObject(ex);
+				descr.error = this._lastError !== ex ? lr_util.errorToObject(ex) : true;
 				switch(descr.errorAction) {
 					case lr_action.ERROR_IS_WARNING:
 						console.warn("LrExecutor: %o %o", descr.step, ex);
+						if (this._errors === undefined) {
+							this._errors = [];
+							this._aggregateError = new LrTmpAggregateError(this._errors);
+						}
+						let warn = ex;
+						if (!lr_common.isWarning(ex)) {
+							if (ex.errors) {
+								ex.toWarning();
+							} else {
+								warn = new LrWarning(undefined, { cause: ex });
+							}
+						}
+						this._errors.push(warn);
 						return;
 					case lr_action.IGNORE_ERROR:
 						return;
 					default:
 						break;
+				}
+				this._lastError = ex;
+				if (this.parent != null) {
+					this.parent._lastError = ex;
 				}
 			} catch (e) {
 				console.error("LrExecutor internal error: %o %o", e, ex);

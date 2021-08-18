@@ -48,6 +48,34 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 			const lines = value.trim().split("\n");
 			error[prop] = lines.length > 1 ? lines : value;
 		}
+		const cause = obj.cause;
+		if (cause != null) {
+			try {
+				error.cause = lr_common.errorToObject(cause);
+			} catch {
+				console.error("lr_common.errorToObject: cause error: %o", ex);
+				children.push(String(cause));
+			}
+		}
+		const aggregate = obj.errors;
+		if (aggregate && Symbol.iterator in aggregate) {
+			const children = [];
+			try {
+				for (const a of aggregate) {
+					try {
+						children.push(lr_common.errorToObject(a));
+					} catch (ex) {
+						console.error("lr_common.errorToObject: aggregate error: %o", ex);
+						children.push(String(a));
+					}
+				}
+			} catch (ex) {
+				console.error("lr_common.errorToObject: aggregate error: %o", ex);
+			}
+			if (children.length > 0) {
+				error.errors = children
+			}
+		}
 		return error;
 	},
 	isWarning(obj) {
@@ -63,4 +91,35 @@ class LrWarning extends Error {
 		}
 	}
 	get name() { return Object.getPrototypeOf(this).constructor.name; };
+}
+
+class LrAggregateError extends Error {
+	constructor(errors, message) {
+		super(message);
+		this.errors = errors;
+	}
+	toWarning() {
+		Object.setPrototypeOf(this, LrAggregateWarning.prototype);
+	}
+	get name() { return Object.getPrototypeOf(this).constructor.name; };
+}
+
+class LrAggregateWarning extends LrWarning {
+	constructor(errors, message) {
+		super(message);
+		this.errors = errors;
+	}
+}
+
+class LrTmpAggregateError extends LrAggregateError {
+	isWarning() {
+		return this.errors && this.errors.some && this.errors.every(lr_common.isWarning);
+	}
+	get name() {
+		const warn = this.isWarning();
+		return (warn ? LrAggregateWarning : LrAggregateError).name;
+	}
+	fix() {
+		return Object.setPrototypeOf(this, this.isWarning() ? LrAggregateWarning : LrAggregateError);
+	}
 }
