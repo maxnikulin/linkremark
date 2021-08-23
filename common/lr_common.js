@@ -24,9 +24,9 @@ var lr_common = new function lr_common() {
 			return null;
 		}
 		var error = {};
-		if (obj.message != null) {
+		if (typeof obj.message === 'string') {
 			error.message = obj.message;
-		} else {
+		} else if (obj.message != null) {
 			error.message = String(obj);
 		}
 		if (obj.name != null) {
