@@ -207,16 +207,72 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			console.error("lr_action.run: trying to ignore error: %o", ex);
 		}
 
-		function onError(ex) {
-			// TODO ensure that ex is added to executor.debugInfo
+		function run_openPreview(tab, params) {
+			// TODO obtain default tab from notifier
+			lr_action.openPreview(tab, params);
+		}
+
+		function run_setTotalError(ex) {
+			try {
+				const warnings = executor.totalError();
+				if (warnings != null) {
+					if (warnings instanceof LrTmpAggregateError) {
+						warnings.errors.push(ex);
+						ex = warnings;
+					} else {
+						ex = new LrAggregateError([ex, warnings]);
+					}
+				}
+			} catch (e) {
+				console.error("lr_action.run.setTotalError: %o", e);
+			}
+			try {
+				if (ex) {
+					executor.result.error = lr_util.errorToObject(ex);
+				}
+			} catch (e) {
+				console.error("lr_action.run.saveTotalError: %o", e);
+			}
+			return ex;
+		}
+		async function onError(ex) {
+			ex = run_setTotalError(ex);
+			await run_openPreview();
 			if (notifier) {
 				notifier.error(ex);
 			}
-			executor.result.error = lr_util.errorToObject(ex);
 			throw ex;
 		}
-		function onCompleted(result) {
-			notifier.completed(result);
+		async function onCompleted(result) {
+			const ex = run_setTotalError();
+			const { preview, previewTab, previewParams, status } = result || {};
+
+			// Check namely `false` to ensure preview in the case of unexpected returned value.
+			if (preview !== false) {
+				await run_openPreview(previewTab, previewParams);
+			}
+			if (notifier) {
+				switch (status) {
+					case null: // fall through
+					case undefined:
+						if (ex == null) {
+							notifier.completed(result);
+						} else {
+							notifier.error(ex);
+						}
+						break;
+					case "success":
+						notifier.completed(result);
+						break;
+					case "preview": // fall through
+					case "warning":
+						notifier.error(new LrWarning("Export is not completely successful"));
+						break;
+					default:
+						console.warn("Unsupported export status: %o", status);
+						notifier.error(new LrWarning("Unsupported export status"));
+				}
+			}
 			return result;
 		}
 
@@ -248,7 +304,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	class LrExecutorNotifier {
 		constructor() {
 			this.tabs = new Map();
-			this.debugInfo = true;
 		}
 		async start(params) {
 			return await this.tabProgress(null, params);
@@ -289,9 +344,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			} catch (ex) {
 				// TODO report to executor?
 				console.error("LrExecutorNotifier: ignore error: %o", ex);
-			}
-			if (this.debugInfo) {
-				lr_action.openPreview({ id: this.actionTabId });
 			}
 		}
 		async completed(_result) {
@@ -580,30 +632,46 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			}
 		);
 
-		const mentions = executor.result.mentions = await executor.step(
+		const checkUrlsResult = executor.result.mentions = await executor.step(
 			{ errorAction: lr_action.ERROR_IS_WARNING, result: true },
-			async function checkUrls(capture) {
+			async function checkKnownUrls(capture) {
 				const { body } = capture.formats[capture.transport.captureId];
 				const urlObj = lrCaptureObjectMapUrls(body);
 				return lr_native_messaging.mentions(urlObj);
 			},
 			capture);
 
-		const dryRun = mentions && typeof mentions.mentions !== "string";
+		executor.step(
+			{ errorAction: lr_action.ERROR_IS_WARNING },
+			function warnKnownUrls(checkUrlsResult) {
+				const { mentions } = checkUrlsResult || {};
+				if (mentions == null) {
+					throw new LrWarning("Internal error during check for known URLs");
+				} else if (typeof mentions === "string") {
+					if (!(["NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"].indexOf(mentions) >= 0)) {
+						throw new LrWarning(`Check for known URL error: ${mentions}`);
+					}
+				} else {
+					throw new LrWarning("Known URL in the capture");
+				}
+			},
+			checkUrlsResult);
 
-		const exportResult = await executor.step(
-			async function exportActionResult(capture, options) {
+		const error = executor.step(
+			{ errorAction: lr_action.ERROR_IS_WARNING, result: true },
+			function captureErrorsAndWarnings(executor) {
+				return lr_util.errorToObject(executor.totalError());
+			},
+			executor);
+
+		return await executor.step(
+			async function exportActionResult(capture, options, error) {
+				if (error != null) {
+					options = { ...options, error };
+				}
 				return await lr_export.process(capture, options);
 			},
-			capture, { tab: activeTab, dryRun });
-
-		if (dryRun) {
-			throw new LrWarning("URL is present in your notes");
-		} else if (exportResult === PREVIEW) {
-			executor.notifier.debugInfo = false;
-		} else if (!exportResult) {
-			throw new Error("Export failed");
-		}
+			capture, { tab: activeTab }, error);
 	}
 
 	this.commandListener = function(command) {

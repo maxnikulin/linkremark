@@ -163,7 +163,8 @@ class Handler:
         ...     ],
         ...     version="0.2",
         ... );
-        {'format': 'org-protocol', 'version': '0.2'}
+        {'format': 'org-protocol', 'version': '0.2', \
+'options': {'clipboardForBody': False}}
         """
 
         # Extension ID could be obtained from `sys.argv`.
@@ -171,7 +172,11 @@ class Handler:
             return JsonRpcError(
                 "hello: formats are not specified",
                 HTTPStatus.BAD_REQUEST)
-        data = {'format': self._format, 'version': self._version}
+        data = {
+            'format': self._format,
+            'version': self._version,
+            'options': {'clipboardForBody': False},
+        }
         for descr in formats:
             if not isinstance(descr, dict):
                 return JsonRpcError(
@@ -185,14 +190,25 @@ class Handler:
             data)
 
     # In the case of tab group only the first link is stored.
-    def capture(self, data=None, format=None, version=None):
-        error = self._check_format_version(data, format, version)
+    def capture(self, data=None, format=None, version=None, error=None, **kwargs):
+        kwargs.pop("options", None)
+        if kwargs:
+            return JsonRpcError(
+                "capture: unsupported fields",
+                HTTPStatus.BAD_REQUEST, {"fields": list(kwargs.keys())})
+
+        format_error = self._check_format_version(data, format, version)
+        if format_error:
+            return format_error
         if error:
-            return error
+            return {"preview": True, "status": "preview"}
         check = check_emacs_org_protocol()
         if check is not True:
             return check
-        return run_emacsclient(data["url"])
+        if run_emacsclient(data["url"]):
+            return {"preview": False, "status": "success"}
+        else:
+            return {"preview": True, "status": "preview"}
 
     def _check_format_version(self, data, format, version):
         if format != self._format or version != self._version:

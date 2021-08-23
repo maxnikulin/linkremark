@@ -113,18 +113,31 @@ class Handler:
             data)
 
     # In the case of tab group only the first link is stored.
-    def capture(self, data=None, format=None, version=None):
-        error = self._check_format_version(data, format, version)
-        if error:
-            return error
+    def capture(self, data=None, format=None, version=None, error=None, **kwargs):
+        kwargs.pop("options", None)
+        if kwargs:
+            return JsonRpcError(
+                "capture: unsupported fields",
+                HTTPStatus.BAD_REQUEST, {"fields": list(kwargs.keys())})
+
+        format_error = self._check_format_version(data, format, version)
+        if format_error:
+            return format_error
         try:
             url, title = self._get_frame_link(data["body"]["elements"][0])
+
+            if error:
+                return {"preview": True, "status": "preview"}
+
         except ValueError as ex:
             return JsonRpcError(
                 "capture: " + str(ex),
                 HTTPStatus.NOT_ACCEPTABLE)
 
-        return call_org_protocol_store_link(url, title)
+        if call_org_protocol_store_link(url, title):
+            return {"preview": False, "status": "success"}
+        else:
+            return {"preview": True, "status": "preview"}
 
     def _check_format_version(self, data, format, version):
         if (

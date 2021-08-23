@@ -19,7 +19,7 @@
 
 var lr_clipboard = function() {
 	async function lrCopyToClipboard(capture, options = null) {
-		let { tab, format, version, usePreview, dryRun, ...formatterOptions } = options || {};
+		let { tab, format, version, usePreview, error, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for clipboard export');
 		}
@@ -38,15 +38,15 @@ var lr_clipboard = function() {
 			usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
 		}
 		capture.transport.method = "clipboard";
-		if (dryRun) {
-			return true;
+		if (error || usePreview) {
+			return { previewTab: tab, preview: true, previewParams: null };
 		}
-		const strategyOptions = { tab, usePreview };
+		const strategyOptions = { tab };
 		return await lrClipboardAny(capture, strategyOptions);
 	}
 
 	async function lrLaunchOrgProtocolHandler(capture, options = {}) {
-		let { tab, usePreview, dryRun, ...formatterOptions } = options || {};
+		let { tab, usePreview, error, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for org-protocol export');
 		}
@@ -64,10 +64,10 @@ var lr_clipboard = function() {
 			usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
 		}
 		capture.transport.method = "org-protocol";
-		if (dryRun) {
-			return true;
+		if (usePreview || error) {
+			return { previewTab: tab, preview: true, previewParams: null };
 		}
-		const strategyOptions = { tab, usePreview, skipBackground: true };
+		const strategyOptions = { tab, skipBackground: true };
 		return await lrClipboardAny(capture, strategyOptions);
 	}
 
@@ -78,13 +78,13 @@ var lr_clipboard = function() {
 	async function lrClipboardContentScript(capture, options) {
 		const { usePreview, tab } = options || {}
 		if (usePreview || !navigator.clipboard || !navigator.clipboard.writeText) {
-			return false;
+			return;
 		}
 		const tabId = tab != null ? tab.id : null;
 		if (!(tabId >= 0)) {
 			throw new Error("lrClipboardContentScript: invalid tabId");
 		}
-		return await gLrAsyncScript.exec(tabId, 0, { file: "content_scripts/clipboard.js" });
+		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "content_scripts/clipboard.js" }) };
 	}
 
 	/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
@@ -97,9 +97,9 @@ var lr_clipboard = function() {
 	 * is requested. At least unless it is disabled through about:config.
 	 */
 	async function lrClipboardWriteBackground(capture, options) {
-		const { usePreview, skipBackground } = options || {}
-		if (usePreview || skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
-			return false;
+		const { skipBackground } = options || {}
+		if (skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
+			return;
 		}
 		const { captureId } = capture && capture.transport;
 		let content = captureId && capture.formats && capture.formats[captureId];
@@ -112,21 +112,20 @@ var lr_clipboard = function() {
 		// It seems that result value is unspecified.
 		// On failure the promise is rejected.
 		await navigator.clipboard.writeText(text);
-		return true;
+		return { preview: false };
 	}
 
 	async function lrClipboardUsePreview(capture, options) {
-		const { tab, usePreview } = options || {}
-		const params = usePreview ? {} : { action: "launch" };
-		return await lr_action.openPreview(tab, params);
+		return { previewParams: { action: "launch" } };
 	}
 
 	async function lrClipboardAny(capture, options) {
+		const retvalDefault = { preview: true, previewParams: null, previewTab: options.tab };
 		for (let method of [lrClipboardWriteBackground, lrClipboardContentScript, lrClipboardUsePreview]) {
 			try {
 				const result = await method(capture, options);
 				if (result) {
-					return result;
+					return { ...retvalDefault, ...result };
 				} else {
 					console.error(`lrClipboard: ${method.name} has not succeeded`);
 				}
@@ -134,7 +133,7 @@ var lr_clipboard = function() {
 				console.error(method && method.name, ex);
 			}
 		}
-		return false;
+		return retvalDefault;
 	}
 
 	this.initSync = function() {

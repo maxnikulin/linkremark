@@ -223,15 +223,7 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		dispatch(gLrPreviewActions.focusTransportMethod(method));
 	}
 	if (error) {
-		const ex = new Error(error.message || error);
-		if (error.name) {
-			Object.defineProperty(ex, "name", {
-				value: error.name,
-				writable: true,
-				configurable: true,
-			});
-		}
-		throw ex;
+		lrPreviewLogException({ dispatch, getState }, { message: "A problem with capture", error });
 	} else if (method) {
 		const params = new URLSearchParams(window.location.search);
 		const action = params.get("action");
@@ -994,7 +986,12 @@ function lrPreviewLogException(store, data) {
 
 		try {
 			if (store) {
-				const errorMessage = message ? `${message}: ${error.message || String(error)}` : String(error);
+				let errorMessage = String(error.message ||
+					(error.cause && (error.cause.message || error.cause.name)) ||
+					error.name || error);
+				if (message) {
+					errorMessage = message + ": " + errorMessage;
+				}
 				const name = (error && error.name) || "Error";
 				store.dispatch(gLrPreviewLog.finished({
 					id: id != null ? id : bapiGetId(),

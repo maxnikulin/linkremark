@@ -27,7 +27,7 @@ var lr_native_messaging = function() {
 	}
 
 	async function lrSendToNative(capture, params) {
-		const { dryRun, ...connectionParams } = params || {};
+		const { error, tab, ...connectionParams } = params || {};
 		const { backend, connection, hello } = await connectionWithHello(connectionParams);
 		try {
 			if (!hello.format || !hello.version) {
@@ -37,10 +37,15 @@ var lr_native_messaging = function() {
 			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
 			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
 			capture.transport.method = "native-messaging";
-			if (dryRun) {
-				return true;
+			let result = await connection.send("capture", {data, error, format, version, options});
+			if (typeof result === 'boolean') {
+				result = { preview: !result }
 			}
-			return await connection.send("capture", {data, format, version, options});
+			return {
+				...result,
+				previewTab: tab,
+				previewParams: null,
+			};
 		} finally {
 			connection.disconnect();
 		}
