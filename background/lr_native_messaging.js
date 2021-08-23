@@ -85,7 +85,7 @@ var lr_native_messaging = function() {
 	}
 
 	function _queryArrayFromObject(obj, queryArray) {
-		const queue = [ obj ];
+		const queue = obj != null ? [ obj ] : [];
 		while (queue.length > 0) {
 			const element = queue.pop();
 			if (element.urls) {
@@ -166,7 +166,7 @@ var lr_native_messaging = function() {
 		const queryArray = [];
 		_queryArrayFromObject(obj, queryArray);
 		if (!(queryArray.length > 0)) {
-			return "NO_URLS";
+			return { mentions: "NO_URLS" };
 		}
 		const result = await _queryMentions(queryArray, params);
 		if (result == null) {

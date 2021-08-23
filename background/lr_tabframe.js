@@ -593,7 +593,7 @@ function lrCaptureObjectMapTabGroupUrls(obj) {
 		case 0:
 			return null;
 		case 1:
-			return children[1];
+			return children[0];
 		default:
 			return {
 				_type: obj._type,
