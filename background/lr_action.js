@@ -146,7 +146,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				return executor._asyncStep(descr, async function waitPromise(promise) {
 					try {
 						const result = await promise;
-						return onCompleted(result);
+						return await onCompleted(result);
 					} catch (ex) {
 						return onError(ex);
 					}
