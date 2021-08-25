@@ -986,13 +986,38 @@ function lrPreviewLogException(store, data) {
 
 		try {
 			if (store) {
-				let errorMessage = String(error.message ||
-					(error.cause && (error.cause.message || error.cause.name)) ||
-					error.name || error);
-				if (message) {
-					errorMessage = message + ": " + errorMessage;
+				function errorText(error) {
+					return error.message ||
+						(error.cause && (error.cause.message || error.cause.name));
 				}
-				const name = (error && error.name) || "Error";
+
+				try {
+					if (error.errors && error.errors.length > 0) {
+						for (const subError of error.errors) {
+							if (!subError) {
+								continue;
+							}
+							const message = errorText(subError);
+							const name = String(subError.name || "OtherError");
+							store.dispatch(gLrPreviewLog.finished({
+								id: bapiGetId(),
+								message: String(message || subError.name || subError),
+								name,
+							}));
+						}
+					}
+				} catch (ex) {
+					console.error(
+						"LR: internal error during reporting of an aggregate error: %o %o",
+						error, error.errors);
+				}
+				let errorMessage = errorText(error);
+				if (message) {
+					errorMessage = errorMessage ? message + ": " + String(errorMessage) : String(message);
+				} else {
+					errorMessage = String(errorMessage || error.name || error);
+				}
+				const name = (error && error.name) || "OtherError";
 				store.dispatch(gLrPreviewLog.finished({
 					id: id != null ? id : bapiGetId(),
 					message: errorMessage,

@@ -216,7 +216,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			try {
 				const warnings = executor.totalError();
 				if (warnings != null) {
-					if (warnings instanceof LrTmpAggregateError) {
+					if (ex == null) {
+						ex = warnings;
+					} else if (warnings instanceof LrTmpAggregateError) {
 						warnings.errors.push(ex);
 						ex = warnings;
 					} else {
