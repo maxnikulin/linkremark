@@ -101,8 +101,15 @@ class LrNativeConnectionActive {
 	doOnMessage(message, port) {
 		const id = message && message.id;
 		if (id == null) {
-			console.error("Invalid message received", port, message);
-			throw new Error("Invalid native message");
+			if (message.error) {
+				console.error("LR: native messaging: error with no id: %o: closing connection. %o %o",
+					message.error, port, message);
+				this.disconnect(message.error);
+				return;
+			} else {
+				console.error("LR: native messaging: Invalid message received %o %o", port, message);
+				throw new Error("Invalid native message");
+			}
 		}
 		const promise = this.promiseMap.get(id);
 		if (promise == null) {
