@@ -48,8 +48,12 @@ class LrNativeConnectionActive {
 			method: method,
 			params: [ params ],
 		});
-		if (response && response.error) {
-			throw new Error("Backend error: " + JSON.stringify(response.error));
+		const error = response && response.error;
+		if (error) {
+			if (typeof error === "string") {
+				throw new Error("Backend error: " + error);
+			}
+			throw new Error("Backend error: " + JSON.stringify(error));
 		} else if (response && typeof response.result !== 'undefined') {
 			// Go "net/rpc/jsonrpc" sends "response.result = null"
 			return response.result;

@@ -65,7 +65,7 @@ def loop(handler, input_file=sys.stdin.buffer, output_file=sys.stdout.buffer):
         try:
             result = process(handler, message)
             native_messaging.send_message(output_file, result)
-        except Exception as ex:
+        except Exception:
             message = "exception while processing request"
             logger.exception(message, exc_info=True)
             result = make_error(
@@ -141,7 +141,7 @@ def process(handler, message: Dict[str, Any]) -> Dict[str, Any]:
         logger.error("%s: %r", method, response)
         return response
 
-    except Exception as ex:
+    except Exception:
         error = 'Exception while calling handler'
         logger.exception('request %r: %s', log_id, error, exc_info=True)
         return make_error(
@@ -164,10 +164,11 @@ def make_response(request_id, result):
 
 # Spec 5.1
 def make_error(request_id, code, message, data=None):
+    error = {'code': code, 'message': message}
+    if data is not None:
+        error["data"] = data
     return {
-        JSONRPC_KEY: JSONRPC_VERSION, ID_KEY: request_id, ERROR_KEY: {
-            'code': code, 'message': message, 'data': data
-        }
+        JSONRPC_KEY: JSONRPC_VERSION, ID_KEY: request_id, ERROR_KEY: error,
     }
 
 

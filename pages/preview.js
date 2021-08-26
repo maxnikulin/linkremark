@@ -260,7 +260,9 @@ function lrMakeTransportAction({ method, close }) {
 		} catch (ex) {
 			console.error("lrTransportAction: %o", ex);
 			dispatch(gLrPreviewLog.finished({
-				id, message: `Export failed: ${method}: ${ex}`, name: "Error" }));
+				id, message: `Export failed: ${method}: ${String(ex && ex.message || ex)}`,
+				name: "Error",
+			}));
 		}
 	}
 }

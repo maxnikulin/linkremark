@@ -46,7 +46,7 @@ class LrRpcServer {
 			return { id, result: await this.do_process(request, port) };
 		} catch (error) {
 			console.error("LrRpcServer: %o when processing %o %o", error, request, port);
-			return { id, error: "" + error }
+			return { id, error: String(error && error.message || error), }
 		}
 	};
 
