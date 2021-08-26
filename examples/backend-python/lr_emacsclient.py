@@ -64,7 +64,25 @@ EXTENSION_FIREFOX = "linkremark@maxnikulin.github.io"
 EXTENSION_CHROME = "mgmcoaemjnaehlliifkgljdnbpedihoe"
 
 EMACSCLIENT = "emacsclient"
-EMACSCLIENT_ARGS = ["--quiet"]
+EMACSCLIENT_ARGS = [
+    "--quiet",
+    # Attempt to discriminate "can't find socket" from other errors
+    # and to suppress excessively verbose error message.
+    # --quiet and --suppress-output does not prevent the following
+    # message if emacs server is not running:
+    #
+    #    emacsclient: No socket or alternate editor.  Please use:
+    #
+    #            --socket-name
+    #            --server-file      (or environment variable EMACS_SERVER_FILE)
+    #            --alternate-editor (or environment variable ALTERNATE_EDITOR)
+    #
+    # The trick with --alternate-editor allows to get minimal message
+    #
+    #     emacsclient: can't find socket; have you started the server?
+    #     To start the server in Emacs, type "M-x server-start".
+    '--alternate-editor=sh -c "exit 9',
+]
 EMACSCLIENT_CHECK_ORG_PROTOCOL = [
         "--eval", "(and (memq 'org-protocol features) 'org-protocol)"]
 EMACSCLIENT_ENSURE_FRAME = [
@@ -98,14 +116,32 @@ Usage: {0} IGNORED_ARGS_PASSED_BY_BROWSER...
 
 
 def run(*args, error_message="", **kwargs):
+    kwargs.setdefault("check", True)
+    kwargs.setdefault("capture_output", True)
+    exe = EMACSCLIENT
+    cmd_args = [exe] + EMACSCLIENT_ARGS + list(args)
     try:
-        return subprocess.run(*args, **kwargs)
+        return subprocess.run(cmd_args, **kwargs)
     except subprocess.SubprocessError as ex:
-        data = {"command": args[0][0]}
-        for attr in ("returncode", "stderr", "stdout"):
-            value = getattr(ex, attr, None)
+        def decoded_attr(obj, attr):
+            value = getattr(obj, attr, None)
             if isinstance(value, bytes):
                 value = value.decode('UTF-8').strip()
+            return value
+
+        if getattr(ex, "returncode", 1) == 9:
+            logging.error(
+                "emacsclient not running: %s stdout %s, stderr: %s",
+                " ".join(cmd_args),
+                decoded_attr(ex, "stdout"),
+                decoded_attr(ex, "stderr"))
+            message = "Emacs server is not running, please, start it"
+            code = HTTPStatus.BAD_GATEWAY
+            raise JsonRpcError(message, code)
+
+        data = {"command": exe}
+        for attr in ("returncode", "stderr", "stdout"):
+            value = decoded_attr(ex, attr)
             if value is not None and value != "":
                 data[attr] = value
         message = (error_message or "External process failed")
@@ -115,14 +151,13 @@ def run(*args, error_message="", **kwargs):
 
 def check_emacs_org_protocol():
     try:
-        cmd = [EMACSCLIENT] + EMACSCLIENT_ARGS + EMACSCLIENT_CHECK_ORG_PROTOCOL
         res = run(
-            cmd, capture_output=True, check=True,
+            *EMACSCLIENT_CHECK_ORG_PROTOCOL,
             error_message="Failed check if org-protocol is available")
-        if not res.stdout.startswith(b"org-protocol"):
+        if not getattr(res, "stdout", None) or not res.stdout.startswith(b"org-protocol"):
             logging.error(
                 "org-protocol is not loaded: %s stdout: %s stderr: %s",
-                cmd, res.stdout, res.stderr)
+                EMACSCLIENT, res.stdout, res.stderr)
             raise JsonRpcError(
                 "org-protocol is not loaded",
                 HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -135,13 +170,11 @@ def check_emacs_org_protocol():
 
 
 def run_emacsclient(url):
-    cmd = [EMACSCLIENT] + EMACSCLIENT_ARGS + EMACSCLIENT_ENSURE_FRAME
     run(
-        cmd, check=True, capture_output=True,
+        *EMACSCLIENT_ENSURE_FRAME,
         error_message="Ensure Emacs frame for capture failed")
-
-    cmd = [EMACSCLIENT] + EMACSCLIENT_ARGS + ["--", url]
-    run(cmd, check=True, capture_output=True,
+    run(
+        "--", url,
         error_message="Open org-protocol URI failed")
     return True
 
