@@ -103,34 +103,65 @@ class LrMentionsResult {
 			props.hello && props.hello.capabilities &&
 			(props.hello.capabilities.indexOf("visit") >= 0);
 		const captionAttrs = canVisit ? { role: "button", tabindex: 0 } : null
+		const lineNoWidth = this._getLineNoWidth(props && props.mentions);
+		let fileDepth = null;
+		let path = null;
 		while (queue.length > 0) {
 			const { item, post } = queue.pop();
 			if (post) {
 				if (item._type !== "Body") {
 					stack.pop();
 				}
+				if (item._type === "File") {
+					fileDepth = null;
+					path = null;
+				}
 				continue;
 			}
 
 			const caption = [];
-			const path = stack[stack.length - 1].path || item.path;
-			if (item.lineNo) {
-				caption.push(E('span', null, item.lineNo), ": ");
+
+			if (item._type === "File") {
+				fileDepth = stack.length;
+				path = path || item.path;
+			}
+
+			if (item.lineNo > 0) {
+				const num = item.lineNo.toString(10);
+				caption.push(
+					E('span', { className: "lineNoPad" }, "".padStart(lineNoWidth - num.length)),
+					E('span', { className: "lineNo" }, num),
+					E('span', { className: "lineNoPad" }, ":".padEnd(stack.length - fileDepth, "·")),
+				);
+			}
+
+			if ((item.lineNo > 0 || stack.length > fileDepth) && item._type === "Link") {
+				caption.push(E('span', { className: "lineNoPad" }, " "))
 			}
 			const title = item.title || item.rawText || item.path;
 			if (title) {
-				caption.push(item._type === "Heading" ? "* " : (item._type || "Link") + ": ");
-				caption.push(E('span', null, title));
+				if (item._type === "Heading") {
+					caption.push(
+						E('span', { className: "lineNoPad" }, "* "),
+						E('span', { className: "heading" }, title),
+					);
+				} else {
+					caption.push((item._type || "Link") + ": ");
+					const attr = item._type === "Tab" ? { className: "heading" } :
+						(path ? { className: "mentionTitle" } : null);
+					caption.push(E('span', attr, title));
+				}
 			} else if (item.descr || item.url) {
 				caption.push(item._type || "Link", ": ");
+				const attr = path ? { className: "mentionTitle" } : null;
 				if (item.descr) {
-					caption.push(E('span', null, item.descr));
+					caption.push(E('span', attr, item.descr));
 				}
 				if (item.url) {
 					if (item.descr) {
 						caption.push(" ");
 					}
-					caption.push(E('span', null, item.url));
+					caption.push(E('span', attr, item.url));
 				}
 			}
 			if (item.total > 1) {
@@ -157,7 +188,7 @@ class LrMentionsResult {
 			if (path) {
 				captionElement.dataset.lrPath = path;
 			}
-			if (item.lineNo) {
+			if (item.lineNo > 0) {
 				captionElement.dataset.lrLineNo = item.lineNo;
 			}
 			const elements = item._type === "Body" ? [] : [ captionElement ];
@@ -167,7 +198,7 @@ class LrMentionsResult {
 				if (item._type !== "Body") {
 					const ul = E('ul');
 					elements.push(ul);
-					stack.push({ node: ul, path });
+					stack.push({ node: ul });
 				}
 			}
 			if (elements.length > 0) {
@@ -176,6 +207,29 @@ class LrMentionsResult {
 		}
 		this.dom.innerText = "";
 		this.dom.append(fragment);
+	}
+	_getLineNoWidth(tree) {
+		const queue = [];
+		let lineNo = 1;
+		try {
+			if (tree != null) {
+				queue.push(tree);
+			}
+			while (queue.length > 0) {
+				const item = queue.pop();
+				// Math.max may return NaN
+				if (item.lineNo > lineNo) {
+					lineNo = item.lineNo;
+				}
+				const children = item.children || item.links;
+				if (Array.isArray(children)) {
+					queue.push(...children);
+				}
+			}
+		} catch (ex) {
+			console.error("LrMentionsResult._maxLineNo: error: %o", ex);
+		}
+		return 1 + Math.floor(Math.log10(lineNo));
 	}
 }
 

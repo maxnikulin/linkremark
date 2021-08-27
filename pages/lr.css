@@ -296,7 +296,10 @@ ul {
 }
 
 ul.tree li {
-	margin-inline-start: 1ex;
+	/* Subsections withing the same file certainly should not be indented
+	 * to keep line numbers aligned. Indent for tab group and file
+	 * still may be considered. */
+	margin-inline-start: 0pt;
 }
 
 input, textarea {
@@ -332,7 +335,23 @@ textarea.disableFlex {
 }
 
 span[role="button"] {
-	color: #0000ee;
 	cursor: pointer;
+}
+
+.lineNo, .mentionTitle, span[role="button"] .heading {
+	color: #0000ee;
 	text-decoration: underline;
+}
+
+.lineNo, .lineNoPad {
+	/* Avoid smaller font
+	 * https://meyerweb.com/eric/thoughts/2010/02/12/fixed-monospace-sizing/
+	 * https://code.iamkate.com/html-and-css/fixing-browsers-broken-monospace-font-handling/
+	 */
+	font-family: monospace, monospace;
+	white-space: pre-wrap;
+}
+
+.heading {
+	font-weight: bolder;
 }
