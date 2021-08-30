@@ -338,21 +338,20 @@ function lrReportStep(func, collector, props=null) {
 }
 
 async function lrCaptureTabGroup(tabTargetArray, executor) {
-	const promises = executor.child(function launchTabGroupCaptures(executor) {
-		return tabTargetArray.map(tabTarget => executor.step(
-			{ errorAction: lr_action.IGNORE_ERROR },
-			function launchTabCapture() {
+	const promises = executor.step(function launchTabGroupCaptures(executor) {
+		return tabTargetArray.map(tabTarget => executor.child(
+			async function launchTabCapture(executor) {
 				const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
-				return executor.child(
+				return await executor.step(
 					{ tabId: tab && tab.id, tabUrl: tab && tab.url },
-					lrCaptureSingleTab, tabTarget /* implicit childExecutor argument */
+					lrCaptureSingleTab, tabTarget, executor
 				);
-			}));
+			}
+			/* implicit childExecutor argument */));
 	});
-	const elements = await executor.child(async function waitTabGroupCaptures(executor) {
-		let failures = promises.length;
+	const { elements, errors } = await executor.step(async function waitTabGroupCaptures(executor) {
 		let errors = [];
-		let result = [];
+		let elements = [];
 		for (const p of promises) {
 			try {
 				if (p) {
@@ -361,23 +360,34 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 						async function waitSingleTabCapture(p) {
 							return await p;
 						}, p)
-					result.push(capture.body);
-					--failures;
+					elements.push(capture.body);
 				}
 			} catch (ex) {
 				errors.push(ex);
 			}
 		}
-		if (promises.length === failures) {
-			// TODO aggregate error
-			throw new Error("Capture failed for all tabs");
+		if (!(elements.length > 0)) {
+			throw new Error(errors, "Capture failed for all tabs");
 		}
-		if (failures !== 0) {
-			result.unshift({ _type: "Text", elements: [ `Capture of ${failures} tabs failed` ] });
-		}
-		// TODO add errors to result as warnings
-		return result;
+		return { elements, errors };
 	});
+
+	executor.step(
+		{ errorAction: lr_action.ERROR_IS_WARNING },
+		function checkTabGroupWarning(promises, elements, errors) {
+			const failures = promises.length - elements.length;
+			if (failures === 0) {
+				return;
+			}
+			elements.unshift({ _type: "Text", elements: [ `Capture of ${failures} tabs failed` ] });
+			if (errors.length === 0) {
+				throw new LrWarning(`Capture of ${failures} tab failed`);
+			} else if (errors.length === 1) {
+				throw errors[0];
+			}
+			throw new LrAggregateWarning(errors, `Capture of ${failures} tabs failed`);
+		},
+		promises, elements, errors);
 
 	return {
 		title: "Tab Group", // i18n
@@ -388,7 +398,7 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
 	try {
 		if (!windowTab.url) {
-			throw new Error("Permission denied");
+			throw new Error("Permission for a tab denied");
 		}
 		executor.step({ result: true }, function setTargetElement() {
 			// Unavailable in Chrome

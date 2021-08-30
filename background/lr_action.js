@@ -92,14 +92,34 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			let [descr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
 			const child = new LrExecutor(this);
 			args.push(child);
-			try {
-				return this.step({ children: child.debugInfo, ...descr }, func, ...args);
-			} finally {
+			let finalize = 1;
+			const child_copyError = result => {
+				--finalize;
+				if (!(finalize > 0)) {
+					child.finalized = true;
+				}
 				const error = child.ownError();
 				if (error) {
-					this._errors = this._errors || [];
+					if (typeof this._errors === 'undefined') {
+						this._errors = this._errors;
+						this._aggregateError = new LrTmpAggregateError(this._errors);
+					}
 					this._errors.push(error);
 				}
+				return result;
+			};
+			try {
+				if (lr_util.isAsyncFunction(func)) {
+					++finalize;
+					return this._asyncStep({ children: child.debugInfo, ...descr }, func, ...args)
+						.then(child_copyError, ex => {
+							child_copyError();
+							throw ex;
+						});
+				}
+				return this.step({ children: child.debugInfo, ...descr }, func, ...args);
+			} finally {
+				child_copyError();
 			}
 		}
 
@@ -174,6 +194,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				this._lastError = ex;
 				if (this.parent != null) {
 					this.parent._lastError = ex;
+				}
+				if (this.finalized) {
+					console.error("LrExecutor: exception in completed instance: %o %o", ex, descr)
 				}
 			} catch (e) {
 				console.error("LrExecutor internal error: %o %o", e, ex);
@@ -275,6 +298,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 						notifier.error(new LrWarning("Unsupported export status"));
 				}
 			}
+			executor.finalized = true;
 			return result;
 		}
 
