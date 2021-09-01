@@ -477,7 +477,12 @@ function lr_format_org_description(meta) {
 }
 
 function lrOrgCollectProperties(result, frame) {
+	let limit = 3;
 	for (let img of frame.descriptors('image')) {
+		if (!(limit--) > 0) {
+			console.warn("lrOrgCollectProperties: skipping excessive URL_IMAGE variants");
+			break;
+		}
 		// FIXME error
 		result.push(["URL_IMAGE", img.value]);
 	}
