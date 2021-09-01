@@ -521,13 +521,15 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			lr_action.createMenuItem(item);
 		}
 
-		// Firefox-only extension
+		// Firefox-only extension. Click on not highlighted
+		// (selected with Ctrl) tab captures just it.
+		// Click on a highlighted tab initiates capture of all highlighted tabs.
 		if ("TAB" in bapi.contextMenus.ContextType) {
 			lr_action.createMenuItem({
 				contexts: [ "tab" ],
 				enabled: true,
 				id: "LR_TAB",
-				title: "Remark for highlighted tab(s)",
+				title: "Remark for this or highlighted tab(s)",
 			});
 		}
 	};
@@ -608,7 +610,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return null;
 	}
 
-	/// Asks export permission and calls singleTabActionDo
+	/// Asks export permission and calls `singleTabActionDo`.
+	/// Called throgh `browserAction` listener and context menu
+	/// items for frame (page), link, and image.
 	async function singleTabAction(clickData, tab, type, executor) {
 		const exportPermissionPromise = lr_export.requestPermissions();
 		executor.notifier.startContext(tab, { default: true });
@@ -786,22 +790,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	this.commandListener = function(command) {
-		// Unused for a while. Other actions are invoked through context menu
-		try {
-			switch (command) {
-			// is not fired, processed through browserAction.onClicked
-			// case '_execute_browser_action':
-			case 'page_remark':
-				return run(singleTabAction, null, null, null);
-				break;
-			default:
-				throw new Error(`Unsupported command ${command}`);
-				break;
-			}
-		} catch (ex) {
-			console.error("LR: commandListener error", command);
-			throw ex;
-		}
+		// Unused for a while.
+		// - `_execute_browser_action` is not fired at all,
+		//   it is processed through `browserAction.onClicked`
+		// - `command: "page_remark"` with user custom commands
+		//   is unsupported in context menu descriptors.
+		throw new Error(`Unsupported command ${command}`);
 	};
 
 	this.browserActionListener = function(tab, onClickData) {
