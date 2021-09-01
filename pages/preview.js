@@ -165,63 +165,96 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 
 async function lrPreviewGetCapture(dispatch, getState) {
 	const cached = await lrSendMessage("store.getResult");
+
+	// No try-catch is necessary here
 	if (cached === "NO_CAPTURE") {
 		lrPreviewMentionsOpen();
-		// TODO log that nothing captured yet
-		return;
-	}
-	const { debugInfo, capture, error } = cached || {};
-	if (debugInfo) {
-		lrDebugInfoAdd(debugInfo);
-		if (error || !capture) {
-			lrDebugInfoExpand();
-		}
-	}
-	if (!cached) {
-		throw new Error("Internal error: unable to get capture result");
-	}
-	if (capture != null) {
-		dispatch(gLrPreviewActions.captureResult(capture));
-	} else {
+		// Original idea was to add a dedicated format tab that suggest
+		// using of this page as a playground with no guide for debug.
+		// In the case of severe error it may be confusing however.
 		dispatch(gLrPreviewLog.finished({
 			id: bapiGetId(),
-			message: "No capture result received",
-			name: "Error",
+			message: "Nothing has been captured yet",
+			name: "Warning",
 		}));
 		return;
 	}
-	const state = getState();
-	const current = state && state.capture && state.capture.current;
-	let format;
-	for (const f of ["org", "object"]) {
-		if (current && current[f]) {
-			format = f;
-			break;
+	const { debugInfo, capture, error, mentions } = cached || {};
+
+	try {
+		if (debugInfo) {
+			if (error || !capture) {
+				lrDebugInfoExpand();
+			}
+			lrDebugInfoAdd(debugInfo);
 		}
-	}
-	if (format) {
-		dispatch(gLrPreviewActions.exportFormatSelected(format));
+	} catch (ex) {
+		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set debug info", error: ex });
 	}
 
-	const mentions = cached && cached.mentions;
+	// Keep this after `lrDebugInfoExpand`.
+	if (!cached) {
+		throw new Error("Internal error: unable to get capture result");
+	}
+
 	try {
-		if (!lrMentionsIsSilent(mentions && mentions.mentions)) {
+		if (capture != null) {
+			dispatch(gLrPreviewActions.captureResult(capture));
+			const state = getState();
+			const current = state && state.capture && state.capture.current;
+			let format;
+			for (const f of ["org", "object"]) {
+				if (current && current[f]) {
+					format = f;
+					break;
+				}
+			}
+			if (format) {
+				dispatch(gLrPreviewActions.exportFormatSelected(format));
+			}
+		} else {
+			dispatch(gLrPreviewLog.finished({
+				id: bapiGetId(),
+				message: "No capture result received",
+				name: "Error",
+			}));
+		}
+	} catch (ex) {
+		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set capture", error: ex });
+	}
+
+	try {
+		// Show check URL form if nothing has been captured yet (see above)
+		// or if result of check does not clearly show that no mentions found
+		// (unsupported feature or no URLs found). Suppress the form
+		// if error happened before capture is at least partially generated.
+		if (
+			mentions != null ?
+				!lrMentionsIsSilent(mentions.mentions) :
+				(capture != null || debugInfo == null)
+		) {
 			lrPreviewMentionsOpen();
 		}
 		if (mentions) {
 			dispatch(gLrMentionsActions.mentionsResult(mentions));
 		}
-	} catch (error) {
-		lrPreviewLogException({ dispatch, getState }, { message: "Init mentions failure", error });
+	} catch (ex) {
+		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set known URLs", error: ex });
 	}
 
 	const method = capture && capture.transport && capture.transport.method;
-	if (method) {
-		if (mentions || method != "native-messaging") {
-			dispatch(gLrPreviewActions.exportMethodSelected(method));
+	try {
+		if (method) {
+			if (mentions || method != "native-messaging") {
+				dispatch(gLrPreviewActions.exportMethodSelected(method));
+			}
+			dispatch(gLrPreviewActions.focusTransportMethod(method));
 		}
-		dispatch(gLrPreviewActions.focusTransportMethod(method));
+	} catch (ex) {
+		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set export method", error: ex });
 	}
+
+	// No point for try-catch for last action since error will be reported by the caller.
 	if (error) {
 		lrPreviewLogException({ dispatch, getState }, { message: "A problem with capture", error });
 	} else if (method) {
