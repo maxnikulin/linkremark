@@ -89,22 +89,25 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 
 		child(maybeDescr, ...funcAndArgs) {
-			let [descr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
-			const child = new LrExecutor(this);
+			let [fullDescr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
+			const { contextId, contextObject, ...descr } = fullDescr;
+			const notifier = this.notifier.makeNested({ id: contextId, object: contextObject });
+			const child = new LrExecutor({ parent: this, notifier, });
 			args.push(child);
 			let finalize = 1;
-			const child_copyError = result => {
+			const child_copyError = (result, ex) => {
 				--finalize;
 				if (!(finalize > 0)) {
 					child.finalized = true;
-				}
-				const error = child.ownError();
-				if (error) {
-					if (typeof this._errors === 'undefined') {
-						this._errors = this._errors;
-						this._aggregateError = new LrTmpAggregateError(this._errors);
+					const error = child.ownError();
+					if (error) {
+						if (typeof this._errors === 'undefined') {
+							this._errors = this._errors;
+							this._aggregateError = new LrTmpAggregateError(this._errors);
+						}
+						this._errors.push(error);
 					}
-					this._errors.push(error);
+					notifier.error(ex || error);
 				}
 				return result;
 			};
@@ -113,7 +116,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 					++finalize;
 					return this._asyncStep({ children: child.debugInfo, ...descr }, func, ...args)
 						.then(child_copyError, ex => {
-							child_copyError();
+							child_copyError(undefined, ex);
 							throw ex;
 						});
 				}
@@ -330,41 +333,107 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	class LrExecutorNotifier {
 		constructor() {
 			this.tabs = new Map();
+			this.contextObjects = new WeakMap();
 		}
 		async start(params) {
-			return await this.tabProgress(null, params);
+			return await this.startContext(null, params);
 		}
-		async tabProgress(tabId, params) {
-			if (!(tabId >= 0)) {
-				tabId = null;
-			}
-			let state = this.tabs.get(tabId);
-			if (state === lr_notify.state.WARNING || state === lr_notify.state.ERROR) {
-				console.error("LrExecutorNotifier.tabProgress: tab %o already failed", tabId);
-				return;
-			} else if (state != null) {
-				console.warn("LrExecutorNotifier.tabProgress: tab %o state %o has been set earlier", tabId, state);
-			}
-			state = lr_notify.state.PROGRESS;
-			this.tabs.set(tabId, state);
-			return lr_notify.notify({ tabId, state });
-		}
-		async tabFailure(tabId, params) {
-			if (!(tabId >= 0)) {
-				tabId = null;
-			}
-			const state = lr_notify.state.ERROR;
-			this.tabs.set(tabId, state);
-			return lr_notify.notify({ tabId, state });
-		}
-		async error(ex) {
+		async startContext(tab, params) {
 			try {
-				const isWarning = lr_common.isWarning(ex);
+				let tabId, url;
+				if (tab == null) {
+					tabId = null;
+				} else {
+					({ id: tabId, url } = tab);
+					if (!(tabId >= 0)) {
+						throw new Error("Invalid tab.id");
+					}
+					if (!url) {
+						console.log("LrExecutorNotifier.startContext: missed tab.url, maybe no tabs permissions: %o", tab);
+					}
+				}
+				const context = this.tabs.get(tabId);
+				if (context != null) {
+					const { state } = context;
+					if (state === lr_notify.state.WARNING || state === lr_notify.state.ERROR) {
+						console.error("LrExecutorNotifier.startContext: tab %o already failed", tabId);
+					} else {
+						console.warn("LrExecutorNotifier.startContext: tab %o state %o has been set earlier", tabId, state);
+					}
+					return;
+				}
+				const state = lr_notify.state.PROGRESS;
+				this.tabs.set(tabId, { state, url });
+
+				if (params && params.default) {
+					if (tab == null) {
+						throw new Error("No tab specified for default context");
+					}
+					if (this.defaultContext != null) {
+						throw new Error("Default context already set");
+					}
+					this.defaultContext = tabId;
+				}
+
+				return lr_notify.notify({ tabId, state });
+			} catch (ex) {
+				console.error("LrExecutorNotifier.startContext: ignored error: %o %o %o", ex, tab, params);
+			}
+		}
+
+		makeNested({ id: contextId, object: contextObject }) {
+			if (contextId !== undefined && contextObject !== undefined) {
+				console.warn("LrExecutorNotifier.makeNested: both contextId and contextObject are specified");
+			}
+			if (contextId != null) {
+				if (!this.tabs.has(contextId)) {
+					console.warn("LrExecutorNotifier.makeNested: unknown contextId: %o", contextId);
+				} else {
+					return Object.assign(Object.create(this), { defaultContext: contextId, nested: true });
+				}
+			}
+			if (contextObject != null) {
+				const mappedContext = this.contextObjects.get(contextObject);
+				if (mappedContext == null) {
+					console.warn("LrExecutorNotifier.makeNested: unknown contextObject: %o", contextObject);
+				} else {
+					return Object.assign(Object.create(this), { defaultContext: mappedContext, nested: true });
+				}
+			}
+			if (contextId !== undefined || contextObject !== undefined) {
+				console.warn("LrExecutorNotifier.makeNested: unknown arguments: %o %o", contextId, contextObject);
+			}
+			return this;
+		}
+
+		async error(error) {
+			try {
+				if (error == null) {
+					return;
+				}
+				const parent = this.nested && this.defaultContext != null &&
+					Object.getPrototypeOf(this);
+				if (parent && this.defaultContext === parent.defaultContext) {
+					return;
+				}
+				const isWarning = lr_common.isWarning(error);
 				const newState = lr_notify.state[isWarning ? "WARNING" : "ERROR"];
+				const tabs = this.nested && this.defaultContext != null ?
+					[[ this.defaultContext, this.tabs.get(this.defaultContext)]] : this.tabs;
 				const promises = []
-				for (const [id, currentState] of this.tabs) {
-					const state = currentState === lr_notify.state.PROGRESS ? newState : currentState;
+				for (const [id, t] of tabs) {
+					const { state: currentState, url } = t;
+					if (!this._checkUrl(id, url)) {
+						continue;
+					}
+					const state = (
+						currentState === lr_notify.state.PROGRESS ||
+						newState === lr_notify.state.ERROR
+					) ? newState : currentState;
 					promises.push(lr_notify.notify({ state, tabId: id }));
+					if (this.defaultContext != null) {
+						this.tabs.set(id, { ...t, state });
+					}
 				}
 				await Promise.all(promises);
 			} catch (ex) {
@@ -374,11 +443,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 		async completed(_result) {
 			try {
-				const success = Array.from(this.tabs.values()).every(x => x === lr_notify.state.PROGRESS);
+				const success = Array.from(this.tabs.values())
+					.every(x => (x && x.state) === lr_notify.state.PROGRESS);
 				const state = success ? lr_notify.state.SUCCESS : lr_notify.state.WARNING;
 				const promises = [];
-				for (const [tabId, tabState] of this.tabs) {
-					if (tabState === lr_notify.state.PROGRESS) {
+				for (const [tabId, { state: tabState, url }] of this.tabs) {
+					if (tabState === lr_notify.state.PROGRESS && this._checkUrl(tabId, url)) {
 						// Error should be apparent from any tab,
 						// success should be only shown for captured tabs.
 						promises.push(lr_notify.notify({
@@ -396,6 +466,21 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				this.error(ex);
 				throw ex;
 			}
+		}
+
+		async _checkUrl(tabId, url) {
+			try {
+				if (!(tabId >= 0) || !url) {
+					return true;  // global notification or no tabs permission
+				}
+				const tab = await bapi.tabs.get(tabId);
+				return tab.url === url;
+			} catch (ex) {
+				console.error(
+					"LrExecutorNotifier._checkUrl(%o, %o): ignored error: %o",
+					tabId, url, ex);
+			}
+			return true;
 		}
 	}
 
@@ -526,7 +611,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	/// Asks export permission and calls singleTabActionDo
 	async function singleTabAction(clickData, tab, type, executor) {
 		const exportPermissionPromise = lr_export.requestPermissions();
-		executor.notifier.tabProgress(tab.id);
+		executor.notifier.startContext(tab, { default: true });
 		await executor.step(
 			{ result: true, errorAction: lr_action.IGNORE_ERROR },
 			async function lrWaitExportPermissionsPromise(promise) {
@@ -571,7 +656,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		const exportPermissionPromise = lr_export.requestPermissions();
 
 		if (!tab.highlighted) {
-			executor.notifier.tabProgress(tab.id);
+			executor.notifier.startContext(tab, { default: true });
 			// Tab is neither active nor selected (highlighted). Capture just that tab.
 			await bapi.tabs.update(tab.id, { active: true });
 			// TODO consider executor.waitPromise method
@@ -604,7 +689,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 
 		if (selectedArray.length === 1) {
-			executor.notifier.tabProgress(tab.id);
+			executor.notifier.startContext(tab, { default: true });
 			// Directly capture the only selected tab, it is allowed due to "activeTab" permission.
 			return await executor.step(
 				singleTabActionDo, clickData, tab, null, executor);
@@ -625,7 +710,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			hasTabPermissionPromise
 		);
 
-		selectedArray.forEach(selectedTab => executor.notifier.tabProgress(selectedTab.id));
+		selectedArray.forEach(selectedTab => executor.notifier.startContext(selectedTab));
 		const tabTargets = [];
 		for (const selectedTab of selectedArray) {
 			if (tab.id === selectedTab.id) {

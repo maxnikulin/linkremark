@@ -339,15 +339,13 @@ function lrReportStep(func, collector, props=null) {
 
 async function lrCaptureTabGroup(tabTargetArray, executor) {
 	const promises = executor.step(function launchTabGroupCaptures(executor) {
-		return tabTargetArray.map(tabTarget => executor.child(
-			async function launchTabCapture(executor) {
-				const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
-				return await executor.step(
-					{ tabId: tab && tab.id, tabUrl: tab && tab.url },
-					lrCaptureSingleTab, tabTarget, executor
-				);
-			}
-			/* implicit childExecutor argument */));
+		return tabTargetArray.map(tabTarget => {
+			const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
+			return executor.child(
+				{ contextId: tab && tab.id },
+				lrCaptureSingleTab, tabTarget
+				/* implicit childExecutor argument */);
+		});
 	});
 	const { elements, errors } = await executor.step(async function waitTabGroupCaptures(executor) {
 		let errors = [];
@@ -396,39 +394,34 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 }
 
 async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
-	try {
-		if (!windowTab.url) {
-			throw new Error("Permission for a tab denied");
-		}
-		executor.step({ result: true }, function setTargetElement() {
-			// Unavailable in Chrome
-			if (target == null) {
-				return "No target";
-			}
-			const { tabId, frameId, targetElementId } = target;
-			if (!(targetElementId != null && tabId >= 0)) {
-				return "No targetElementId or tabId";
-			}
-			gLrRpcStore.putTargetElement({tabId, frameId, targetElementId});
-			return true
-		});
-		const frameChain = await executor.step(
-			{ result: true },
-			lrGatherTabInfo, frameTab, target, windowTab);
-		const body = executor.step(function frameMergeMeta() {
-			return {
-				_type: "TabFrameChain",
-				elements: frameChain.map(frame => lr_meta.merge(frame)),
-			};
-		});
-		const { url, title } = frameTab;
-		return {
-			body, url, title,
-		};
-	} catch (ex) {
-		executor.notifier.tabFailure(windowTab && windowTab.id)
-		throw ex;
+	if (!windowTab.url) {
+		throw new Error("Permission for a tab denied");
 	}
+	executor.step({ result: true }, function setTargetElement() {
+		// Unavailable in Chrome
+		if (target == null) {
+			return "No target";
+		}
+		const { tabId, frameId, targetElementId } = target;
+		if (!(targetElementId != null && tabId >= 0)) {
+			return "No targetElementId or tabId";
+		}
+		gLrRpcStore.putTargetElement({tabId, frameId, targetElementId});
+		return true
+	});
+	const frameChain = await executor.step(
+		{ result: true },
+		lrGatherTabInfo, frameTab, target, windowTab);
+	const body = executor.step(function frameMergeMeta() {
+		return {
+			_type: "TabFrameChain",
+			elements: frameChain.map(frame => lr_meta.merge(frame)),
+		};
+	});
+	const { url, title } = frameTab;
+	return {
+		body, url, title,
+	};
 }
 
 /**
