@@ -371,7 +371,7 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 	});
 
 	executor.step(
-		{ errorAction: lr_action.ERROR_IS_WARNING },
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
 		function checkTabGroupWarning(promises, elements, errors) {
 			const failures = promises.length - elements.length;
 			if (failures === 0) {

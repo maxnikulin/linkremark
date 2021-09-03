@@ -60,6 +60,7 @@
 			"background/lr_util.js",
 			"background/lr_multimap.js",
 			"background/lr_iter.js",
+			"background/lr_executor.js",
 			"background/lr_formatter.js",
 			"background/lr_format_org.js",
 			"background/lr_org_buffer.js",
