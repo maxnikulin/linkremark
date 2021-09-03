@@ -153,6 +153,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				// TODO notify: global warning
 				console.error("LrExecutor.totalError: internal error: %o", ex);
 			}
+			return null;
 		}
 
 		ownError() {
@@ -190,6 +191,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 						this._errors.push(warn);
 						return;
 					case lr_action.IGNORE_ERROR:
+						console.log("LrExecutor: ignored error: %o", ex);
 						return;
 					default:
 						break;
@@ -208,7 +210,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 	}
 
-	LrExecutor._normArgs = function(func, ...args) {
+	LrExecutor._normArgs = function _normArgs(func, ...args) {
 		let descr;
 		if (!lr_util.isFunction(func) && !lr_util.isAsyncFunction(func)) {
 			descr = func;
@@ -219,116 +221,165 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return [descr, func, args];
 	};
 
-	function run(maybeDescr, ...funcAndArgs) {
-		const [descr1, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
-		let { notifier, ...descr } = descr1;
-		notifier = notifier || new LrExecutorNotifier();
+	LrExecutor.run = async function run(maybeDescr, ...funcAndArgs) {
+		const [runDescr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
+		let { notifier, oninit, oncompleted, onerror,  ...callDescr } = runDescr;
+		notifier = notifier || new LrExecutorNotifier(); // FIXME null notifier
 		const executor = new LrExecutor({ notifier });
-		try {
-			executor.step(function putResultToStore(executor) {
-				gLrRpcStore.putResult(executor.result);
-			}, executor);
-		} catch(ex) {
-			// Some export methods may succeed even when result store is broken.
-			console.error("lr_action.run: trying to ignore error: %o", ex);
+
+		function run_maybeCallback(funcAndDescr, ...args) {
+			if (funcAndDescr == null) {
+				return;
+			}
+			const { descriptor, func } = funcAndDescr;
+			if (descriptor) {
+				return executor.step(descriptor, func, ...args);
+			} else {
+				return executor.step(func, ...args);
+			}
 		}
 
-		function run_openPreview(tab, params) {
-			// TODO obtain default tab from notifier
-			lr_action.openPreview(tab, params);
-		}
-
+		let totalError;
 		function run_setTotalError(ex) {
 			try {
-				const warnings = executor.totalError();
-				if (warnings != null) {
+				if (totalError === undefined) {
+					totalError = executor.totalError();
+				}
+
+				if (totalError != null) {
 					if (ex == null) {
-						ex = warnings;
-					} else if (warnings instanceof LrTmpAggregateError) {
-						warnings.errors.push(ex);
-						ex = warnings;
+						ex = totalError;
+					} else if (
+						totalError instanceof LrTmpAggregateError ||
+						totalError instanceof LrAggregateError
+					) {
+						totalError.errors.push(ex);
+						ex = totalError;
 					} else {
-						ex = new LrAggregateError([ex, warnings]);
+						ex = totalError = new LrTmpAggregateError([ex, totalError]);
 					}
+				} else {
+					totalError = ex;
 				}
 			} catch (e) {
-				console.error("lr_action.run.setTotalError: %o", e);
+				console.error("LrExecutor.run.setTotalError: ignored error: %o", e);
 			}
 			try {
 				if (ex) {
 					executor.result.error = lr_util.errorToObject(ex);
 				}
 			} catch (e) {
-				console.error("lr_action.run.saveTotalError: %o", e);
+				console.error("LrExecutor.run.saveTotalError: ignored error: %o", e);
 			}
 			return ex;
-		}
-		async function onError(ex) {
-			ex = run_setTotalError(ex);
-			await run_openPreview();
-			if (notifier) {
-				notifier.error(ex);
-			}
-			throw ex;
-		}
-		async function onCompleted(result) {
-			const ex = run_setTotalError();
-			const { preview, previewTab, previewParams, status } = result || {};
-
-			// Check namely `false` to ensure preview in the case of unexpected returned value.
-			if (preview !== false) {
-				await run_openPreview(previewTab, previewParams);
-			}
-			if (notifier) {
-				switch (status) {
-					case null: // fall through
-					case undefined:
-						if (ex == null) {
-							notifier.completed(result);
-						} else {
-							notifier.error(ex);
-						}
-						break;
-					case "success":
-						notifier.completed(result);
-						break;
-					case "preview": // fall through
-					case "warning":
-						notifier.error(new LrWarning("Export is not completely successful"));
-						break;
-					default:
-						console.warn("Unsupported export status: %o", status);
-						notifier.error(new LrWarning("Unsupported export status"));
-				}
-			}
-			executor.finalized = true;
-			return result;
 		}
 
 		try {
 			// actually async
 			notifier.start();
-			args.push(executor)
-			if (lr_util.isAsyncFunction(func)) {
-				return executor._asyncStep(descr, func, ...args)
-					.then(onCompleted).catch(onError);
-			}
-			const result = executor.step(descr, func, ...args);
-			if (lr_util.has(result, "then")) {
-				return executor._asyncStep(descr, async function waitPromise(promise) {
-					try {
-						const result = await promise;
-						return await onCompleted(result);
-					} catch (ex) {
-						return onError(ex);
-					}
-				}, result);
-			}
-			return onCompleted(result);
 		} catch (ex) {
-			onError(ex);
+			console.error("LrExecutor.run: ignored error: notify start: %o", ex);
 		}
+
+		let result;
+		let status;
+		try {
+			// Permission requests fail after `await` so treat synchronous
+			// functions as a special case to prevent issues with primary `func`.
+			const initResult = run_maybeCallback(oninit);
+			if (initResult && initResult.then && lr_util.isAsyncFunction(initResult.then)) {
+				await initResult;
+			}
+
+			result = await executor.step(callDescr, func, ...args);
+			run_setTotalError();
+			executor.finalized = true;
+			status = await run_maybeCallback(oncompleted, result);
+		} catch (ex) {
+			ex = run_setTotalError(ex);
+			try {
+				await run_maybeCallback(onerror);
+			} catch (callbackEx) {
+				ex = run_setTotalError(callbackEx);
+			}
+			try {
+				notifier.error(ex);
+			} catch (ignoredEx) {
+				console.error("LrExecutor.run: ignored error: notify error: %o", ignoredEx);
+			}
+			throw ex;
+		}
+
+		try {
+			switch (status) {
+				case null: // fall through
+				case undefined:
+					if (totalError == null) {
+						notifier.completed(result);
+					} else {
+						notifier.error(totalError);
+					}
+					break;
+				case "success":
+					notifier.completed(result);
+					break;
+				case "preview": // fall through
+				case "warning":
+					notifier.error(new LrWarning("Export is not completely successful"));
+					break;
+				default:
+					console.warn("Unsupported export status: %o", status);
+					notifier.error(new LrWarning("Unsupported export status"));
+			}
+		} catch (ex) {
+			console.error("LrExecutor.run: ignored error: notify completed: %o", ex);
+		}
+
+		return result;
 	};
+
+	function run(func, ...args) {
+		function lr_action_run_putResultToStore(executor) {
+			gLrRpcStore.putResult(executor.result);
+		}
+
+		let previewOpen;
+
+		async function lr_action_run_openPreview(tab, params) {
+			if (previewOpen === PREVIEW) {
+				return;
+			}
+			// TODO obtain default tab from notifier
+			previewOpen = await lr_action.openPreview(tab, params);
+		}
+
+		async function lr_action_onCompleted(result, executor) {
+			const { preview, previewTab, previewParams, status } = result || {};
+
+			// Check namely `false` to ensure preview in the case of unexpected returned value.
+			if (preview !== false) {
+				await lr_action_run_openPreview(previewTab, previewParams);
+			}
+			return status;
+		}
+
+		return LrExecutor.run(
+			{
+				notifier: new LrExecutorNotifier(),
+				oninit: {
+					// Some export methods may succeed even when result store is broken.
+					descriptor: { errorAction: lr_action.IGNORE_ERROR },
+					func: lr_action_run_putResultToStore,
+				},
+				oncompleted: { func: lr_action_onCompleted, },
+				onerror: {
+					func: async function lr_action_run_onerror(_executor) {
+						await lr_action_run_openPreview();
+					}
+				},
+			},
+			func, ...args);
+	}
 
 	class LrExecutorNotifier {
 		constructor() {
