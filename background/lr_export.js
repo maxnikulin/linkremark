@@ -146,12 +146,20 @@ var lr_export = function() {
 	};
 
 	// RPC endpoint called from preview page, so converts Object to LrMeta.
-	// TODO: return result + totalError
 	this.processMessage = async function([ capture, options ]) {
-		if (capture == null) {
-			throw new Error("No capture data");
-		}
-		return await this.process(this._restoreMeta(capture), options, new lr_executor.LrExecutor());
+		return await lr_executor.LrExecutor.run(
+			async function exportRpcEndpoint(capture, options, executor) {
+				if (capture == null) {
+					throw new Error("No capture data");
+				}
+				const meta = executor.step(lr_export._restoreMeta, capture);
+				executor.result.result = await executor.step(
+					async function runExporter(meta, options, executor) {
+						return lr_export.process(meta, options, executor);
+					},
+					meta, options /*, executor implicit argument */);
+			},
+			capture, options /*, executor implicit argument */);
 	}
 
 	/** Register `formatter(resultObj, options) => { body, title, url}`
@@ -249,13 +257,19 @@ var lr_export = function() {
 		return result;
 	};
 
-	// TODO: return result + totalError
 	this.formatMessage = function(args) {
-		const executor = new lr_executor.LrExecutor();
-		const [ capture, options ] = args;
-		const meta = this._restoreMeta(capture);
-		this.format(meta, { ...options, recursionLimit: 5 }, executor);
-		return meta;
+		return lr_executor.LrExecutor.run(
+			function formatRpcEndpoint(args, executor) {
+				const [ capture, options ] = args;
+				const meta = executor.step(lr_export._restoreMeta, capture);
+				executor.step(
+						function runFormatter(meta, options, executor) {
+						lr_export.format(meta, options, executor);
+					},
+					meta, { ...options, recursionLimit: 5 } /*, executor implicit argument */);
+				executor.result.capture = meta;
+			},
+			args);
 	};
 
 	this.findFormat = function(capture, { format, version, options }) {

@@ -145,7 +145,18 @@ async function lrNativeMessagingAction(dispatch, getState) {
 	const name = state.transport && state.transport["native-messaging"] && state.transport["native-messaging"].name;
 	const capture = lrCaptureForExport(state);
 	// TODO check that response to the same request received
-	await lrSendMessage("export.process", [ capture, { method: "native-messaging", backend: name } ]);
+	const response = await lrSendMessage(
+		"export.process", [ capture, { method: "native-messaging", backend: name } ]);
+	const { error, debugInfo } = response || {};
+	if (error) {
+		lrPreviewLogException({ dispatch, getState }, {
+			message: "A problem during native app export",
+			error, debugInfo,
+		});
+	} else if (debugInfo) {
+		lrDebugInfoAdd(debugInfo);
+	}
+	return response.result;
 }
 
 async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
@@ -342,8 +353,20 @@ function lrMakeUpdateProjectionAction(format) {
 			debug("updating");
 			const options = currentProjection && currentProjection.options &&
 				JSON.parse(currentProjection.options);
-			const newCapture = await lrSendMessage("export.format",
-				[ capture, { format, version: LR_PM_DEFAULT_FORMAT_VERSIONS[format], options } ]);
+			const { capture: newCapture, error, debugInfo } =
+				await lrSendMessage(
+					"export.format",
+					[ capture, { format, version: LR_PM_DEFAULT_FORMAT_VERSIONS[format], options } ]
+				) || {};
+			if (error) {
+				lrPreviewLogException(
+					{ dispatch, getState }, {
+						message: `A problem during formatting to ${format}`,
+						error, debugInfo
+					});
+			} else if (debugInfo) {
+				lrDebugInfoAdd(debugInfo);
+			}
 			return dispatch(gLrPreviewActions.captureResult(newCapture));
 		} catch (ex) {
 			console.error("lrUpdateProjectionAction: %o", ex);
@@ -1007,13 +1030,13 @@ const gLrPreviewLog = {
 function lrPreviewLogException(store, data) {
 	console.error("lrPreviewLogException: %o", data);
 	try {
-		const { message, error, id } = data || {
+		const { message, error, id, debugInfo } = data || {
 			message: "Internal error",
 			error: new Error("Attempt to log nothing"),
 		};
 
 		try {
-			lrDebugInfoAdd(error);
+			lrDebugInfoAdd(debugInfo || error);
 			lrDebugInfoExpand();
 		} catch (ex) {
 			console.error("lrPreviewLogException: internal error: debug info: %o", ex);
