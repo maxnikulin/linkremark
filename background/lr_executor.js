@@ -32,6 +32,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		makeNested() {
 			return this;
 		}
+		addContextObject(_object) {}
 		async error(err) {
 			console.error("lr_executor.LrNullNotifier.error: %o", err);
 		}
@@ -46,6 +47,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		async start(params) {
 			return await this.startContext(null, params);
 		}
+		/// TODO: Should be called through LrExecutor, not directly.
 		async startContext(tab, params) {
 			try {
 				let tabId, url;
@@ -112,6 +114,13 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				console.warn("LrBrowserActionNotifier.makeNested: unknown arguments: %o %o", contextId, contextObject);
 			}
 			return this;
+		}
+
+		addContextObject(object) {
+			if (this.defaultContext == null) {
+				return;
+			}
+			this.contextObjects.set(object, this.defaultContext);
 		}
 
 		async error(error) {
@@ -195,8 +204,8 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 	class LrExecutor {
 		constructor(params) {
 			const { notifier, parent } = params || {}
-			this.notifier = notifier
-			this.parent = parent
+			this.notifier = notifier || new LrNullNotifier();
+			this.parent = parent;
 			this.debugInfo = [];
 		}
 
@@ -266,14 +275,10 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				if (!(finalize > 0)) {
 					child.finalized = true;
 					const error = child.ownError();
-					if (error) {
-						if (typeof this._errors === 'undefined') {
-							this._errors = this._errors;
-							this._aggregateError = new LrTmpAggregateError(this._errors);
-						}
-						this._errors.push(error);
+					this.addError(error);
+					if (this.notifier.defaultContext !== notifier.defaultContext) {
+						notifier.error(ex || error);
 					}
-					notifier.error(ex || error);
 				}
 				return result;
 			};
@@ -286,10 +291,30 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 							throw ex;
 						});
 				}
-				return this.step({ children: child.debugInfo, ...descr }, func, ...args);
-			} finally {
-				child_copyError();
+				return child_copyError(this.step({ children: child.debugInfo, ...descr }, func, ...args));
+			} catch (ex) {
+				child_copyError(undefined, ex);
+				throw ex;
 			}
+		}
+
+		addContextObject(object) {
+			try {
+				this.notifier.addContextObject(object);
+			} catch (ex) {
+				console.error("LrExecutor.addContextObject: ignored error: %o", ex);
+			}
+		}
+
+		addError(err) {
+			if (err == null) {
+				return;
+			}
+			if (this._errors === undefined) {
+				this._errors = [];
+				this._aggregateError = new LrTmpAggregateError(this._errors);
+			}
+			this._errors.push(err);
 		}
 
 		totalError() {
@@ -342,19 +367,15 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				switch(descr.errorAction) {
 					case lr_executor.ERROR_IS_WARNING:
 						console.warn("LrExecutor: %o %o", descr.step, ex);
-						if (this._errors === undefined) {
-							this._errors = [];
-							this._aggregateError = new LrTmpAggregateError(this._errors);
-						}
 						let warn = ex;
 						if (!lr_common.isWarning(ex)) {
-							if (ex.errors) {
+							if (ex.errors && ex.toWarning) {
 								ex.toWarning();
 							} else {
 								warn = new LrWarning(undefined, { cause: ex });
 							}
 						}
-						this._errors.push(warn);
+						this.addError(warn);
 						return;
 					case lr_executor.IGNORE_ERROR:
 						console.log("LrExecutor: ignored error: %o", ex);
