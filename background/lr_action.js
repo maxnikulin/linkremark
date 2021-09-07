@@ -46,7 +46,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return status;
 		}
 
-		return lr_executor.LrExecutor.run(
+		const retval = lr_executor.LrExecutor.run(
 			{
 				notifier: new lr_executor.LrBrowserActionNotifier(),
 				oninit: {
@@ -62,6 +62,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				},
 			},
 			func, ...args);
+		const error = retval && retval.exception;
+		if (error && !lr_common.isWarning(error)) {
+			throw error;
+		}
 	}
 
 	this.createMenu = function() {

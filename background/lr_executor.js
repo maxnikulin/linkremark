@@ -458,6 +458,11 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			} catch (e) {
 				console.error("LrExecutor.run.saveTotalError: ignored error: %o", e);
 			}
+			Object.defineProperty(executor.result, "exception", {
+				configurable: true,
+				enumerable: false,
+				value: ex
+			});
 			return ex;
 		}
 
@@ -494,7 +499,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			} catch (ignoredEx) {
 				console.error("LrExecutor.run: ignored error: notify error: %o", ignoredEx);
 			}
-			throw ex;
+			return executor.result;
 		}
 
 		try {
@@ -522,7 +527,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			console.error("LrExecutor.run: ignored error: notify completed: %o", ex);
 		}
 
-		return result;
+		return executor.result;
 	};
 
 	Object.assign(lr_executor, {
