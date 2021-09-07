@@ -18,7 +18,7 @@
 "use strict";
 
 var lr_clipboard = function() {
-	async function lrCopyToClipboard(capture, options = null) {
+	async function lrCopyToClipboard(capture, options = null, executor) {
 		let { tab, format, version, usePreview, error, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for clipboard export');
@@ -30,7 +30,13 @@ var lr_clipboard = function() {
 			version = lr_settings.getOption("export.methods.clipboard.formatterVersion");
 		}
 
-		const note = lr_export.format(capture, { format, version, options: formatterOptions, recursionLimit: 4 });
+		const note = executor.step(
+			function formatForClipboard(capture, options, executor) {
+				return lr_export.format(capture, options, executor);
+			},
+			capture,
+			{ format, version, options: formatterOptions, recursionLimit: 4 },
+			/* executor implicit argument */);
 		if (!note) {
 			throw new Error(`Formatter ${format}-${version} returned empty result`);
 		}
@@ -42,21 +48,27 @@ var lr_clipboard = function() {
 			return { previewTab: tab, preview: true, previewParams: null };
 		}
 		const strategyOptions = { tab };
-		return await lrClipboardAny(capture, strategyOptions);
+		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
-	async function lrLaunchOrgProtocolHandler(capture, options = {}) {
+	async function lrLaunchOrgProtocolHandler(capture, options = {}, executor) {
 		let { tab, usePreview, error, ...formatterOptions } = options || {};
 		if (tab == null) {
 			throw new Error('"tab" option object is required for org-protocol export');
 		}
 
-		const note = lr_export.format(capture, {
-			format: "org-protocol",
-			version: lr_export.ORG_PROTOCOL_VERION,
-			options: formatterOptions,
-			recursionLimit: 4
-		});
+		const note = executor.step(
+			function formatForOrgProtocol(capture, options, executor) {
+				return lr_export.format(capture, options, executor);
+			},
+			capture,
+			{
+				format: "org-protocol",
+				version: lr_export.ORG_PROTOCOL_VERION,
+				options: formatterOptions,
+				recursionLimit: 4,
+			},
+			/* executor implicit argument */);
 		if (!note) {
 			throw new Error(`Formatter ${format}-${version} returned empty result`);
 		}
@@ -68,7 +80,7 @@ var lr_clipboard = function() {
 			return { previewTab: tab, preview: true, previewParams: null };
 		}
 		const strategyOptions = { tab, skipBackground: true };
-		return await lrClipboardAny(capture, strategyOptions);
+		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
 	/* Does not work for privileged content.

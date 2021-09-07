@@ -26,18 +26,27 @@ var lr_native_messaging = function() {
 		return hello;
 	}
 
-	async function lrSendToNative(capture, params) {
+	async function lrSendToNative(capture, params, executor) {
 		const { error, tab, ...connectionParams } = params || {};
-		const { backend, connection, hello } = await connectionWithHello(connectionParams);
+		const { backend, connection, hello } = await executor.step(
+			{ result: true }, connectionWithHello, connectionParams);
 		try {
 			if (!hello.format || !hello.version) {
 				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
 			}
 			const {format, version, options} = hello;
 			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
-			const data = lr_export.format(capture, { ...hello, recursionLimit: 4 });
+			const data = executor.step(
+				function formatForNativeApp(capture, options, executor) {
+					return lr_export.format(capture, options, executor);
+				},
+				capture, { ...hello, recursionLimit: 4 } /*, executor implicit argument */);
 			capture.transport.method = "native-messaging";
-			let result = await connection.send("capture", {data, error, format, version, options});
+			let result = await executor.step(
+				async function sendToNativeApp(object) {
+					return await connection.send("capture", object);
+				},
+				{data, error, format, version, options});
 			if (typeof result === 'boolean') {
 				result = { preview: !result }
 			}

@@ -419,9 +419,9 @@ async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
 		};
 	});
 	const { url, title } = frameTab;
-	return {
-		body, url, title,
-	};
+	const tabCapture = { body, url, title, };
+	executor.addContextObject(body);
+	return tabCapture;
 }
 
 /**

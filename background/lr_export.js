@@ -49,7 +49,7 @@ var lr_export = function() {
 		lr_export.registerFormat({
 			format: "org",
 			version: "0.2",
-			formatter: function lrFormatOrg(capture, _options) {
+			formatter: function lrFormatOrg(capture, _options, executor) {
 				const src = lr_export.findFormat(capture, {
 					format: lr_tabframe.FORMAT,
 					version: lr_tabframe.VERSION,
@@ -57,7 +57,7 @@ var lr_export = function() {
 				if (src == null) {
 					throw new Error('No result in "object" format');
 				}
-				const result = lr_format_org.format(src.body);
+				const result = lr_format_org.format(src.body, executor);
 				result.src = src.id;
 				return result;
 			},
@@ -81,9 +81,9 @@ var lr_export = function() {
 				template: "export.methods.orgProtocol.template",
 				clipboardForBody: "export.methods.orgProtocol.clipboardForBody",
 			},
-			formatter: function lrFormatOrgProtocol(result, options) {
+			formatter: function lrFormatOrgProtocol(result, options, executor) {
 				const { template, clipboardForBody, ...formatOptions } = options;
-				const src = lr_export.format(result, formatOptions);
+				const src = lr_export.format(result, formatOptions, executor);
 				const { url, body, title } = src;
 				const arg = {
 					template,
@@ -102,7 +102,7 @@ var lr_export = function() {
 		});
 	};
 
-	this.process = async function(result, options = null) {
+	this.process = async function(result, options = null, executor) {
 		let {method, ...otherOptions} = options || {};
 		if (method == null) {
 			method = lr_settings.getOption("export.method");
@@ -111,7 +111,7 @@ var lr_export = function() {
 		if (descriptor == null) {
 			throw new Error(`lr_export: Export method ${method} unknown`);
 		}
-		return await descriptor.handler(result, otherOptions);
+		return await descriptor.handler(result, otherOptions, executor);
 	};
 
 	this.requestPermissions = async function() {
@@ -146,11 +146,12 @@ var lr_export = function() {
 	};
 
 	// RPC endpoint called from preview page, so converts Object to LrMeta.
+	// TODO: return result + totalError
 	this.processMessage = async function([ capture, options ]) {
 		if (capture == null) {
 			throw new Error("No capture data");
 		}
-		return await this.process(this._restoreMeta(capture), options);
+		return await this.process(this._restoreMeta(capture), options, new lr_executor.LrExecutor());
 	}
 
 	/** Register `formatter(resultObj, options) => { body, title, url}`
@@ -213,7 +214,7 @@ var lr_export = function() {
 		return result;
 	};
 
-	this.format = function(capture, formatOptions) {
+	this.format = function(capture, formatOptions, executor) {
 		const { format, version } = formatOptions;
 		let { recursionLimit} = formatOptions;
 		if (!(recursionLimit-- > 0)) {
@@ -235,7 +236,7 @@ var lr_export = function() {
 		}
 
 		const ready = lr_export.findFormat(capture, { format, version, options });
-		const result = ready || versionInfo.formatter(capture, { ...options, recursionLimit });
+		const result = ready || versionInfo.formatter(capture, { ...options, recursionLimit }, executor);
 		result.id = result.id || bapiGetId();
 		const resultOptions = result.options || options;
 		if (resultOptions) {
@@ -248,10 +249,12 @@ var lr_export = function() {
 		return result;
 	};
 
+	// TODO: return result + totalError
 	this.formatMessage = function(args) {
+		const executor = new lr_executor.LrExecutor();
 		const [ capture, options ] = args;
 		const meta = this._restoreMeta(capture);
-		this.format(meta, { ...options, recursionLimit: 5 });
+		this.format(meta, { ...options, recursionLimit: 5 }, executor);
 		return meta;
 	};
 

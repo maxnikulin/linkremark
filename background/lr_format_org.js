@@ -815,7 +815,7 @@ function lr_format_org_tab_frame_chain(object) {
 	return result;
 }
 
-function lr_format_org_tab_group(object) {
+function lr_format_org_tab_group(object, executor) {
 	const { _type, elements } = object || {};
 	if (_type !== "TabGroup") {
 		throw new TypeError(`lr_format_org_tab_group: type "${String(_type)}" !== "TabGroup"`);
@@ -826,7 +826,7 @@ function lr_format_org_tab_group(object) {
 
 	const title = [ "Tab group", lr_org_buffer.LrOrgWordSeparator, new Date() ];
 	const children = [];
-	let failures = 0;
+	const errors = [];
 	let formattedTabs = 0;
 	for (const tab of elements) {
 		try {
@@ -836,49 +836,66 @@ function lr_format_org_tab_group(object) {
 					children.push(lr_org_buffer.LrOrgSeparatorLine, ...tab.elements);
 					break;
 				case "TabFrameChain":
-					children.push(lr_org_buffer.LrOrgSeparatorLine, lr_format_org_tab_frame_chain(tab).tree);
+					children.push(
+						lr_org_buffer.LrOrgSeparatorLine,
+						executor.child(
+							{ contextObject: tab, },
+							lr_format_org_tab_frame_chain,
+							tab
+						).tree);
 					++formattedTabs;
 					break;
 				default:
 					throw new TypeError(`lr_format_org_tab_group: unknown element type ${String(type)}`);
 			}
 		} catch (ex) {
-			++failures;
-			// TODO AggregateError
+			errors.push(ex);
 			console.error("lr_format_org_tab_group: continue despite error: %o", ex);
 		}
 	}
-	if (!(formattedTabs > 0)) {
-		throw new Error("lr_format_org_tab_group: no tabs were successfully formatted");
-	}
-	if (failures > 0) {
-		children.unshift(`Formatting of ${failures} tabs failed`, lr_org_buffer.LrOrgSeparatorLine);
-	}
+	executor.step(
+		function checkForTabFormattingErrors(children, formattedTabs, errors, executor) {
+			const failures = errors.length;
+			if (!(formattedTabs > 0)) {
+				const message = "No successfully formatted tabs";
+				if (failures > 0) {
+					throw new LrAggregateError(errors, message);
+				} else {
+					throw new Error(message);
+				}
+			}
+			if (failures > 0) {
+				children.unshift(`Formatting of ${failures} tabs failed`, lr_org_buffer.LrOrgSeparatorLine);
+				executor.addError(new LrAggregateWarning(errors, "Formatting of some tabs failed"));
+			}
+		}, children, formattedTabs, errors);
 
 	const tree = new lr_org_tree.LrOrgHeading({ heading: title }, ...children);
 	return { title, tree };
 }
 
-lr_format_org.format = function (object) {
-	if (!object) {
-		throw new Error("Capture failed");
+Object.assign(lr_format_org, {
+	format(object, executor) {
+		if (!object) {
+			throw new Error("Capture failed");
+		}
+		let handler;
+		switch (object._type) {
+			case "TabFrameChain":
+				handler = lr_format_org_tab_frame_chain;
+				break;
+			case "TabGroup":
+				handler = lr_format_org_tab_group;
+				break;
+		}
+		if (!handler) {
+			throw new TypeError(`lr_format_org: unsupported type "${object._type}"`);
+		}
+		const { url, title, tree } = handler(object, executor);
+		return {
+			url,
+			title: lr_org_tree.toPlainText(title),
+			body: lr_org_tree.toText(tree),
+		};
 	}
-	let handler;
-	switch (object._type) {
-		case "TabFrameChain":
-			handler = lr_format_org_tab_frame_chain;
-			break;
-		case "TabGroup":
-			handler = lr_format_org_tab_group;
-			break;
-	}
-	if (!handler) {
-		throw new TypeError(`lr_format_org: unsupported type "${object._type}"`);
-	}
-	const { url, title, tree } = handler(object);
-	return {
-		url,
-		title: lr_org_tree.toPlainText(title),
-		body: lr_org_tree.toText(tree),
-	};
-}
+});

@@ -360,11 +360,11 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			executor);
 
 		return await executor.step(
-			async function exportActionResult(capture, options, error) {
+			async function exportActionResult(capture, options, error, executor) {
 				if (error != null) {
 					options = { ...options, error };
 				}
-				return await lr_export.process(capture, options);
+				return await lr_export.process(capture, options, executor);
 			},
 			capture, { tab: activeTab }, error);
 	}
