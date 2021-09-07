@@ -17,12 +17,14 @@
 
 "use strict";
 
-var lr_export = function() {
+/// `lr_export` is a global object rather than a namespace of free functions.
+var lr_export = lr_util.namespace(lr_export, function lr_export() {
+	var lr_export = this;
 	this.ORG_PROTOCOL_VERION = "0.2";
 	this.formatMap = new Map();
 	this.methodMap = new Map();
 
-	this.initAsync = async function() {
+	async function initAsync() {
 		lr_settings.registerGroup({
 			name: "export",
 			title: "Communication Channel",
@@ -45,7 +47,7 @@ var lr_export = function() {
 	};
 
 
-	this.initSync = function() {
+	function initSync() {
 		lr_export.registerFormat({
 			format: "org",
 			version: "0.2",
@@ -102,7 +104,7 @@ var lr_export = function() {
 		});
 	};
 
-	this.process = async function(result, options = null, executor) {
+	async function process(result, options = null, executor) {
 		let {method, ...otherOptions} = options || {};
 		if (method == null) {
 			method = lr_settings.getOption("export.method");
@@ -114,7 +116,7 @@ var lr_export = function() {
 		return await descriptor.handler(result, otherOptions, executor);
 	};
 
-	this.requestPermissions = async function() {
+	async function requestPermissions() {
 		const method = lr_settings.getOption("export.method");
 		const descriptor = this.methodMap.get(method);
 		if (descriptor == null) {
@@ -135,7 +137,7 @@ var lr_export = function() {
 	};
 
 	// For RPC endpoints
-	this._restoreMeta = function(capture) {
+	function _restoreMeta(capture) {
 		for (const key of Object.keys(capture.formats)) {
 			const projection = capture.formats[key];
 			if (projection.format === "object" && projection.body) {
@@ -146,13 +148,13 @@ var lr_export = function() {
 	};
 
 	// RPC endpoint called from preview page, so converts Object to LrMeta.
-	this.processMessage = async function([ capture, options ]) {
+	async function processMessage([ capture, options ]) {
 		return await lr_executor.LrExecutor.run(
 			async function exportRpcEndpoint(capture, options, executor) {
 				if (capture == null) {
 					throw new Error("No capture data");
 				}
-				const meta = executor.step(lr_export._restoreMeta, capture);
+				const meta = executor.step(_restoreMeta, capture);
 				executor.result.result = await executor.step(
 					async function runExporter(meta, options, executor) {
 						return lr_export.process(meta, options, executor);
@@ -170,7 +172,7 @@ var lr_export = function() {
 	 * `settingName` in `options` descriptor is used to get current setting value
 	 * effective if no such option is passed explicitly.
 	 */
-	this.registerFormat = function({format, version, formatter, options, override}) {
+	function registerFormat({format, version, formatter, options, override}) {
 		lr_util.assertFunction(
 			formatter, 'registerFormat "formatter" argument must be callable');
 		let versionMap = this.formatMap.get(format);
@@ -184,7 +186,7 @@ var lr_export = function() {
 		versionMap.set(version, { formatter, options });
 	};
 
-	this.registerMethod = function(options) {
+	function registerMethod(options) {
 		const { method } = options;
 		lr_util.assertAsyncFunction(
 			options.handler, 'export: registerMethod "handler" argument must be callable');
@@ -194,11 +196,11 @@ var lr_export = function() {
 		this.methodMap.set(method, options);
 	};
 
-	this.getAvailableMethods = function() {
+	function getAvailableMethods() {
 		return [...this.methodMap.keys()];
 	};
 
-	this.getAvailableFormats = function() {
+	function getAvailableFormats() {
 		const result = [];
 		for (const [format, versionMap] of this.formatMap.entries()) {
 			if (!(versionMap && versionMap.size > 0)) {
@@ -222,7 +224,7 @@ var lr_export = function() {
 		return result;
 	};
 
-	this.format = function(capture, formatOptions, executor) {
+	function format(capture, formatOptions, executor) {
 		const { format, version } = formatOptions;
 		let { recursionLimit} = formatOptions;
 		if (!(recursionLimit-- > 0)) {
@@ -257,11 +259,11 @@ var lr_export = function() {
 		return result;
 	};
 
-	this.formatMessage = function(args) {
+	function formatMessage(args) {
 		return lr_executor.LrExecutor.run(
 			function formatRpcEndpoint(args, executor) {
 				const [ capture, options ] = args;
-				const meta = executor.step(lr_export._restoreMeta, capture);
+				const meta = executor.step(_restoreMeta, capture);
 				executor.step(
 						function runFormatter(meta, options, executor) {
 						lr_export.format(meta, options, executor);
@@ -272,7 +274,7 @@ var lr_export = function() {
 			args);
 	};
 
-	this.findFormat = function(capture, { format, version, options }) {
+	function findFormat(capture, { format, version, options }) {
 		const optionsJson = JSON.stringify(options || {});
 		for (
 			let projection, { captureId } = capture.transport;
@@ -291,5 +293,21 @@ var lr_export = function() {
 		return null;
 	};
 
+	Object.assign(this, {
+		findFormat,
+		format,
+		formatMessage,
+		getAvailableFormats,
+		getAvailableMethods,
+		initAsync,
+		initSync,
+		process,
+		processMessage,
+		registerFormat,
+		registerMethod,
+		requestPermissions,
+		internal: { _restoreMeta },
+	});
+
 	return this;
-}.call(lr_export || {});
+});
