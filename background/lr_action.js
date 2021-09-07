@@ -21,7 +21,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	var lr_action = this;
 	const PREVIEW = "PREVIEW";
 
-	function run(func, ...args) {
+	async function run(func, ...args) {
 		function lr_action_run_putResultToStore(executor) {
 			gLrRpcStore.putResult(executor.result);
 		}
@@ -46,7 +46,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return status;
 		}
 
-		const retval = lr_executor.LrExecutor.run(
+		const retval = await lr_executor.LrExecutor.run(
 			{
 				notifier: new lr_executor.LrBrowserActionNotifier(),
 				oninit: {
