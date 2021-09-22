@@ -160,14 +160,24 @@ function lrPmCaptureUpdate(origCapture, updateCapture) {
 	if (updateCapture == null) {
 		return origCapture;
 	}
-	let { transport } = updateCapture;
+	let { transport, formats: updateFormats } = updateCapture;
+	if (
+		transport == null || transport.captureId == null
+		|| updateFormats == null || updateFormats[transport.captureId] == null
+	) {
+		lrPreviewLogException(null, {
+			message: "Internal error",
+			error: new Error("Invalid capture object"),
+		});
+		return origCapture;
+	}
 	const current = { ...(origCapture.current || {}) };
 	const formats = { ...(origCapture.formats || {}) };
 	let adjust = bapiGetId();
 	const updated = new Set();
 	for (
 		let projection, projectionId = transport && transport.captureId;
-		null != (projection = projectionId && updateCapture.formats[projectionId]);
+		null != (projection = projectionId && updateFormats[projectionId]);
 		projectionId = projection.src
 	) {
 		const { format } = projection;
