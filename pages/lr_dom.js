@@ -17,6 +17,10 @@
 
 "use strict";
 
+function byId(id) {
+	return document.getElementById(id);
+}
+
 function E(tagName, attrs, ...children) {
 	const e = document.createElement(tagName);
 	for (const [attr, value] of Object.entries(attrs || {})) {

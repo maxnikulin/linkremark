@@ -17,10 +17,6 @@
 
 "use strict";
 
-function byId(id) {
-	return document.getElementById(id);
-}
-
 /** Do not omit undefined values, convert them to to `null` */
 function jsonStringify(obj) {
 	return JSON.stringify(obj, (k, v) => v !== undefined ? v : null, "  ");
