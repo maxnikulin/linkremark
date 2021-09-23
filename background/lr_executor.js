@@ -221,10 +221,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 
 		get result() {
-			let top = this;
-			for ( ; top.parent != null ; top = top.parent) {
-				;
-			}
+			const top = this._getTop();
 			if (!top._result) {
 				top._result = { debugInfo: top.debugInfo };
 			}
@@ -405,6 +402,16 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				console.error("LrExecutor internal error: %o %o", e, ex);
 			}
 			throw ex;
+		}
+
+		_getTop() {
+			let top = this;
+			let upper = this;
+			do {
+				top = upper;
+				upper = top.parent;
+			} while (upper != null);
+			return top;
 		}
 	}
 
