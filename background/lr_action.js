@@ -122,7 +122,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	this.createMenuItem = function(details, error_cb = null) {
 		return bapi.contextMenus.create(details, function lrCreateMenuCallback() {
 			if (bapi.runtime.lastError) {
-				console.error("LR: createMenu", details, bapi.runtime.lastError);
+				console.error("LR: createMenu %o %o", details, bapi.runtime.lastError);
 			}
 			if (error_cb) {
 				error_cb();

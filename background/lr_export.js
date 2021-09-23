@@ -262,6 +262,9 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	function formatMessage(args) {
 		return lr_executor.run(
 			function formatRpcEndpoint(args, executor) {
+				if (args == null) {
+					throw new TypeError("Internal error, [capture, options] argument expected");
+				}
 				const [ capture, options ] = args;
 				const meta = executor.step(_restoreMeta, capture);
 				lr_export.format(meta, { ...options, recursionLimit: 5 }, executor);
