@@ -201,6 +201,17 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 	}
 
+	function _normArgs(func, ...args) {
+		let descr;
+		if (!lr_util.isFunction(func) && !lr_util.isAsyncFunction(func)) {
+			descr = func;
+			func = args.shift();
+		}
+		descr = descr || {};
+		descr.step = descr.step || (func && func.name);
+		return [descr, func, args];
+	};
+
 	class LrExecutor {
 		constructor(params) {
 			const { notifier, parent } = params || {}
@@ -221,7 +232,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 
 		step(maybeDescr, ...funcAndArgs) {
-			const [descr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
+			const [descr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 			if (lr_util.isAsyncFunction(func)) {
 				return this._asyncStep(descr, func, ...args);
 			}
@@ -264,7 +275,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 
 		child(maybeDescr, ...funcAndArgs) {
-			let [fullDescr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
+			let [fullDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 			const { contextId, contextObject, ...descr } = fullDescr;
 			const notifier = this.notifier.makeNested({ id: contextId, object: contextObject });
 			const child = new LrExecutor({ parent: this, notifier, });
@@ -397,19 +408,8 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 	}
 
-	LrExecutor._normArgs = function _normArgs(func, ...args) {
-		let descr;
-		if (!lr_util.isFunction(func) && !lr_util.isAsyncFunction(func)) {
-			descr = func;
-			func = args.shift();
-		}
-		descr = descr || {};
-		descr.step = descr.step || (func && func.name);
-		return [descr, func, args];
-	};
-
 	LrExecutor.run = async function run(maybeDescr, ...funcAndArgs) {
-		const [runDescr, func, args] = LrExecutor._normArgs(maybeDescr, ...funcAndArgs);
+		const [runDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 		let { notifier, oninit, oncompleted, onerror,  ...callDescr } = runDescr;
 		notifier = notifier || new LrNullNotifier();
 		const executor = new LrExecutor({ notifier });
@@ -534,6 +534,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		LrBrowserActionNotifier,
 		LrExecutor,
 		LrNullNotifier,
+		_normArgs,
 	});
 
 	return lr_executor;
