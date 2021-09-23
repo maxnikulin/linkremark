@@ -290,9 +290,13 @@ var gLrMentionsActions = {
 			if (!hasPermission) {
 				throw new Error("Request for native messaging permission is rejected");
 			}
-			const result = await lrSendMessage("nativeMessaging.mentions", [ { backend, variants } ]);
-			dispatch(gLrMentionsActions.mentionsResult(result));
-			dispatch(gLrPreviewLog.finished({ id, message: "Check mentions completed." }));
+			const response = await lrSendMessage("nativeMessaging.mentions", [ { backend, variants } ]);
+			dispatch(gLrMentionsActions.mentionsResult(response.result));
+			if (response.error) {
+				lrPreviewLogException({ dispatch, getState }, { ...response, id });
+			} else {
+				dispatch(gLrPreviewLog.finished({ id, message: "Check mentions completed." }));
+			}
 		} catch (error) {
 			lrPreviewLogException({ dispatch, getState }, { id, error });
 		}

@@ -20,16 +20,86 @@
 var lr_native_messaging = function() {
 	const TIMEOUT = 3000;
 
+	class LrSerialQueryNativeConnection extends LrNativeConnection {
+		constructor(backend, executor) {
+			super(backend);
+			this._lock = executor && executor.lock;
+		}
+
+		withTimeout(timeout) {
+			return Object.create(this, { _timeout: {
+				value: timeout,
+				enumerable: true,
+				writable: false,
+			} });
+		}
+
+		async send(method, params) {
+			const promises = [
+				super.send(method, params),
+				this._getAbortPromise(),
+			];
+			let timeoutId;
+			if (this._timeout >= 0) {
+				promises.push(new Promise((_, reject) => timeoutId = setTimeout(() => {
+					this.disconnect();
+					reject(new Error("Timeout"));
+					timeoutId = undefined;
+				}, this._timeout)));
+			}
+			const retval = Promise.race(promises);
+			if (timeoutId !== undefined) {
+				function cancelTimeout() {
+					if (timeoutId !== undefined) {
+						clearTimeout(timeoutId);
+					}
+				}
+				retval.then(cancelTimeout, cancelTimeout);
+			}
+			return retval;
+		}
+
+		async _getAbortPromise() {
+			if (this._abortPromise === undefined) {
+				try {
+					const lock = await this._lock;
+					if (lock != null) {
+						this._abortPromise = lock.abortPromise.catch(ex => {
+							this.disconnect(); throw ex;
+						});
+					}
+				} catch (ex) {
+					if (
+						typeof lr_actionlock !== undefined
+						&& ex instanceof lr_actionlock.LrActionLockCancelledError
+					) {
+						throw ex;
+					}
+					console.error("LrSerialQueryNativeConnection: %o", ex);
+				}
+			}
+			if (this._abortPromise === undefined) {
+				console.warn("LrSerialQueryNativeConnection.send: not cancellable");
+				this._abortPromise = new Promise((_resilve, _reject) => /* never */ undefined);
+			}
+			return this._abortPromise;
+		}
+	}
+
 	async function hello(params) {
-		const { connection, hello } = await connectionWithHello(params);
-		connection.disconnect();
-		return hello;
+		 return await lr_executor.run(
+			async function lrNativeAppHello(params, executor) {
+				const { connection, hello } = await connectionWithHello(params, executor);
+				connection.disconnect();
+				return hello;
+			},
+			params);
 	}
 
 	async function lrSendToNative(capture, params, executor) {
 		const { error, tab, ...connectionParams } = params || {};
 		const { backend, connection, hello } = await executor.step(
-			{ result: true }, connectionWithHello, connectionParams);
+			connectionWithHello, connectionParams);
 		try {
 			if (!hello.format || !hello.version) {
 				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
@@ -76,18 +146,19 @@ var lr_native_messaging = function() {
 	 * There is no way to ensure resource release in JS. Even generators
 	 * may be destroyed without executing of `finally`.
 	 */
-	async function connectionWithHello(params) {
-		const timeout = params && params.timeout;
+	async function connectionWithHello(params, executor) {
+		const timeout = (params && params.timeout) || TIMEOUT;
 		const backend = _getBackend(params);
-		const connection = new LrNativeConnection(backend);
+		const connection = new LrSerialQueryNativeConnection(backend, executor);
 		try {
-			const hello = await Promise.race([
-				connection.send("hello", {
-					formats: lr_export.getAvailableFormats(),
-					version: bapi.runtime.getManifest().version,
-				}),
-				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout || TIMEOUT)),
-			]);
+			const hello = await executor.step(
+				{ result: true },
+				async function nativeAppHello() {
+					return await connection.withTimeout(timeout).send("hello", {
+						formats: lr_export.getAvailableFormats(),
+						version: bapi.runtime.getManifest().version,
+					});
+			});
 			if (!hello || typeof hello !== 'object') {
 				throw new Error('Response to "hello" is not an key-value Object');
 			}
@@ -145,13 +216,13 @@ var lr_native_messaging = function() {
 		return !obj.drop ? obj : null;
 	}
 
-	async function _queryMentions(queryArray, params) {
+	async function _queryMentions(queryArray, params, executor) {
 		const hasPermissions = await bapi.permissions.contains(
 			{ permissions: [ "nativeMessaging" ] });
 		if (!hasPermissions) {
 			return { response: "NO_PERMISSIONS" };
 		}
-		const { backend, connection, hello } = await connectionWithHello(params);
+		const { backend, connection, hello } = await connectionWithHello(params, executor);
 		try {
 			if (
 				!hello.capabilities || !hello.capabilities.indexOf
@@ -191,13 +262,13 @@ var lr_native_messaging = function() {
 		}
 	}
 
-	async function mentions(obj, params) {
+	async function mentions(obj, params, executor) {
 		const queryArray = [];
 		_queryArrayFromObject(obj, queryArray);
 		if (!(queryArray.length > 0)) {
 			return { mentions: "NO_URLS" };
 		}
-		const result = await _queryMentions(queryArray, params);
+		const result = await _queryMentions(queryArray, params, executor);
 		if (result == null) {
 			return { mentions: "INTERNAL_ERROR" };
 		} else if (typeof result.response === "string") {
@@ -208,12 +279,17 @@ var lr_native_messaging = function() {
 	}
 
 	async function mentionsEndpoint(params) {
-		const { backend, variants } = params[0];
-		const id = bapiGetId();
-		const result = await _queryMentions([ { id, variants } ], { backend });
-		const { response } = result;
-		const mentions = typeof response === "string" ? response : response.get(id);
-		return { hello: result.hello, mentions };
+		return await lr_executor.run(
+			async function checkKnownUrlsEndpoint(params, executor) {
+				const { backend, variants } = params && params[0] || {};
+				const id = bapiGetId();
+				const result = await lr_native_messaging._queryMentions(
+					[ { id, variants } ], { backend }, executor);
+				const { response } = result;
+				const mentions = typeof response === "string" ? response : response.get(id);
+				return { hello: result.hello, mentions };
+			},
+			params);
 	}
 
 	async function visitEndpoint(args) {
@@ -290,6 +366,9 @@ var lr_native_messaging = function() {
 			},
 		});
 	};
-	Object.assign(this, { hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint });
+	Object.assign(this, {
+		hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint,
+		_queryMentions,
+	});
 	return this;
 }.call(lr_native_messaging || {});

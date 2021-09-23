@@ -380,7 +380,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			async function checkKnownUrls(capture) {
 				const { body } = capture.formats[capture.transport.captureId];
 				const urlObj = lrCaptureObjectMapUrls(body);
-				return lr_native_messaging.mentions(urlObj);
+				return lr_native_messaging.mentions(urlObj, undefined, executor);
 			},
 			capture);
 
