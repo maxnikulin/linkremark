@@ -155,7 +155,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 					throw new Error("No capture data");
 				}
 				const meta = executor.step(_restoreMeta, capture);
-				executor.result.result = await executor.step(
+				return await executor.step(
 					async function runExporter(meta, options, executor) {
 						return lr_export.process(meta, options, executor);
 					},
@@ -264,14 +264,10 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 			function formatRpcEndpoint(args, executor) {
 				const [ capture, options ] = args;
 				const meta = executor.step(_restoreMeta, capture);
-				executor.step(
-						function runFormatter(meta, options, executor) {
-						lr_export.format(meta, options, executor);
-					},
-					meta, { ...options, recursionLimit: 5 } /*, executor implicit argument */);
-				executor.result.capture = meta;
+				lr_export.format(meta, { ...options, recursionLimit: 5 }, executor);
+				return meta;
 			},
-			args);
+			args  /*, executor implicit argument */);
 	};
 
 	function findFormat(capture, { format, version, options }) {

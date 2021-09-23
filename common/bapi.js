@@ -238,10 +238,14 @@ const bapiGetId = function(init) { return () => init++; } (Date.now());
  */
 async function lrSendMessage(method, params) {
 	const response = await bapi.runtime.sendMessage({ id: bapiGetId(), method, params });
-	if (response != null && "result" in response) {
-		return response.result;
-	} else if (response != null && "error" in response) {
-		throw new Error(response.error);
+	if (response != null) {
+		if (response._type === "ExecInfo") {
+			return response;
+		} else if ("result" in response) {
+			return response.result;
+		} else if ("error" in response) {
+			throw new Error(response.error);
+		}
 	}
 	console.error("lrSendMessage: invalid response", response);
 	throw new Error ("Invalid response object");

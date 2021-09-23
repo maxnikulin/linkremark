@@ -43,7 +43,11 @@ class LrRpcServer {
 		try {
 			// Unconditional async-await could add some overhead,
 			// hope, it is negligible, so does not deserve more complicated code.
-			return { id, result: await this.do_process(request, port) };
+			const result = await this.do_process(request, port);
+			if (result != null && result._type === "ExecInfo") {
+				return { id, ...result };
+			}
+			return { id, result };
 		} catch (error) {
 			console.error("LrRpcServer: %o when processing %o %o", error, request, port);
 			return { id, error: String(error && error.message || error), }

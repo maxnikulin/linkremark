@@ -220,12 +220,21 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			this.debugInfo = [];
 		}
 
-		get result() {
+		get execInfo() {
 			const top = this._getTop();
-			if (!top._result) {
-				top._result = { debugInfo: top.debugInfo };
+			let info = top._execInfo;
+			if (info === undefined) {
+				info = top._execInfo = { _type: "ExecInfo", debugInfo: top.debugInfo };
 			}
-			return top._result;
+			return info;
+		}
+
+		get result() {
+			return this.execInfo.result;
+		}
+
+		set result(value) {
+			return this.execInfo.result = value;
 		}
 
 		step(maybeDescr, ...funcAndArgs) {
@@ -417,7 +426,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 
 	async function run(maybeDescr, ...funcAndArgs) {
 		const [runDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
-		let { notifier, oninit, oncompleted, onerror,  ...callDescr } = runDescr;
+		let { notifier, oninit, oncompleted, onerror, implicitResult, ...callDescr } = runDescr;
 		notifier = notifier || new LrNullNotifier();
 		const executor = new LrExecutor({ notifier });
 
@@ -460,12 +469,12 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			}
 			try {
 				if (ex) {
-					executor.result.error = lr_util.errorToObject(ex);
+					executor.execInfo.error = lr_util.errorToObject(ex);
 				}
 			} catch (e) {
 				console.error("lr_executor.run.saveTotalError: ignored error: %o", e);
 			}
-			Object.defineProperty(executor.result, "exception", {
+			Object.defineProperty(executor.execInfo, "exception", {
 				configurable: true,
 				enumerable: false,
 				value: ex
@@ -491,13 +500,16 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			}
 
 			result = await executor.step(callDescr, func, ...args);
+			if (implicitResult !== false) {
+				executor.execInfo.result = result;
+			}
 			run_setTotalError();
 			executor.finalized = true;
 			status = await run_maybeCallback(oncompleted, result);
 		} catch (ex) {
 			ex = run_setTotalError(ex);
 			try {
-				await run_maybeCallback(onerror);
+				await run_maybeCallback(onerror, ex);
 			} catch (callbackEx) {
 				ex = run_setTotalError(callbackEx);
 			}
@@ -506,7 +518,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			} catch (ignoredEx) {
 				console.error("lr_executor.run: ignored error: notify error: %o", ignoredEx);
 			}
-			return executor.result;
+			return executor.execInfo;
 		}
 
 		try {
@@ -534,7 +546,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			console.error("lr_executor.run: ignored error: notify completed: %o", ex);
 		}
 
-		return executor.result;
+		return executor.execInfo;
 	};
 
 	Object.assign(lr_executor, {

@@ -23,7 +23,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	async function _run(func, ...args) {
 		function lr_action_run_putResultToStore(executor) {
-			gLrRpcStore.putResult(executor.result);
+			gLrRpcStore.putResult(executor.execInfo);
 		}
 
 		let previewOpen;
@@ -60,6 +60,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 						await lr_action_run_openPreview();
 					}
 				},
+				implicitResult: false,
 			},
 			func, ...args);
 		const error = retval && retval.exception;
@@ -327,12 +328,13 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	async function captureAndExportResult(activeTab, method, params, executor) {
-		const capture = executor.result.capture = await executor.step(
+		const capture = await executor.step(
 			{ result: true },
 			async function capture() {
 				return lr_tabframe.makeCapture(await executor.step(method, params, executor));
 			}
 		);
+		executor.result = { capture };
 
 		const checkUrlsResult = executor.result.mentions = await executor.step(
 			{ errorAction: lr_executor.ERROR_IS_WARNING, result: true },

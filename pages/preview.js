@@ -186,7 +186,8 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		}));
 		return;
 	}
-	const { debugInfo, capture, error, mentions } = cached || {};
+	const { debugInfo, error, result } = cached || {};
+	const { capture, mentions } = result || {};
 
 	try {
 		if (debugInfo) {
@@ -349,7 +350,7 @@ function lrMakeUpdateProjectionAction(format) {
 			debug("updating");
 			const options = currentProjection && currentProjection.options &&
 				JSON.parse(currentProjection.options);
-			const { capture: newCapture, error, debugInfo } =
+			const { result: newCapture, error, debugInfo } =
 				await lrSendMessage(
 					"export.format",
 					[ capture, { format, version: LR_PM_DEFAULT_FORMAT_VERSIONS[format], options } ]
