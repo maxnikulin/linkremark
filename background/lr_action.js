@@ -46,7 +46,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return status;
 		}
 
-		const retval = await lr_executor.LrExecutor.run(
+		const retval = await lr_executor.run(
 			{
 				notifier: new lr_executor.LrBrowserActionNotifier(),
 				oninit: {

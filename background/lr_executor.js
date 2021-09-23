@@ -408,7 +408,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 		}
 	}
 
-	LrExecutor.run = async function run(maybeDescr, ...funcAndArgs) {
+	async function run(maybeDescr, ...funcAndArgs) {
 		const [runDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 		let { notifier, oninit, oncompleted, onerror,  ...callDescr } = runDescr;
 		notifier = notifier || new LrNullNotifier();
@@ -449,14 +449,14 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 					totalError = ex;
 				}
 			} catch (e) {
-				console.error("LrExecutor.run.setTotalError: ignored error: %o", e);
+				console.error("lr_executor.run.setTotalError: ignored error: %o", e);
 			}
 			try {
 				if (ex) {
 					executor.result.error = lr_util.errorToObject(ex);
 				}
 			} catch (e) {
-				console.error("LrExecutor.run.saveTotalError: ignored error: %o", e);
+				console.error("lr_executor.run.saveTotalError: ignored error: %o", e);
 			}
 			Object.defineProperty(executor.result, "exception", {
 				configurable: true,
@@ -470,7 +470,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			// actually async
 			notifier.start();
 		} catch (ex) {
-			console.error("LrExecutor.run: ignored error: notify start: %o", ex);
+			console.error("lr_executor.run: ignored error: notify start: %o", ex);
 		}
 
 		let result;
@@ -497,7 +497,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			try {
 				notifier.error(ex);
 			} catch (ignoredEx) {
-				console.error("LrExecutor.run: ignored error: notify error: %o", ignoredEx);
+				console.error("lr_executor.run: ignored error: notify error: %o", ignoredEx);
 			}
 			return executor.result;
 		}
@@ -524,7 +524,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 					notifier.error(new LrWarning("Unsupported export status"));
 			}
 		} catch (ex) {
-			console.error("LrExecutor.run: ignored error: notify completed: %o", ex);
+			console.error("lr_executor.run: ignored error: notify completed: %o", ex);
 		}
 
 		return executor.result;
@@ -532,9 +532,12 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 
 	Object.assign(lr_executor, {
 		LrBrowserActionNotifier,
-		LrExecutor,
 		LrNullNotifier,
+		run,
 		_normArgs,
+		_internal: {
+			LrExecutor,
+		}
 	});
 
 	return lr_executor;

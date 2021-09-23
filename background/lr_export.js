@@ -149,7 +149,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 
 	// RPC endpoint called from preview page, so converts Object to LrMeta.
 	async function processMessage([ capture, options ]) {
-		return await lr_executor.LrExecutor.run(
+		return await lr_executor.run(
 			async function exportRpcEndpoint(capture, options, executor) {
 				if (capture == null) {
 					throw new Error("No capture data");
@@ -260,7 +260,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	};
 
 	function formatMessage(args) {
-		return lr_executor.LrExecutor.run(
+		return lr_executor.run(
 			function formatRpcEndpoint(args, executor) {
 				const [ capture, options ] = args;
 				const meta = executor.step(_restoreMeta, capture);
