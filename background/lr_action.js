@@ -21,7 +21,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	var lr_action = this;
 	const PREVIEW = "PREVIEW";
 
-	async function run(func, ...args) {
+	async function _run(func, ...args) {
 		function lr_action_run_putResultToStore(executor) {
 			gLrRpcStore.putResult(executor.result);
 		}
@@ -144,16 +144,19 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 					await lr_action.openSettings(tab);
 					break;
 				case "LR_FRAME_REMARK":
-					await run(singleTabAction, clickData, tab, "frame");
+					await lr_action._run(
+						lr_action._singleTabAction, clickData, tab, "frame");
 					break;
 				case "LR_IMAGE_REMARK":
-					await run(singleTabAction, clickData, tab, "image");
+					await lr_action._run(
+						lr_action._singleTabAction, clickData, tab, "image");
 					break;
 				case "LR_LINK_REMARK":
-					await run(singleTabAction, clickData, tab, "link");
+					await lr_action._run(
+						lr_action._singleTabAction, clickData, tab, "link");
 					break;
 				case "LR_TAB":
-					await run(tabGroupAction, clickData, tab);
+					await lr_action._run(tabGroupAction, clickData, tab);
 					break;
 				default:
 					throw new Error("Unknown menu item");
@@ -194,10 +197,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return null;
 	}
 
-	/// Asks export permission and calls `singleTabActionDo`.
+	/// Asks export permission and calls `_singleTabActionDo`.
 	/// Called throgh `browserAction` listener and context menu
 	/// items for frame (page), link, and image.
-	async function singleTabAction(clickData, tab, type, executor) {
+	async function _singleTabAction(clickData, tab, type, executor) {
 		const exportPermissionPromise = lr_export.requestPermissions();
 		executor.notifier.startContext(tab, { default: true });
 		await executor.step(
@@ -208,11 +211,11 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			exportPermissionPromise,
 		);
 		return await executor.step(
-			singleTabActionDo, clickData, tab, type, executor);
+			lr_action._singleTabActionDo, clickData, tab, type, executor);
 	}
 
 	/// Skips permission request. Necessary due to branches of tabGroupAction.
-	async function singleTabActionDo(clickData, tab, type, executor) {
+	async function _singleTabActionDo(clickData, tab, type, executor) {
 		const target = lr_action.clickDataToTarget(clickData, tab, type);
 		// In chromium-87 contextMenus listener gets
 		// tab.id == -1 and tab.windowId == -1 for PDF files
@@ -256,7 +259,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				exportPermissionPromise,
 			);
 			return await executor.step(
-				singleTabActionDo, clickData, tab, null, executor);
+				lr_action._singleTabActionDo, clickData, tab, null, executor);
 		}
 
 		const permissionObject = { permissions: [ "tabs"] };
@@ -280,7 +283,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			executor.notifier.startContext(tab, { default: true });
 			// Directly capture the only selected tab, it is allowed due to "activeTab" permission.
 			return await executor.step(
-				singleTabActionDo, clickData, tab, null, executor);
+				lr_action._singleTabActionDo, clickData, tab, null, executor);
 		}
 
 		await executor.step(
@@ -396,7 +399,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		 * https://bugzilla.mozilla.org/1405031
 		 * "Support additional click events for browserAction and pageAction"
 		 */
-		run(singleTabAction, onClickData, tab, null);
+		lr_action._run(lr_action._singleTabAction, onClickData, tab, null);
 	}
 
 	this.openPreview = async function(tab, params) {
@@ -439,7 +442,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	Object.assign(this, {
 		tabGroupAction,
-		internal: { PREVIEW, run,
+		_run,
+		_singleTabAction,
+		_singleTabActionDo,
+		internal: { PREVIEW,
 			getActiveTab,
 		},
 	});
