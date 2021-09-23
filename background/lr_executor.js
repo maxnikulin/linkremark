@@ -378,6 +378,20 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			}
 		}
 
+		/// Returns `Promise`. Its rejection should not be a fatal error.
+		acquireLock(title, fromBrowserActionPopup) {
+			const top = this._getTop();
+
+			if (!top.lock) {
+				// No async-await in this method to minimize impact of concurrent
+				// attempts to acquire lock for the same executor due to programming error.
+				top.lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
+			} else {
+				top.addError(new LrWarning("Internal error with action locks"));
+			}
+			return top.lock;
+		}
+
 		_onException(descr, ex) {
 			try {
 				descr.error = this._lastError !== ex ? lr_util.errorToObject(ex) : true;
@@ -482,6 +496,19 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			return ex;
 		}
 
+		function unlock(status, ex) {
+			try {
+				if (executor.lock) {
+					status = status || (ex && (lr_common.isWarning(ex) ? "warning" : "error"));
+					executor.lock.then(lock => lock.finished(status));
+				}
+			} catch (ex) {
+				console.error("lr_executor.run.unlock: ignored error: %o", ex);
+			} finally {
+				delete executor.lock;
+			}
+		}
+
 		try {
 			// actually async
 			notifier.start();
@@ -518,6 +545,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			} catch (ignoredEx) {
 				console.error("lr_executor.run: ignored error: notify error: %o", ignoredEx);
 			}
+			unlock(undefined, ex);
 			return executor.execInfo;
 		}
 
@@ -536,14 +564,19 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 					break;
 				case "preview": // fall through
 				case "warning":
-					notifier.error(new LrWarning("Export is not completely successful"));
+					notifier.error(new LrWarning("Action is not completely successful"));
+					break;
+				case "cancelled":
+					notifier.error(new LrError("Cancelled"));
 					break;
 				default:
-					console.warn("Unsupported export status: %o", status);
-					notifier.error(new LrWarning("Unsupported export status"));
+					console.warn("Unsupported action status: %o", status);
+					notifier.error(new LrWarning("Unsupported action status"));
 			}
+			unlock(status);
 		} catch (ex) {
 			console.error("lr_executor.run: ignored error: notify completed: %o", ex);
+			unlock(undefined, ex);
 		}
 
 		return executor.execInfo;

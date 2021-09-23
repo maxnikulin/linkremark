@@ -22,8 +22,19 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	const PREVIEW = "PREVIEW";
 
 	async function _run(func, ...args) {
-		function lr_action_run_putResultToStore(executor) {
-			gLrRpcStore.putResult(executor.execInfo);
+		async function lr_action_run_onError(error, executor) {
+			if (
+				typeof lr_actionlock !== undefined
+				&& error instanceof lr_actionlock.LrActionLockCancelledError
+			) {
+				return;
+			}
+			try {
+				gLrRpcStore.putResult(executor.execInfo);
+			} catch (ex) {
+				console.error("lr_action_run_onError: put result to store %o", ex);
+			}
+			await lr_action_run_openPreview();
 		}
 
 		let previewOpen;
@@ -34,6 +45,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			}
 			// TODO obtain default tab from notifier
 			previewOpen = await lr_action.openPreview(tab, params);
+			// TODO implement feedback from preview tab that capture
+			// is received before unlock
+			await new Promise((resolve) => setTimeout(() => resolve(), 500));
 		}
 
 		async function lr_action_onCompleted(result, executor) {
@@ -49,17 +63,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		const retval = await lr_executor.run(
 			{
 				notifier: new lr_executor.LrBrowserActionNotifier(),
-				oninit: {
-					// Some export methods may succeed even when result store is broken.
-					descriptor: { errorAction: lr_executor.IGNORE_ERROR },
-					func: lr_action_run_putResultToStore,
-				},
 				oncompleted: { func: lr_action_onCompleted, },
-				onerror: {
-					func: async function lr_action_run_onerror(_executor) {
-						await lr_action_run_openPreview();
-					}
-				},
+				onerror: { func: lr_action_run_onError, },
 				implicitResult: false,
 			},
 			func, ...args);
@@ -67,6 +72,26 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		if (error && !lr_common.isWarning(error)) {
 			throw error;
 		}
+	}
+
+	async function _waitLock(executor) {
+		try {
+			await executor.lock;
+		} catch (ex) {
+			if (
+				typeof lr_actionlock !== undefined
+				&& ex instanceof lr_actionlock.LrActionLockCancelledError
+			) {
+				throw ex;
+			} else {
+				executor.addError(new LrWarning("Action lock problem", { cause: ex }));
+			}
+		}
+		executor.step(
+			{ errorAction: lr_executor.IGNORE_ERROR, },
+			function storeResultToCache(executor) {
+				gLrRpcStore.putResult(executor.execInfo);
+			});
 	}
 
 	this.createMenu = function() {
@@ -146,18 +171,18 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 					break;
 				case "LR_FRAME_REMARK":
 					await lr_action._run(
-						lr_action._singleTabAction, clickData, tab, "frame");
+						lr_action._singleTabAction, clickData, tab, { type: "frame" });
 					break;
 				case "LR_IMAGE_REMARK":
 					await lr_action._run(
-						lr_action._singleTabAction, clickData, tab, "image");
+						lr_action._singleTabAction, clickData, tab, { type: "image" });
 					break;
 				case "LR_LINK_REMARK":
 					await lr_action._run(
-						lr_action._singleTabAction, clickData, tab, "link");
+						lr_action._singleTabAction, clickData, tab, { type: "link" });
 					break;
 				case "LR_TAB":
-					await lr_action._run(tabGroupAction, clickData, tab);
+					await lr_action._run(tabGroupAction, clickData, tab, null);
 					break;
 				default:
 					throw new Error("Unknown menu item");
@@ -201,9 +226,13 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	/// Asks export permission and calls `_singleTabActionDo`.
 	/// Called throgh `browserAction` listener and context menu
 	/// items for frame (page), link, and image.
-	async function _singleTabAction(clickData, tab, type, executor) {
-		const exportPermissionPromise = lr_export.requestPermissions();
+	async function _singleTabAction(clickData, tab, props, executor) {
+		const { type, fromBrowserActionPopup } = props || {};
+		const exportPermissionPromise = fromBrowserActionPopup ?
+			Promise.resolve("skip, async call from popup") :
+			lr_export.requestPermissions();
 		executor.notifier.startContext(tab, { default: true });
+		executor.acquireLock(type || "Tab", fromBrowserActionPopup);
 		await executor.step(
 			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
 			async function lrWaitExportPermissionsPromise(promise) {
@@ -211,23 +240,30 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			},
 			exportPermissionPromise,
 		);
+
 		return await executor.step(
 			lr_action._singleTabActionDo, clickData, tab, type, executor);
 	}
 
 	/// Skips permission request. Necessary due to branches of tabGroupAction.
 	async function _singleTabActionDo(clickData, tab, type, executor) {
+		// A hack to ensure that tab is known before opening preview window
+		// for previous capture.
+		let activeTabPromise = !(tab != null && tab.id >= 0) ? getActiveTab() : null;
+
+		await lr_action._waitLock(executor);
+
 		const target = lr_action.clickDataToTarget(clickData, tab, type);
 		// In chromium-87 contextMenus listener gets
 		// tab.id == -1 and tab.windowId == -1 for PDF files
 		// For commands (shrotcuts) tab is `null`.
-		const activeTab = tab && tab.id >= 0 ? tab : await getActiveTab();
+		const activeTab = activeTabPromise != null ? await activeTabPromise : tab;
 		const params = { frameTab: tab || activeTab, windowTab: activeTab, target };
 		return await executor.step(
 			captureAndExportResult, activeTab, lrCaptureSingleTab, params, executor);
 	};
 
-	async function tabGroupAction(clickData, tab, executor) {
+	async function tabGroupAction(clickData, tab, _props, executor) {
 		// Firefox-87:
 		// Do not `await` anything before `permissions.request`, otherwise
 		// user action context is lost, see
@@ -247,6 +283,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 		const exportPermissionPromise = lr_export.requestPermissions();
 
+		executor.acquireLock(!tab.highlighted ? "Tab" : "Tab Group");
 		if (!tab.highlighted) {
 			executor.notifier.startContext(tab, { default: true });
 			// Tab is neither active nor selected (highlighted). Capture just that tab.
@@ -301,6 +338,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			},
 			hasTabPermissionPromise
 		);
+
+		await lr_action._waitLock(executor);
 
 		selectedArray.forEach(selectedTab => executor.notifier.startContext(selectedTab));
 		const tabTargets = [];
@@ -442,9 +481,20 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		});
 	};
 
+	/** To be invoked from UI pages. Does not ask for permission
+	 * since works outside of user action context.
+	 * Returns `undefined` but may throw exception. */
+	async function captureCurrentTabEndpoint() {
+		// `fromBrowserActionPopup`
+		// - suppresses permissions requests,
+		// - opening popup when aquiring lock.
+		await lr_action._run(lr_action._singleTabAction, null, null, { fromBrowserActionPopup: true });
+	}
+
 	Object.assign(this, {
-		tabGroupAction,
+		captureCurrentTabEndpoint,
 		_run,
+		_waitLock,
 		_singleTabAction,
 		_singleTabActionDo,
 		internal: { PREVIEW,

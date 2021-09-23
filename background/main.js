@@ -68,9 +68,16 @@ async function lrMainAsync() {
 	gLrRpcServer.register("export.process", lr_export.processMessage.bind(lr_export));
 	gLrRpcServer.register("export.format", lr_export.formatMessage.bind(lr_export));
 	gLrRpcServer.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));
+	gLrRpcServer.register("action.captureTab", lr_action.captureCurrentTabEndpoint);
 	gLrAsyncScript = new LrAsyncScript();
 	gLrAsyncScript.register(gLrRpcServer);
 	lr_settings.register(gLrRpcServer);
+	try {
+		lr_actionlock.register(gLrRpcServer);
+	} catch (ex) {
+		console.error("lr_actionlock: %o", ex);
+		++gLrLoadErrorCount;
+	}
 	lrResetLoadingState();
 	console.debug("LR: async init completed");
 }

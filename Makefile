@@ -10,6 +10,7 @@ MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
 PAGES_SRC = pages/lr_dom.js pages/settings.html pages/settings.js 
 PAGES_SRC += pages/lr.css pages/mentions.js pages/preview.js 
 PAGES_SRC += pages/preview_model.js pages/preview.html pages/ui_events.js 
+PAGES_SRC += pages/lr_browseraction.html pages/lr_browseraction.css pages/lr_browseraction.js
 
 CONTENT_SRC += content_scripts/capture.js content_scripts/clipboard.js 
 CONTENT_SRC += content_scripts/image.js content_scripts/link.js 

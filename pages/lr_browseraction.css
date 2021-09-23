@@ -1,0 +1,91 @@
+
+/* html margin or padding cause scrollbar on appearance in Firefox-91.
+ * Experimented with html with hope to make get some decoration when
+ * popup is focused. */
+body {
+	margin: 0.5ex;
+	padding: 0.5ex;
+}
+
+/* At least in KDE and Firefox-91 it is not apparent whether new popup has focus.
+ * The following does not help: `:focus`, `:focus-within`, `focus-visible`. */
+
+h1 {
+	font-size: 1.2rem;
+	margin-block: 1ex;
+}
+
+ul.pointless {
+	list-style: none;
+	padding-left: 0px;
+	margin-block: 1ex;
+}
+
+ul#log {
+	margin-block: 0.5ex;
+	/* Do not allow errors make popup too wide */
+	max-width: 32em;
+}
+
+ul#log > li {
+	margin-block: 0.5ex;
+	padding-inline: 1ex;
+	padding-block: 0.5ex;
+}
+
+ul#status > li {
+	margin-block: 0.5ex;
+	display: flex;
+	/* column-gap: 1ex; */
+}
+
+ul#status > li > span {
+	padding-inline: 1ex;
+	padding-block: 0.5ex;
+}
+
+ul#status > li > * {
+	flex-grow: 0;
+}
+
+ul#status > li > span.statusTitle {
+	flex-grow: 1;
+}
+
+
+ul#status > li > span.statusType {
+	min-width: 5em;
+}
+
+ul#status > li > button {
+	visibility: hidden;
+}
+
+ul#status > li.cancellable > button {
+	visibility: visible;
+}
+
+div.fullWidthButtons {
+	display: flex;
+	column-gap: 1ex;
+}
+
+div.fullWidthButtons > button {
+	padding-inline: 1ex;
+	padding-block: 0.5ex;
+	min-width: 10em;
+	flex-grow: 1;
+	text-align: center;
+}
+
+li.status-running {
+	background-color: #a0ffa0;
+}
+
+li.status-pending {
+	background-color: yellow;
+}
+
+li.status-error {
+	background-color: #ffa0a0;
+}

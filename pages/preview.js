@@ -140,6 +140,21 @@ async function lrNativeMessagingAction(dispatch, getState) {
 	const state = getState();
 	const name = state.transport && state.transport["native-messaging"] && state.transport["native-messaging"].name;
 	const capture = lrCaptureForExport(state);
+	/*
+	 * Do not do it. At least in Firefox-92 it invokes `browserAction.onClicked`
+	 * listener if popup is disabled and protected by a flag in Chrome.
+	 * To have a synchronous check whether a popup is set,
+	 * it is necessary to implement subscription for set popup events.
+	/*
+	try {
+		bapi.browserAction.openPopup();
+	} catch (error) {
+		lrPreviewLogException({ dispatch, getState }, {
+			message: "A problem with export lock",
+			error, debugInfo,
+		});
+	}
+	*/
 	// TODO check that response to the same request received
 	const response = await lrSendMessage(
 		"export.process", [ capture, { method: "native-messaging", backend: name } ]);
