@@ -124,9 +124,13 @@ function bapiChrome(chrome) {
 			onClicked: asis, /*{
 				addListener: asis,
 			}, */
+			/* Hidden behind a flag in Chrome, invokes `onClicked` listeners
+			 * in Firefox-92 if popup is empty string "". */
+			openPopup: promisify,
 			setTitle: promisify,
 			setBadgeText: promisify,
 			setBadgeBackgroundColor: promisify,
+			setPopup: promisify,
 		},
 		commands: {
 			onCommand: asis /* {
@@ -151,6 +155,7 @@ function bapiChrome(chrome) {
 		},
 		runtime: {
 			lastError: asis,
+			connect: asis,
 			connectNative: asis,
 			getManifest: asis,
 			id: asis,

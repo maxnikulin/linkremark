@@ -24,9 +24,14 @@ class LrRpcError extends Error {
 class LrRpcServer {
 	constructor() {
 		this.methods = new Map();
+		this.subscriptionHandlers = new Map();
+		this.subscribed = new WeakMap();
 		// `this.process` is an async function, so other `onMessage` handlers
 		// could be ignored. It is intentional.
 		this.listener = this.process.bind(this);
+		for (const method of ["onConnectedDisconnect", "onConnect", "onConnectedMessage"]) {
+			this[method] = this["_" + method].bind(this);
+		}
 	};
 	register(name, callback, properties = null) {
 		if (!callback.call) {
@@ -89,4 +94,56 @@ class LrRpcServer {
 		}
 		return callback.callback(params, port);
 	};
+
+	registerSubscription(name, handler) {
+		const existing = this.subscriptionHandlers.get(name);
+		if (existing) {
+			console.warn(
+				"LrRpcServer.registerSubscription: replacing existing for %o from %o to %o",
+				name, existing, handler);
+		}
+		this.subscriptionHandlers.set(name, handler);
+	}
+
+	_onConnect(port) {
+		port.onMessage.addListener(this.onConnectedMessage);
+		port.onDisconnect.addListener(this.onConnectedDisconnect);
+	}
+
+	_onConnectedMessage(request, port) {
+		const subscribed = this.subscribed.get(port);
+		if (subscribed != null) {
+			// Should not happen, just for the case when message arrived
+			// before listener has been removed, so it is likely not delivered
+			// to the subscriber.
+			console.log(
+				"LrRpcServer: relaying to subscribed: %o %o %o",
+				request, port, subscribed);
+			subscribed.onMessage(request, port);
+			return;
+		}
+		const { subscription } = request || {};
+		if (subscription == null) {
+			console.warn("LrRpcServer: message from connection: expected subscription, got %o", request);
+			return;
+		}
+		const handler = this.subscriptionHandlers.get(subscription);
+		if (handler == null) {
+			console.warn("LrRpcServer: attempt to subscribe to unknown handler: %o %o", request, port);
+			port.disconnect();
+			return;
+		}
+		handler.onConnect(port);
+		this.subscribed.set(port, handler);
+		port.onMessage.removeListener(this.onConnectedMessage);
+	}
+
+	_onConnectedDisconnect(port) {
+		if (!this.subscribed.has(port)) {
+			console.warn("LrRpcServer: connection closed before subscription: %o", port);
+			port.onMessage.removeListener(this.onConnectedMessage);
+			port.onDisconnect.removeListener(this.onConnectedDisconnect);
+		}
+		this.subscribed.delete(port);
+	}
 }

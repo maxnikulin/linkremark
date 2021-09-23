@@ -52,6 +52,7 @@ function lrMainSync() {
 	gLrRpcStore = new lr_rpc_store.LrRpcStore();
 	gLrRpcServer = new LrRpcServer();
 	bapi.runtime.onMessage.addListener(gLrRpcServer.listener);
+	bapi.runtime.onConnect.addListener(gLrRpcServer.onConnect);
 }
 
 async function lrMainAsync() {
