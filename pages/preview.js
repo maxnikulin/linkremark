@@ -170,14 +170,12 @@ async function lrNativeMessagingAction(dispatch, getState) {
 	const response = await lrSendMessage(
 		"export.process", [ capture, { method: "native-messaging", backend: name } ]);
 	const { error, debugInfo } = response || {};
-	if (error) {
-		lrPreviewLogException({ dispatch, getState }, {
-			message: "A problem during native app export",
-			error, debugInfo,
-		});
-	} else if (debugInfo) {
+	if (debugInfo) {
 		lrDebugInfoAdd(debugInfo);
 	}
+	if (error) {
+		throw new Error(error.message || "A problem during native app export");
+	};
 	return response.result;
 }
 
