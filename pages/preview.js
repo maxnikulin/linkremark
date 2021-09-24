@@ -57,9 +57,20 @@ async function lrCopyToClipboard(text) {
 	} else {
 		console.warn("lrCopyUsingEvent failed");
 	}
-	if (navigator.clipboard) {
-		await navigator.clipboard.writeText(text || "");
-		return true;
+	try {
+		if (navigator.clipboard) {
+			await navigator.clipboard.writeText(text || "");
+			return true;
+		}
+	} catch (ex) {
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
+		// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
+		// Fixed in Firefox-85
+		if (ex === undefined) {
+			throw new Error("Not allowed");
+		} else {
+			throw ex;
+		}
 	}
 	throw new Error("Copy to clipboard failed");
 }
@@ -315,8 +326,9 @@ function lrMakeTransportAction({ method, close }) {
 				id, message: `Exported using ${method}` }));
 		} catch (ex) {
 			console.error("lrTransportAction: %o", ex);
+			// There was a bug FF:1670252 with `undefined` exception.
 			dispatch(gLrPreviewLog.finished({
-				id, message: `Export failed: ${method}: ${String(ex && ex.message || ex)}`,
+				id, message: `Export failed: ${method}: ${String(ex && ex.message || ex || "Unknown error")}`,
 				name: "Error",
 			}));
 		}
