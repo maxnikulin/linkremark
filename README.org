@@ -165,6 +165,72 @@ you could find description of workflow in blogs, e.g.
 [[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
 by Sacha Chua.
 
+* Checking if an URL is already in your notes
+
+This feature is planned for LinkRemark-0.2 release
+and is not included in 0.1 version. Please, consider current implementation
+as a proof of concept, there are a lot of things to polish yet.
+It is tested on Linux only.
+
+#+attr_html: :alt Screenshot of Preview & Debug Info page of LinkRemark extension for capture of https://orgmode.org/ when org-manual.org and org-guide.org are configured as note files for bURL
+#+attr_html: :style max-height: 50%
+[[file:doc/burl-linkremark-preview-demo.png]]
+
+bURL [[https://github.com/maxnikulin/burl]] native messaging app (backend)
+is required. It allows to invoke emacsclient directly without setting up
+of desktop-wide handler for org-protocol. I do not think that protocol
+of internal communication between LinkRemark and bURL is stabilized already.
+
+[[https://github.com/maxnikulin/burl][README file for bURL]]
+describes how to install and to configure the native application
+(unsure if it is clear enough). Key points:
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html][Server]]
+  is running in Emacs unless it is enough to just see locations of same
+  URL in your notes. Otherwise neither clicks on found mentions
+  nor org-protocol capture would work.
+- [[https://orgmode.org/manual/Protocols.html][org-protocol]] is loaded and a template is configured
+  to enable capture feature. Alternatively use clipboard and
+  [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
+- Native application is enabled in browser for LinkRemark extension.
+  On Linux a JSON file should be created.
+- List of files to search for URLs is provided to bURL.
+  Currently it is achieved by creating of a wrapper shell script
+  for =burl_backend=.
+
+bURL may create configuration files for your. To enable native backend
+for particular user of Firefox on Linux assuming that =burl_backend=
+binary is copied to =~/.local/bin=, run a command similar to the following one:
+
+#+begin_example
+  mkdir ~/.mozilla/native-messaging-hosts
+  ~/.local/bin/burl_backend -manifest-firefox ~/.mozilla/native-messaging-hosts/ \
+      -backend burl \
+      -wrapper ~/.local/bin/burl_wrapper \
+      -org ~/org/notes.org \
+      -org ~/org/capture.org
+#+end_example
+
+It should create =burl_wrapper= shell script and =burl.json= file
+(=io.github.maxnikulin.burl.json= without =-backend= option) in
+[[file:~/.mozilla/native-messaging-hosts/]] (its basename is the identifier
+of the native application).
+
+Open LinkRemark settings page (from context menu for the browser action button
+or from preview and debug info page). Set "Name of native messaging backend
+application" in the "Browser native messaging communication channel" section
+to the id of configured native app (e.g. =burl=
+or =io.github.maxnikulin.burl=). Grant permission for
+"Exchange messages with other programs" (in Firefox, while compatibility with
+Firefox-78 is maintained, this permission is requested during installation).
+
+Known URLs should be reported in response to capture of pages already
+present in your notes. Preview and debug info page has a form for testing
+of this feature.
+
+You can set "Method how to pass capture to desktop environment" to
+"native-messaging", however it is not required. You can continue
+with clipboard or org-protocol desktop-wide handler.
+
 * Troubleshooting
 
 1. Try to open Debug Info (Preview) extension page through context menu for
