@@ -21,7 +21,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	var lr_action = this;
 	const PREVIEW = "PREVIEW";
 
-	async function _run(func, ...args) {
+	async function _run(func, clickData, tab, params) {
+		const tabPromise = tab && tab.id >= 0 ? tab : getActiveTab();
 		async function lr_action_run_onError(error, executor) {
 			if (
 				typeof lr_actionlock !== undefined
@@ -34,7 +35,13 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			} catch (ex) {
 				console.error("lr_action_run_onError: put result to store %o", ex);
 			}
-			await lr_action_run_openPreview();
+			let activeTab = tab;
+			try {
+				activeTab = await tabPromise;
+			} catch (ex) {
+				console.error("lr_action_run_onError: getting tab %o", ex);
+			}
+			await lr_action_run_openPreview(tab);
 		}
 
 		let previewOpen;
@@ -43,7 +50,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			if (previewOpen === PREVIEW) {
 				return;
 			}
-			// TODO obtain default tab from notifier
 			previewOpen = await lr_action.openPreview(tab, params);
 			// TODO implement feedback from preview tab that capture
 			// is received before unlock
@@ -67,7 +73,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				onerror: { func: lr_action_run_onError, },
 				implicitResult: false,
 			},
-			func, ...args);
+			func, clickData, tab, params);
 		const error = retval && retval.exception;
 		if (error && !lr_common.isWarning(error)) {
 			throw error;
