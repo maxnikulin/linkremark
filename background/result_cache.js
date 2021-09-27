@@ -27,25 +27,28 @@ var lr_rpc_store = lr_util.namespace(lr_rpc_store, function lr_rpc_store() {
 			this.handleResult = this.getResult.bind(this);
 			this.clear();
 		}
-		putResult(result) {
-			this.result = result;
+		putExecInfo(execInfo) {
+			this.execInfo = execInfo;
 		};
 		async getCapture() {
-			if (this.result === NO_CAPTURE) {
+			if (this.execInfo === NO_CAPTURE) {
 				throw new Error("Nothing has captured yet");
-			} else if (this.result == null || this.result.capture == null) {
+			}
+			const result = this.execInfo && this.execInfo && this.execInfo.result;
+			const capture = result && result.capture;
+			if (capture == null) {
 				throw new Error("Capture was unsuccessful");
 			}
-			return this.result.capture;
+			return capture;
 		};
 		getResult(_args, _port) {
-			if (this.result == null) {
+			if (this.execInfo == null) {
 				throw new Error("Capture was unsuccessful");
 			}
-			return this.result;
+			return this.execInfo;
 		};
 		clear() {
-			this.result = NO_CAPTURE;
+			this.execInfo = NO_CAPTURE;
 			this.targetElement = null;
 		};
 		putTargetElement(object) {

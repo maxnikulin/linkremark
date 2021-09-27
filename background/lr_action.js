@@ -31,7 +31,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				return;
 			}
 			try {
-				gLrRpcStore.putResult(executor.execInfo);
+				gLrRpcStore.putExecInfo(executor.execInfo);
 			} catch (ex) {
 				console.error("lr_action_run_onError: put result to store %o", ex);
 			}
@@ -96,7 +96,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		executor.step(
 			{ errorAction: lr_executor.IGNORE_ERROR, },
 			function storeResultToCache(executor) {
-				gLrRpcStore.putResult(executor.execInfo);
+				gLrRpcStore.putExecInfo(executor.execInfo);
 			});
 	}
 
