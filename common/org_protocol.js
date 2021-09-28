@@ -74,7 +74,9 @@ var lrOrgProtocol = function() {
 		// Org-protocol at first used path components as positional
 		// parameters. Later a kind of query part has been implemented
 		// but decode function does not support encoding space as '+'
-		// wide spread for encoding of URLs.
+		// wide spread for encoding of URLs. Since Org-9.5 (commit 09dc3fa304)
+		// '+' should be decoded. Let's keep compatibility with long time
+		// support distributions.
 		url.search = query.toString().replace(/\+/g, '%20');
 		return url.toString();
 	};
