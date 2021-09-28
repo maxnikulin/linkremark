@@ -4,7 +4,7 @@
 * Introduction
 
 LinkRemark is a browser extension that allows to save some context
-while capturing notes using GNU Emacs [[https://orgmode.org][Org mode]].
+while capturing notes using [[https://orgmode.org][Org mode]] for [[https://www.gnu.org/software/emacs/][GNU Emacs]].
 The add-on attempts to extract some metadata of the current web page:
 author, time when the text was written.
 Actually it just generates (almost) text notes using a few elements
@@ -15,7 +15,8 @@ to the link target. It should reflect connection of the page
 where it is found and the site it points to.
 A site that brought you to the current page (referrer) could later
 help find more information related to the topic.
-Consider it as an element of associative trails described by Vannevar Bush.
+Consider it as an element of associative trails described by Vannevar Bush
+([[https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/][As We May Think, The Atlantic Monthly, Jul 1945]])
 However implementation is hardly approaching ideas developed
 by Douglas Engelbart.
 
@@ -26,20 +27,31 @@ Unsure if it is reliable enough, personally I find it acceptable.
 * Example of link capture
 
 #+begin_example org
-Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
+  ,* Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
   :PROPERTIES:
-  :DATE_ADDED: [2020-12-25 18:06]
+  :DATE_ADDED: [2021-09-28 Tue 12:15]
   :END:
 
-- Link URL :: [[https://karl-voit.at/2014/08/10/bookmarks-with-orgmode/]]
-- Link text :: Karl Voit: UOMF: Managing web bookmarks with Org Mode
+  - Link URL :: [[https://karl-voit.at/2014/08/10/bookmarks-with-orgmode/]]
+  - Link text :: Karl Voit: UOMF: Managing web bookmarks with Org Mode
 
-On the page
+  ,#+begin_quote
+  author: Karl Voit
+  published: [2014-08-10 Sun]
+  ,#+end_quote
 
-- URL :: [[https://alphapapa.github.io/org-almanac/]]
-- title :: org-almanac
-- author :: Adam Porter
-- referrer :: [[https://www.google.com/]]
+  On the page
+
+  ,** Adam Porter — org-almanac
+  :PROPERTIES:
+  :DATE_ADDED: [2021-09-28 Tue 12:15]
+  :LAST_MODIFIED: [2021-09-18 Tue 01:23]​ 09/18/2021 01:23:46
+  :END:
+
+  - URL :: [[https://alphapapa.github.io/org-almanac/]]
+  - title :: org-almanac
+  - author :: Adam Porter
+  - referrer :: [[https://www.google.com/]]
 #+end_example
 
 * Alternatives
@@ -76,6 +88,10 @@ on github: https://github.com/maxnikulin/linkremark/releases
 In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
 and load it as unpacked extension.
 
+For everyday use you might wish to configure native application
+helper or desktop-wide org-protocol handler instead of
+clipboard to pass captures to your notes.
+
 * Permissions
 
 You could find more information what every requested
@@ -85,7 +101,7 @@ permission means on the following page:
 ** Requested on Install
 *** Exchange messages with other programs (=nativeMessaging=)
 
-Chrome: "Communicate with cooperating native applications".
+Chrome: "Communicate with cooperating native applications", optional.
 
 Allows the extension to communicate with Emacs without global org-protocol
 handler, so allows to have more secure setup. On the other hand
@@ -97,8 +113,10 @@ This permission is relevant for experienced Emacs and Org Mode users.
 This permission can not be requested on demand in Firefox-78.10 ESR,
 see [[https://bugzilla.mozilla.org/1630415]]
 "1630415 - make nativeMessaging an optional permission".
+
 Extension can not launch any application till it is explicitly added
-to a configuration file (manifest) by the user.
+to a configuration file (manifest) by the user, so do not worry,
+extensions can not run arbitrary binaries with no cooperation from users.
 
 ** Optional permissions
 
@@ -106,7 +124,7 @@ to a configuration file (manifest) by the user.
 
 Chrome: "Read your browsing history".
 
-Additional feature is avilable in Firefox only.
+Additional feature is available in Firefox only.
 When granted, it is possible to capture a group of tabs.
 Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
 and open context menu (right click) for a header of selected tab.
@@ -135,15 +153,19 @@ so the extension can do its job. For privileged tabs (e.g. PDF files)
 preview page is unavoidable in Chrome and can appear for a second.
 Sorry for this inconvenience.
 
+This permission may be revoked as soon as you configure native application
+or desktop-wide org-protocol handler.
+
 * Usage
 
 Optionally select some text and choose an option from the context menu (right click).
 
 By default the extension just shows preview for the note
-and offers to copt it to clipboard,
+and offers to copy it to clipboard,
 so it can be just yanked to the text editor.
+# Sorry, github renderer can not transform info: to hyperlinks
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
-or [[info:org#Capture]] is the next step.
+or [[info:org#Capture][info "(org) Capture"]] is the next step.
 You could start with a very simple template having "plain" type
 #+begin_example emacs-lisp
   ("c" "Clipboard with tree (plain)"
@@ -154,11 +176,25 @@ You could start with a very simple template having "plain" type
 On the current development stage I do not recommend
 =:immediate-finish= option, it is better to inspect capture result.
 
-Later you likely would decide to setup external protocol handler
-for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]]
-or to create a native messaging backend.
-In the latter case have a look at [[file:examples/backend-python/lr_example.py]]
-for inspiration.
+Usually, to minimize keyboard and mouse interaction,
+it is recommended to setup desktop-wide [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol:]] handler.
+Personally I am a bit afraid that some web page may try to inject
+some malicious content into my notes, so I consider exporting
+through a native messaging application as a safer option.
+This repository contains simple variant in
+[[file:examples/backend-python/lr_emacsclient.py]]
+Run it with =-h= option for a brief guide. To enable it,
+you should do something like (Linux, Firefox)
+#+begin_example
+  mkdir ~/.mozilla/native-messaging-hosts
+  python3 examples/backend-python/lr_emacsclient.py -manifest-firefox \
+     >~/.mozilla/native-messaging-hosts/lr_emacsclient.json
+#+end_example
+and should specify "native-messaging" and =lr_emacsclient=
+in the add-on settings.
+If you wish to experiment with metadata formatting, have a look at
+[[file:examples/backend-python/lr_example.py]] for inspiration.
+See the next section for a more powerful native messaging helper.
 
 If you are not familiar with Org Mode capture feature,
 you could find description of workflow in blogs, e.g.
@@ -184,11 +220,12 @@ of internal communication between LinkRemark and bURL is stabilized already.
 [[https://github.com/maxnikulin/burl][README file for bURL]]
 describes how to install and to configure the native application
 (unsure if it is clear enough). Key points:
-- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html][Server]]
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html][Server]] ([[info:emacs#Emacs Server][info "(emacs) Emacs Server"]])
   is running in Emacs unless it is enough to just see locations of same
   URL in your notes. Otherwise neither clicks on found mentions
   nor org-protocol capture would work.
-- [[https://orgmode.org/manual/Protocols.html][org-protocol]] is loaded and a template is configured
+- [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info "(org) Protocols"]])
+  is loaded and a template is configured
   to enable capture feature. Alternatively use clipboard and
   [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
 - Native application is enabled in browser for LinkRemark extension.
