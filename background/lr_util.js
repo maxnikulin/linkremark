@@ -116,12 +116,15 @@ var lr_util = function() {
 		// 3. Other control characters should be replaced.
 		//    U+FFFD REPLACEMENT CHARACTER
 		//    used to replace an unknown, unrecognized or unrepresentable character
+		// 4. U+FEFF BYTE ORDER MARK that is likely trash in HTML files
+		//    been a space character does not occupy any space in Emacs.
+		//    Maybe there are more similar characters.
 		//
 		// There is a small chance that platformInfo is not available yet.
 		const nl = platformInfo.os !== "win" ? "\n" : "\r\n";
 		return text.replace(/\t/g, '        ').
 			replace(/\r\n|\r|\n/g, nl).
-			replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "\uFFFD");
+			replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F\uFEFF]/g, "\uFFFD");
 	}
 
 	Object.assign(this, {

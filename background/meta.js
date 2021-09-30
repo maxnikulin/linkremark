@@ -104,6 +104,13 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 			console.warn("lr_meta.sanitizeLength: not a string %o", value);
 			value = String(value);
 		}
+		// It fixes indirectly problem with stray leading "\ufeff" Byte Order Mark
+		// that is considered by space but was replaced by "\ufffd" Replacement
+		// Character only after formatting.
+		value = value.trim();
+		// For Org formatter result will be passed through the same filter.
+		// As a safety measure do it hear since user may choose JSON object.
+		value = lr_util.replaceSpecial(value);
 		if (!(value.length <= limit)) {
 			return {
 				value: value.substring(0, limit),
