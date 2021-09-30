@@ -323,7 +323,7 @@ var lr_clipboard = function() {
 			name: "export.methods.orgProtocol.formatterVersion",
 			defaultValue: "0.2",
 			version: "0.1",
-			title: "Version of formatter for org-capture",
+			title: "Version of formatter for org-protocol",
 			description: [
 				"Formatters will likely be modified, and this option",
 				"is intended to fix appearance of captured notes",
