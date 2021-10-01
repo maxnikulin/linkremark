@@ -51,7 +51,10 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 		lr_export.registerFormat({
 			format: "org",
 			version: "0.2",
-			formatter: function lrFormatOrg(capture, _options, executor) {
+			options: {
+				templateType: "export.methods.orgProtocol.templateType",
+			},
+			formatter: function lrFormatOrg(capture, options, executor) {
 				const src = lr_export.findFormat(capture, {
 					format: lr_tabframe.FORMAT,
 					version: lr_tabframe.VERSION,
@@ -59,7 +62,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 				if (src == null) {
 					throw new Error('No result in "object" format');
 				}
-				const result = lr_format_org.format(src.body, executor);
+				const result = lr_format_org.format(src.body, options, executor);
 				result.src = src.id;
 				return result;
 			},

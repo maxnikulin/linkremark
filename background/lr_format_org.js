@@ -875,7 +875,7 @@ function lr_format_org_tab_group(object, executor) {
 }
 
 Object.assign(lr_format_org, {
-	format(object, executor) {
+	format(object, options, executor) {
 		if (!object) {
 			throw new Error("Capture failed");
 		}
@@ -891,11 +891,24 @@ Object.assign(lr_format_org, {
 		if (!handler) {
 			throw new TypeError(`lr_format_org: unsupported type "${object._type}"`);
 		}
-		const { url, title, tree } = handler(object, executor);
+		const { url, title, tree } = executor.step(handler, object /*, executor*/);
+		let body = executor.step(
+			{ step: "serialize Org tree", },
+			function orgBodyToText(tree, _executor) {
+				// Avoid passing executor to `toText`
+				return lr_org_tree.toText(tree);
+			}, tree);
+		const templateType = options && options.templateType;
+		if (templateType === 'entry') {
+			// It is a dirty hack. It should be responsibility of lr_org_buffer,
+			// changes are not really small there.
+			// Straightforward way is to add subtree capture type to org-protocol.el.
+			body = body.replace(/^\* /, '');
+		}
 		return {
 			url,
 			title: lr_org_tree.toPlainText(title),
-			body: lr_org_tree.toText(tree),
+			body,
 		};
 	}
 });

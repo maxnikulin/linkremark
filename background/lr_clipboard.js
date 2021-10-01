@@ -250,17 +250,39 @@ var lr_clipboard = function() {
 			priority: 20,
 		});
 		lr_settings.registerOption({
+			name: "export.methods.orgProtocol.templateType",
+			defaultValue: "plain",
+			version: "0.2",
+			title: "Template type configured in org-capture-templates (Emacs)",
+			description: [
+				"Either \"plain\" or \"entry\".",
+				"Set to \"plain\" if you are going to paste captures through clipboard",
+				"using \"C-c C-x C-y\" (org-paste-subtree).",
+				"Set to \"entry\" if you have configured org-capture templates",
+				"for any variant: clipboard and M-x org-capture",
+				"or org-protocol using native-messaging or org-protocol: scheme handler.",
+				"It is impossible to refile entry created from \"plain\" template",
+				"directly from org-capture buffer.",
+				'See (info "(org) Template elements") in (info "(org) Capture") section.',
+			],
+			parent: "export.methods.orgProtocol",
+		});
+		lr_settings.registerOption({
 			name: "export.methods.orgProtocol.template",
 			defaultValue: "",
 			version: "0.1",
 			title: "Template name configured in Org mode Capture",
 			description: [
-				"Emacs configuration should define capture template something like",
+				"Emacs configuration should define an item in org-capture-template list, e.g.",
 				"\n",
-				'("p" "Heading tree (org-protocol)" plain (file "capture.org") "%:initial" :empty-lines 1)',
+				'("e" "LinkRemark (entry)" entry (file "capture.org") "* %:initial" :empty-lines 1)',
 				"\n",
+				'("p" "LinkRemark (plain)" plain (file "capture.org") "%:initial" :empty-lines 1)',
+				"\n",
+				"Depending on value of \"Template type…\" setting.",
 				"Though description (title) and url are available,",
 				"body contains already formatted subtree.",
+				'See (info "(org) Capture templates") for more info.', 
 			],
 			parent: "export.methods.orgProtocol",
 		});
@@ -297,8 +319,10 @@ var lr_clipboard = function() {
 			description: [
 				"Experimental option, expected template should be something like",
 				"\n",
-				'("c" "Heading tree (clipboard)" plain (file "capture.org") "%(org-get-x-clipboard \'CLIPBOARD)" :empty-lines 1)',
+				'("c" "LinkRemark (entry, clipboard)" entry (file "capture.org") "%(org-get-x-clipboard \'CLIPBOARD)" :empty-lines 1)',
 				"\n",
+				"or \"plain\" instead of \"entry\", remember to adjust",
+				"\"Template type…\" setting to the same value.",
 				"Unsure if lenthy captures could really cause a trouble",
 				"with external protocol handlers. Anyway creating of",
 				"naitve messaging backend could be more reliable options.",
