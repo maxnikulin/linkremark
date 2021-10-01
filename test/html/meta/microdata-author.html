@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Microdata - author as Person</title>
+    <script type="application/ld+json">{
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@id": "/index.html",
+            "name": "Top"
+           }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@id": "index.html",
+            "name": "Meta"
+          }
+        }
+      ]
+    }</script>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Top</a>
+      <a href="index.html">Meta</a>
+      <a href="microdata.html">Microdata</a>
+      <a href="microdata-qa.html">Microdata QA</a>
+    </nav>
+    <h1>LinkRemark Test: Microdata - author as Person</h1>
+    <section itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <figure>
+        <img itemprop="image" src="../image/lr-128.png" width="32">
+      </figure>
+      <section>
+        By
+        <span itemprop="name">
+          <a href="microdata.html">
+            <span itemprop="givenName">Ghivy</span>
+            <span itemprop="familyName">Familishvilly</span>
+          </a>
+        </span>
+      </section>
+    </section>
+  </body>
+</html>

@@ -79,7 +79,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 	}
 
 	function handlePropertyGeneric(json, meta, field, { key, ...props }) {
-		// Person, Organization
+		// Organization, etc.
 		return setProperty(json, "name", meta, field, { ...props, key, recursive: false });
 	}
 
@@ -145,6 +145,61 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		return meta.addDescriptor(property, { value: json.url, key: "" + key.concat("url") }, { skipEmpty: true });
 		// @id likely contains anchor on the page, not an image URL
 	};
+
+	function handlePersonProperty(json, meta, property, { key, ...props }) {
+		const nameComponents = [];
+		const alternativeNames = [];
+		function fillNameComponents(obj, array) {
+			for (const field of ["givenName", "additionalName", "familyName"]) {
+				const value = obj[field];
+				if (typeof value === 'string' && value !== "") {
+					array.push(value);
+				}
+			}
+		}
+		fillNameComponents(json, nameComponents);
+		const name = json["name"];
+		const nameIsString = name && typeof name === "string";
+		if (nameComponents.length > 0) {
+			if (nameIsString) {
+				alternativeNames.push(name);
+			} else if (name) {
+				const add = [];
+				fillNameComponents(name, add);
+				if (add.length > 0) {
+					alternativeNames.push(add.join(" "));
+				}
+			}
+		} else if (nameIsString) {
+			nameComponents.push(name);
+		} else if (name) {
+			// https://developers.google.com/web/updates
+			// has name as subobject despite it should be text
+			fillNameComponents(name, nameComponents);
+		}
+
+		const alternative = json['alternativeName'];
+		if (alternative && typeof alternative === 'string') {
+			if (nameComponents.length > 0) {
+				alternativeNames.push(alternative);
+			} else {
+				nameComponents.push(alternative);
+			}
+		}
+		if (alternativeNames.length > 0) {
+			nameComponents.push("(" + alternativeNames.join(", ") + ")");
+		}
+		if (!(nameComponents.length > 0)) {
+			console.warn("LR: schema.org/Person: %o: found nothing useful", key);
+		}
+		return meta.addDescriptor(
+			property,
+			{
+				value: nameComponents.join(" "),
+				key: "" + key,
+			},
+			{ skipEmpty: true });
+	}
 
 	function handlePrimaryWebPage(json, meta, props) {
 		handlePrimaryCreativeWork(json, meta, props);
@@ -244,6 +299,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 	}
 
 	registerPropertyHandler("ImageObject", handleImageObjectProperty);
+	registerPropertyHandler("Person", handlePersonProperty);
 
 	function handlePrimaryTyped(json, meta, props) {
 		const type = json["@type"];
@@ -266,7 +322,9 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		}
 		const key = new Key(options && options.key || "ld_json");
 		const props = { key, recursionLimit: 32 };
-		const result = handleGraph(json, meta, props) || handlePrimaryTyped(json, meta, props);
+		const result = handleGraph(json, meta, props) ||
+			handlePrimaryTyped(json, meta, props) ||
+			mergeSchemaOrgOutOfScope(json, meta, options);
 		if (!result) {
 			console.warn("LR: ld+json: unsupported structure");
 		}
