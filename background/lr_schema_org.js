@@ -17,14 +17,14 @@
 
 "use strict";
 
-var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
-	var lr_json_ld = this;
+var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
+	var lr_schema_org = this;
 	class Key extends Array {
 		toString() {
 			return this.join(".");
 		};
 		push(...args) {
-			console.error("Do not use lr_json_ld.Key.push(). Replaced by concat.");
+			console.error("Do not use lr_schema_org.Key.push(). Replaced by concat.");
 			return this.concat(...args);
 		};
 	}
@@ -69,7 +69,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			}
 			return handlePrimaryTyped(levelNodes[0], meta, { ...props, idMap });
 		}
-		console.warn('lr_json_meta: have not found useful info in the @graph');
+		console.warn('lr_schema_org: have not found useful info in the @graph');
 		return false;
 	}
 	
@@ -85,7 +85,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 
 	function setProperty(src, srcField, meta, property, { key, recursive, recursionLimit, ...props }) {
 		if (! (--recursionLimit >= 0)) {
-			console.warn("LR: ld+json: setProperty: recursion limit reached %s %s", property, key);
+			console.warn("lr_schema_org.setProperty: recursion limit reached %s %s", property, key);
 			return false;
 		}
 		let value = srcField == null ? src : (src && src[srcField]);
@@ -118,7 +118,9 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 				result = result || handlePropertyGeneric(value, meta, property,
 					{ ...props, key: typedKey, recursive: false, recursionLimit });
 			} else {
-				console.warn("LR: ld+json: recursion is not allower for %s(%s): %s", property, key, value);
+				console.warn(
+					"lr_schema_org.setProperty: recursion is not allower for %s(%s): %s",
+					property, key, value);
 			}
 		}
 		return result;
@@ -136,7 +138,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			key = key.concat("isPartOf", candidate["@type"]);
 		}
 		if (!(recursionLimit >= 0)) {
-			console.warn("LR: ld+json: recursion limit reached while looking for top parent");
+			console.warn("lr_schema_org.findTopPartOf: recursion limit reached while looking for top parent");
 		}
 		return [result, key];
 	}
@@ -190,7 +192,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			nameComponents.push("(" + alternativeNames.join(", ") + ")");
 		}
 		if (!(nameComponents.length > 0)) {
-			console.warn("LR: schema.org/Person: %o: found nothing useful", key);
+			console.warn("lr_schema_org.handlePersonProperty: %o: found nothing useful", key);
 		}
 		return meta.addDescriptor(
 			property,
@@ -253,7 +255,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 				}
 			} catch (ex) {
 				console.debug(
-					"LR: json+ld: allowed failure id -> url: %s %s %o",
+					"lr_schema_org.handlePrimaryThing: allowed failure id -> url: %s %s %o",
 					id, ex, ex);
 			}
 		}
@@ -267,7 +269,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 				handlePrimaryTyped(
 					byId(main, idMap), meta, { ...props, key, recursionLimit });
 			} else {
-				console.warn("LR: ld+json: recursion limit reached, skipping main entity");
+				console.warn("lr_schema_org.handlePrimaryThing: recursion limit reached, skipping main entity");
 			}
 		}
 		return true;
@@ -277,7 +279,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 	function registerPrimaryTypeHandler(type, handler) {
 		if (primaryTypeHandlerMap.has(type)) {
 			console.warn(
-				"LR: ld+json: handler for type '%s' already registered, overriding it", type);
+				"lr_schema_org.registerPrimaryTypeHandler: handler for type '%s' already registered, overriding it", type);
 		}
 		primaryTypeHandlerMap.set(type, handler);
 	}
@@ -293,7 +295,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 	function registerPropertyHandler(type, handler) {
 		if (propertyHandlerMap.has(type)) {
 			console.warn(
-				"LR: ld+json: handler for property type '%s' already registered, overriding it", type);
+				"lr_schema_org.registerPropertyHandler: handler for property type '%s' already registered, overriding it", type);
 		}
 		propertyHandlerMap.set(type, handler);
 	}
@@ -308,7 +310,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 		}
 		const handler = primaryTypeHandlerMap.get(type);
 		if (!handler) {
-			console.warn('LR: ld+json: unsupported type of primary entry "%s"', type); 
+			console.warn('lr_schema_org.handlePrimaryTyped: unsupported type of primary entry "%s"', type); 
 			return false;
 		}
 		const key = props.key.concat(type);
@@ -326,7 +328,7 @@ var lr_json_ld = lr_util.namespace(lr_json_ld, function lr_json_ld() {
 			handlePrimaryTyped(json, meta, props) ||
 			mergeSchemaOrgOutOfScope(json, meta, options);
 		if (!result) {
-			console.warn("LR: ld+json: unsupported structure");
+			console.warn("lr_schema_org.mergeJsonLd: unsupported structure");
 		}
 		return result;
 	}

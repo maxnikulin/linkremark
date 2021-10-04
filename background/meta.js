@@ -978,7 +978,7 @@ lr_meta.mergeSchemaOrg = function(_frameInfo, meta) {
 			if (descriptor.keys.indexOf('microdata') >= 0) {
 				lr_meta.mergeMicrodata(meta, value);
 			} else {
-				lr_json_ld.mergeJsonLd(value, meta);
+				lr_schema_org.mergeJsonLd(value, meta);
 			}
 		} catch (ex) {
 			console.error("lr_meta.mergeSchemaOrg: %o", ex);
@@ -992,14 +992,14 @@ lr_meta.mergeSchemaOrg = function(_frameInfo, meta) {
 
 lr_meta.mergeMicrodata = function(meta, microdata) {
 	if (Array.isArray(microdata)) {
-		lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
+		lr_schema_org.mergeJsonLd(microdata, meta, { key: "microdata" });
 		return;
 	}
 
 	const unnamed = microdata["@unnamed"];
 	const hasType = !!microdata["@type"];
 	if (hasType && !unnamed) {
-		lr_json_ld.mergeJsonLd(microdata, meta, { key: "microdata" });
+		lr_schema_org.mergeJsonLd(microdata, meta, { key: "microdata" });
 		return;
 	}
 
@@ -1008,19 +1008,19 @@ lr_meta.mergeMicrodata = function(meta, microdata) {
 	if (hasType) {
 		console.assert(unnamed, "lr_meta: microdata expected to have @unnamed", microdata);
 		const json = [ md,  ...(Array.isArray(unnamed) ? unnamed : [ unnamed ]) ];
-		lr_json_ld.mergeJsonLd(json, meta, { key: "microdata" });
+		lr_schema_org.mergeJsonLd(json, meta, { key: "microdata" });
 	} else {
 		const hasNamed = Object.keys(md).length > 0;
 		if (hasNamed) {
 			try {
-				lr_json_ld.mergeSchemaOrgOutOfScope(md, meta, { key: "microdata.no_scope" });
+				lr_schema_org.mergeSchemaOrgOutOfScope(md, meta, { key: "microdata.no_scope" });
 			} catch (ex) {
 				console.warn("lr_meta: merging out of scope microdata: %o", ex);
 			}
 		}
 		if (unnamed) {
 			try {
-				lr_json_ld.mergeJsonLd(unnamed, meta, { key: "microdata.no_prop" });
+				lr_schema_org.mergeJsonLd(unnamed, meta, { key: "microdata.no_prop" });
 			} catch (ex) {
 				console.warn("lr_meta: merging microdata without itemprop: %o", ex);
 			}

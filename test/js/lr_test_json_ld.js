@@ -66,7 +66,7 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 
 	this.test_article = function() {
 		const meta = new LrMeta();
-		lr_json_ld.mergeJsonLd(caseArticle, meta);
+		lr_schema_org.mergeJsonLd(caseArticle, meta);
 		lr_test.assertEq(new Set(["Tom Soyer"]), metaValues(meta, "author"));
 		lr_test.assertEq(
 			new Set(["https://stora.ge/web/q/qwerty.jpeg", "https://stora.ge/web/a/asdfgh.png"]),
@@ -160,7 +160,7 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 
 	this.test_graph = function() {
 		const meta = new LrMeta();
-		lr_json_ld.mergeJsonLd(caseGraph, meta);
+		lr_schema_org.mergeJsonLd(caseGraph, meta);
 		// console.log(JSON.stringify(meta.object, null, "  "));
 		lr_test.assertEq(new Set(["Pson Nme"]), metaValues(meta, "author"));
 		lr_test.assertEq(
