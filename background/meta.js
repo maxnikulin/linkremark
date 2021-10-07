@@ -971,60 +971,24 @@ lr_meta.removeSelfLink = function(meta) {
 lr_meta.mergeSchemaOrg = function(_frameInfo, meta) {
 	for (const descriptor of meta.descriptors("schema_org")) {
 		try {
-			const { value } = descriptor;
-			if (!value) {
-				continue;
-			}
-			if (descriptor.keys.indexOf('microdata') >= 0) {
-				lr_meta.mergeMicrodata(meta, value);
-			} else {
-				lr_schema_org.mergeJsonLd(value, meta);
-			}
+			const { value, keys } = descriptor;
+			lr_schema_org.mergeUntyped(value, meta, keys ? { key:  keys[0] } : undefined);
 		} catch (ex) {
-			console.error("lr_meta.mergeSchemaOrg: %o", ex);
+			console.error("lr_meta.mergeSchemaOrg: untyped: %o", ex);
 			meta.addDescriptor("error", {
 				value: lr_util.errorToObject(ex),
 				key: `schema_org.${descriptor.key}`,
 			});
 		}
 	}
-};
-
-lr_meta.mergeMicrodata = function(meta, microdata) {
-	if (Array.isArray(microdata)) {
-		lr_schema_org.mergeJsonLd(microdata, meta, { key: "microdata" });
-		return;
-	}
-
-	const unnamed = microdata["@unnamed"];
-	const hasType = !!microdata["@type"];
-	if (hasType && !unnamed) {
-		lr_schema_org.mergeJsonLd(microdata, meta, { key: "microdata" });
-		return;
-	}
-
-	const md = { ...microdata };
-	delete md["@unnamed"];
-	if (hasType) {
-		console.assert(unnamed, "lr_meta: microdata expected to have @unnamed", microdata);
-		const json = [ md,  ...(Array.isArray(unnamed) ? unnamed : [ unnamed ]) ];
-		lr_schema_org.mergeJsonLd(json, meta, { key: "microdata" });
-	} else {
-		const hasNamed = Object.keys(md).length > 0;
-		if (hasNamed) {
-			try {
-				lr_schema_org.mergeSchemaOrgOutOfScope(md, meta, { key: "microdata.no_scope" });
-			} catch (ex) {
-				console.warn("lr_meta: merging out of scope microdata: %o", ex);
-			}
-		}
-		if (unnamed) {
-			try {
-				lr_schema_org.mergeJsonLd(unnamed, meta, { key: "microdata.no_prop" });
-			} catch (ex) {
-				console.warn("lr_meta: merging microdata without itemprop: %o", ex);
-			}
-		}
+	try {
+		lr_schema_org.mergeMainEntry(meta);
+	} catch (ex) {
+		console.error("lr_meta.mergeSchemaOrg: main: %o", ex);
+		meta.addDescriptor("error", {
+			value: lr_util.errorToObject(ex),
+			key: 'schema_org.main',
+		});
 	}
 };
 

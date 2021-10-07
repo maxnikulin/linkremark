@@ -42,15 +42,20 @@ var lr_test_microdata = lr_util.namespace(lr_test_microdata, function lr_test_mi
 
 		test_typed() {
 			const meta = new LrMeta();
-			lr_meta.mergeMicrodata(meta, {
-				"@context": "http://schema.org",
-				"@type": "Article",
-				datePublished: "2019-11-28T22:57:56Z",
-				"author": {
-					"@type": "Person",
-					"name": "Tom Soyer"
+			meta.addDescriptor("schema_org", {
+				value: {
+					"@context": "http://schema.org",
+					"@type": "Article",
+					datePublished: "2019-11-28T22:57:56Z",
+					"author": {
+						"@type": "Person",
+						"name": "Tom Soyer"
+					},
 				},
+				key: "microdata",
 			});
+			lr_meta.mergeSchemaOrg({}, meta);
+
 			lr_test.assertEq(
 				new Set([ "2019-11-28T22:57:56Z" ]),
 				metaValues(meta, "published_time")
@@ -63,17 +68,21 @@ var lr_test_microdata = lr_util.namespace(lr_test_microdata, function lr_test_mi
 
 		test_mixed() {
 			const meta = new LrMeta();
-			lr_meta.mergeMicrodata(meta, {
-				datePublished: [ "2001-02-03T03:04:05", "2019-11-28T22:57:56Z" ],
-				"@unnamed": {
-					"@context": "http://schema.org",
-					"@type": "Article",
-					"author": {
-						"@type": "Person",
-						"name": "Tom Soyer"
+			meta.addDescriptor("schema_org", {
+				value: {
+					datePublished: [ "2001-02-03T03:04:05", "2019-11-28T22:57:56Z" ],
+					"@unnamed": {
+						"@context": "http://schema.org",
+						"@type": "Article",
+						"author": {
+							"@type": "Person",
+							"name": "Tom Soyer"
+						},
 					},
-				}
+				},
+				key: "microdata",
 			});
+			lr_meta.mergeSchemaOrg({}, meta);
 
 			lr_test.assertEq(
 				new Set([ "2001-02-03T03:04:05", "2019-11-28T22:57:56Z" ]),

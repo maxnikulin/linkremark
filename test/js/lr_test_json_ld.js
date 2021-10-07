@@ -40,6 +40,7 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 		"datePublished": "2020-01-07T15:03:24+03:00",
 		"dateModified": "2020-01-08T07:06:00+03:00",
 		"author": {
+			"@id": "https://ho.st/users/456",
 			"@type": "Person",
 			"name": "Tom Soyer"
 		},
@@ -66,7 +67,8 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 
 	this.test_article = function() {
 		const meta = new LrMeta();
-		lr_schema_org.mergeJsonLd(caseArticle, meta);
+		meta.addDescriptor("schema_org", { value: caseArticle, key: "document.script.ld_json" });
+		lr_meta.mergeSchemaOrg({}, meta);
 		lr_test.assertEq(new Set(["Tom Soyer"]), metaValues(meta, "author"));
 		lr_test.assertEq(
 			new Set(["https://stora.ge/web/q/qwerty.jpeg", "https://stora.ge/web/a/asdfgh.png"]),
@@ -160,8 +162,8 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 
 	this.test_graph = function() {
 		const meta = new LrMeta();
-		lr_schema_org.mergeJsonLd(caseGraph, meta);
-		// console.log(JSON.stringify(meta.object, null, "  "));
+		meta.addDescriptor("schema_org", { value: caseGraph, key: "document.script.ld_json" });
+		lr_meta.mergeSchemaOrg({}, meta);
 		lr_test.assertEq(new Set(["Pson Nme"]), metaValues(meta, "author"));
 		lr_test.assertEq(
 			new Set(["https://blog.te.st/topic/fls/bst-pc.png"]),
@@ -177,7 +179,6 @@ var lr_test_json_ld = lr_util.namespace(lr_test_json_ld, function lr_test_json_l
 			new Set(["Lorem ipsum some garbage for description test. Another sentence to make it longer."]),
 			metaValues(meta, "description"));
 	};
-
 
 	Object.assign(this, {
 		caseArticle, caseGraph,

@@ -29,53 +29,122 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		};
 	}
 
-	function handleGraph(json, meta, props) {
-		const nodes = Array.isArray(json) ? json : json["@graph"];
-		if (!Array.isArray(nodes)) {
-			return false;
-		}
-		// build id -> node map
-		const idMap = new Map();
-		for (const n of nodes) {
-			if (!n["@type"]) {
-				continue;
-			}
-			const id = n["@id"];
-			if (id) {
-				idMap.set(id, n);
+	const _basicTypes = new Set([ Number, String, Date, URL, Function ]);
+
+	class LrSchemaOrgUnified {
+		constructor(meta) {
+			this.idMap = new Map();
+			this.roots = new Set();
+
+			for (const descriptor of meta.descriptors("schema_org")) {
+				try {
+					const { value, keys } = descriptor;
+					this._addObject(value, keys);
+				} catch (ex) {
+					// TODO make it more visible
+					console.error("LrSchemaOrgUnified: ignored error: %o", ex);
+				}
 			}
 		}
 
-		const nodeLevel = {
-			"Article": 0,
-			"NewsArticle": 0,
-			"BlogPosting": 0,
-			"WebPage": 1,
-			"WebSite": 2,
-		};
-		const seenNodesPerLevel = [[], [], []];
-		for (const n of nodes) {
-			const level = nodeLevel[n["@type"]];
-			if (level != null) {
-				seenNodesPerLevel[level].push(n);
+		_addObject(json, keys) {
+			const { idMap, roots } = this;
+			const queue = [ { node: json, keys } ];
+
+			while (queue.length > 0) {
+				const { node, parent, keys } = queue.pop();
+				if (node == null || _basicTypes.has(Object.getPrototypeOf(node).constructor)) {
+					continue;
+				}
+				if (Array.isArray(node)) {
+					queue.push(...node.map(n => ({ node: n, parent })));
+					continue;
+				}
+
+				const id = node['@id'];
+				if (!parent && ((id != null && id !== "") || node['@type'])) {
+					roots.add({ node, keys });
+				}
+				if (id != null && id !== "") {
+					const existing = idMap.get(id);
+					if (node['@type']) {
+						if (existing && existing.node) {
+							console.warn(
+								"lr_schema_org.fillIdMap: replacing %o %o",
+								id, node['@type']);
+						}
+						idMap.set(id, existing ? { ...existing, node, keys } : { node, keys });
+					} else {
+						idMap.set(id, existing ? { ...existing, backRef: true, keys } : { backRef: true });
+					}
+				}
+				for (const [key, value] of Object.entries(node)) {
+					if (["@unnamed", "@graph"].indexOf(key) >= 0) {
+						queue.push({ node: value, parent });
+					} else if (typeof key !== 'string' || !key.startsWith("@")) {
+						queue.push({ node: value, parent: node });
+					}
+				}
 			}
 		}
-		for (const levelNodes of seenNodesPerLevel) {
-			if (levelNodes.length !== 1) {
-				// Either no items at all on this level
-				// or we should generate metadata for more general level
-				// till particular part of page will be provided.
-				continue;
+
+		*_roots() {
+			const { idMap, roots } = this;
+			for (const item of roots) {
+				const id = item.node["@id"];
+				if (id == null || id === "") {
+					yield item;
+					continue;
+				}
+				const entry = idMap.get(id);
+				console.assert(entry != null);
+				if (entry && !entry.backRef) {
+					yield entry;
+				}
 			}
-			return handlePrimaryTyped(levelNodes[0], meta, { ...props, idMap });
 		}
-		console.warn('lr_schema_org: have not found useful info in the @graph');
-		return false;
+
+		findMainEntity() {
+			// Silently ignore priority of 0
+			const typePriorities = {
+				"Product": 40,
+				"Article": 30,
+				"NewsArticle": 30,
+				"BlogPosting": 30,
+				"WebPage": 20,
+				"WebSite": 10,
+				"BreadcrumbList": 0,
+			}
+			const priorityCount = new lr_multimap.LrMultiMap();
+			for (const entry of this._roots()) {
+				const type = entry.node["@type"];
+				const priority = typePriorities[type];
+				if (priority === undefined) {
+					console.debug("LrSchemaOrgUnified.findMainEntity: unknown type %o of %o", type, entry);
+				}
+				if (priority > 0) {
+					priorityCount.set(priority, entry);
+				}
+			}
+			const foundPriorities = Array.from(priorityCount.keys());
+			foundPriorities.sort((a, b) => b - a);
+			for (const priority of foundPriorities) {
+				const variants = Array.from(priorityCount.get(priority));
+				if (variants.length === 1) {
+					return variants[0];
+				}
+				// TODO Check by `@id` whether the same entry is obtained from e.g.
+				// microdata and JSON-LD
+				console.debug("LrSchemaOrgUnified.findMainEntity: ambiguous ignored: %o", variants);
+			}
+			return undefined;
+		}
 	}
-	
+
 	function byId(element, idMap) {
 		const id = element && element["@id"];
-		return (idMap && id && idMap.get(id)) || element;
+		const mapped = idMap && id && idMap.get(id);
+		return (mapped && mapped.node) || element;
 	}
 
 	function handlePropertyGeneric(json, meta, field, { key, ...props }) {
@@ -127,14 +196,11 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	}
 
 	function findTopPartOf(json, { key, idMap, recursionLimit }) {
+		// TODO WebSite even if there is no `isPartOf` or `mainEntityOfPage` relation.
 		let result = null;
 		let candidate = json;
 		while (recursionLimit-- > 0 && (candidate = candidate["isPartOf"])) {
-			const id = candidate["@id"];
-			if (id != null && idMap) {
-				candidate = idMap.get(id) || candidate;
-			}
-			result = candidate;
+			result = candidate = byId(candidate, idMap);
 			key = key.concat("isPartOf", candidate["@type"]);
 		}
 		if (!(recursionLimit >= 0)) {
@@ -318,24 +384,35 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		return true;
 	}
 
-	function mergeJsonLd(json, meta, options) {
-		if (!json) {
+	function mergeMainEntry(meta, options) {
+		const unified = new LrSchemaOrgUnified(meta);
+		const mainEntry = unified.findMainEntity();
+		if (mainEntry === undefined) {
 			return false;
 		}
-		const key = new Key(options && options.key || "ld_json");
-		const props = { key, recursionLimit: 32 };
-		const result = handleGraph(json, meta, props) ||
-			handlePrimaryTyped(json, meta, props) ||
-			mergeSchemaOrgOutOfScope(json, meta, options);
+		const key = new Key(mainEntry.keys && mainEntry.keys[0] || "schema_org");
+		const props = { key, recursionLimit: 32, idMap: unified.idMap };
+		const result = handlePrimaryTyped(mainEntry.node, meta, props);
 		if (!result) {
-			console.warn("lr_schema_org.mergeJsonLd: unsupported structure");
+			console.warn("lr_schema_org.mergeMainEntry: unsupported: %o", mainEntry);
 		}
 		return result;
 	}
 
-	/** Gather meta element scattered over the document without itemscope */
-	function mergeSchemaOrgOutOfScope(json, meta, options) {
-		if (!json || json["@type"]) {
+	/** Gather meta elements scattered over the document without itemscope
+	 * or JSON-LD without explicit type.
+	 * Can it be considered as implicit `WebPage` type? */
+	function mergeUntyped(json, meta, options) {
+		if (!json || _basicTypes.has(json)) {
+			return false;
+		}
+		if (Array.isArray(json)) {
+			if (json.length !== 1) {
+				return false;
+			}
+			json = json[0];
+		}
+		if (json["@type"] || json["@graph"]) {
 			return false;
 		}
 		const key = new Key(options && options.key || "schema_org.no_scope");
@@ -344,8 +421,9 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	}
 
 	Object.assign(this, {
-		mergeJsonLd,
-		mergeSchemaOrgOutOfScope,
+		LrSchemaOrgUnified,
+		mergeMainEntry,
+		mergeUntyped,
 		internal: {
 			byId,
 			handleImageObjectProperty,
@@ -353,7 +431,6 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 			handlePrimaryThing,
 			handlePrimaryWebPage,
 			handlePrimaryTyped,
-			handleGraph,
 			primaryTypeHandlerMap,
 			propertyHandlerMap,
 		},
