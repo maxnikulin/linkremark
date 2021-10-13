@@ -455,13 +455,6 @@ function lr_sorted_title(meta) {
 	return valueVariants;
 }
 
-function lr_preferred_title(meta) {
-	// FIXME limit title length
-	// TODO fallback to selection, description fragment of reasonable length
-	const valueVariants = lr_sorted_title(meta);
-	return valueVariants.length > 0 ? valueVariants[0] : null;
-}
-
 function lr_format_org_description(meta) {
 	if (!meta) {
 		return null;
