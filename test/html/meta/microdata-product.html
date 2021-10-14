@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Vunder SpecialProduct 5X useful thing — some aggregator</title>
+  </head>
+  <body>
+    <nav itemprop="breadcrumb">
+      <ul itemscope="" itemtype="http://schema.org/BreadcrumbList">
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <a href="../index.html" itemprop="item">
+            <span itemprop="name">LinkRemark Tests</span>
+          </a>
+          <meta itemprop="position" content="1">
+        </li>
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <a href="index.html" itemprop="item">
+            <span itemprop="name">Meta</span>
+          </a>
+          <meta itemprop="position" content="2">
+        </li>
+        <li itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem">
+          <span itemprop="name">Microdata: Product</span>
+          <meta itemprop="position" content="3">
+        </li>
+      </ul>
+    </nav>
+    <nav>
+      <a href="microdata-author.html">Microdata - author</a>
+      <a href="microdata-qa.html">Microdata QA</a>
+    </nav>
+
+    <div itemscope itemtype="https://schema.org/Product">
+      <img itemprop="image" src="useful-fing.jpg" alt="A Vunder useful thing"/>
+      <h1 itemprop="name">Vunder SpecialProduct 5X useful thing</h1>
+
+      <div itemprop="aggregateRating"
+           itemscope itemtype="https://schema.org/AggregateRating">
+        <span itemprop="ratingValue">87</span>
+        out of <span itemprop="bestRating">100</span>
+        based on <span itemprop="ratingCount">24</span> user ratings
+      </div>
+
+      <div itemprop="offers" itemscope itemtype="https://schema.org/AggregateOffer">
+        <span itemprop="lowPrice">$1250</span>
+        to <span itemprop="highPrice">$1495</span>
+        from <span itemprop="offerCount">8</span> sellers
+
+        Sellers:
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <a itemprop="url" href="https://save-a-lot-things.com/useful-1.html">
+            Save A Lot Things - $1250</a>
+        </div>
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <a itemprop="url" href="https://thing-gadgets.com/useful-2.html">
+            Thing Gadgets - $1350</a>
+        </div>
+      </div>
+      ...
+    </div>
+    <body>
+</html>

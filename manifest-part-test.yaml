@@ -10,3 +10,4 @@ background:
   - test/js/lr_test_format_org.js
   - test/js/lr_test_meta.js
   - test/js/lr_test_microdata.js
+  - test/js/lr_test_schema_org_product.js
