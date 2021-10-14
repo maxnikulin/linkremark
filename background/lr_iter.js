@@ -20,7 +20,7 @@
 var lr_iter = lr_util.namespace(lr_iter, function lr_iter() {
 	function *combine(...iterableArgs) {
 		for (const iterable of iterableArgs) {
-			if (iterable === null) {
+			if (iterable == null) {
 				continue;
 			} else if (typeof iterable === "string" || !iterable[Symbol.iterator]) {
 				console.error('lr_iter.combine: not iterable "%o"', iterable);
