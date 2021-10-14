@@ -341,6 +341,17 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		return meta.addDescriptor( property, { value, key: "" + key, }, { skipEmpty: true });
 	}
 
+	function handlePropertyValueProperty(json, meta, property, { key, recursionLimit }) {
+		// TODO minValue, maxValue
+		const name = json.name;
+		if (!name || typeof name !== 'string' || json["@type"] !== "PropertyValue") {
+			return false;
+		}
+		return setProperty(
+			json, "value", meta, property,
+			{ key, recursionLimit, recursive: false, attrs: { name } });
+	}
+
 	function handlePrimaryThing(json, meta, props) {
 		const nonrecursiveProps = { ...props, recursive: false };
 		const textFields = [
@@ -465,6 +476,7 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	Object.assign(this, {
 		LrSchemaOrgUnified,
 		handlePrimaryThing,
+		handlePropertyValueProperty,
 		mergeMainEntry,
 		mergeUntyped,
 		setProperty,
