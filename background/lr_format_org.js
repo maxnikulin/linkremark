@@ -36,13 +36,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		}
 		const descriptorArray = Array.from(descriptorIterator).filter(
 			variant => variant.value && typeof variant.value === 'string');
-		function compareShort(a, b) {
-			if (!!a.error === !!b.error) {
-				return a.value.length - b.value.length;
-			}
-			return a.error ? 1 : -1;
-		}
-		descriptorArray.sort(compareShort);
+		descriptorArray.sort((a, b) => a.value.length - b.value.length);
 		yield* descriptorArray;
 	}
 
@@ -50,7 +44,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	function* siteNameVariants(meta) {
 		const origVariants = meta && meta.get("site_name");
 		const twitter = [];
-		for (const item of preferShort(origVariants)) {
+		for (const item of lr_meta.errorsLast(preferShort(origVariants))) {
 			if (
 				item.value[0] === "@"
 				&& item.keys.some(x => x.endsWith(".twitter:site"))
@@ -84,8 +78,10 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	function* titleCandidatesIterator(meta) {
-		yield* valueFromDescriptor(preferShort(meta.get('title')));
-		yield* valueFromDescriptor(preferShort(meta.get('description')));
+		yield* valueFromDescriptor(lr_meta.errorsLast(preferShort(lr_iter.combine(
+			meta.get('title'),
+			meta.get('description'),
+		))));
 		yield* selectionLineGen(meta);
 		// site_name is not here since it will be stripped anyway,
 		// so it may be added at a later step.
@@ -206,7 +202,8 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 			}
 			const titleComponents = [
 				{
-					value: lr_iter.first(valuesFromDescriptors(preferShort(meta.get("author")))),
+					value: lr_iter.first(valuesFromDescriptors(lr_meta.errorsLast(
+						preferShort(meta.get("author"))))),
 					min: 16,
 					target: 24,
 					stiff: 24,
@@ -430,11 +427,11 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		preferredPageTitle,
 		makeImageTitle,
 		makeLinkTitle,
+		preferShort,
 		truncate,
 		limitComponentsLength,
 		urlVariants,
 		internal: {
-			preferShort,
 			titleCandidatesIterator,
 			cleanupTitleVariant,
 			valuesFromDescriptors,

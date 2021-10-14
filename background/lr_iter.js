@@ -39,8 +39,29 @@ var lr_iter = lr_util.namespace(lr_iter, function lr_iter() {
 		}
 	}
 
+	function LrEnumerated(entry, index) {
+		this.entry = entry;
+		this.index = index;
+	}
+
+	function* stableSort(iterable, comparator) {
+		const enumerated = Array.from(iterable)
+			.map((entry, index) => new LrEnumerated(entry, index));
+		enumerated.sort(function stableSortCmp(a, b) {
+			const cmpResult = comparator(a.entry, b.entry);
+			if (cmpResult) {
+				return cmpResult;
+			}
+			return a.index - b.index;
+		});
+		for (const it of enumerated) {
+			yield it.entry;
+		}
+	}
+
 	Object.assign(this, {
 		combine,
 		first,
+		stableSort,
 	});
 });

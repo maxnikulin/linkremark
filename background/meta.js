@@ -26,16 +26,9 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
 
-	function *errorsLast(descriptorsIterable) {
-		const withErrors = [];
-		for (const descriptor of descriptorsIterable) {
-			if (descriptor.error != null) {
-				withErrors.push(descriptor);
-				continue;
-			}
-			yield descriptor;
-		}
-		yield *withErrors;
+	function *errorsLast(descriptorIterable) {
+		yield* lr_iter.stableSort(
+			descriptorIterable, (a, b) => !!a.error - !!b.error);
 	}
 
 	function firstValue(...iterableArgs) {
