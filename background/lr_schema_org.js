@@ -406,6 +406,7 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	registerPrimaryTypeHandler("Article", handlePrimaryCreativeWork);
 	registerPrimaryTypeHandler("BlogPosting", handlePrimaryCreativeWork);
 	registerPrimaryTypeHandler("NewsArticle", handlePrimaryCreativeWork);
+	registerPrimaryTypeHandler("Product", handlePrimaryThing); // handled as special, not primary
 	registerPrimaryTypeHandler("Thing", handlePrimaryThing);
 	registerPrimaryTypeHandler("WebPage", handlePrimaryWebPage);
 	registerPrimaryTypeHandler("WebSite", handlePrimaryCreativeWork);

@@ -568,6 +568,7 @@ class LrMeta {
 				selection: lr_meta.sanitizeTextOrArray,
 				schema_org: lr_meta.sanitizeSchemaOrg,
 				error: lr_meta.sanitizeObject,
+				offer: lr_meta.sanitizeObject, // TODO consider a special map for Product
 			})),
 		});
 		Object.defineProperty(this, "propertyRemap", {

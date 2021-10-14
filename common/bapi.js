@@ -144,6 +144,7 @@ function bapiChrome(chrome) {
 		},
 		i18n: {
 			getMessage: asis,
+			// getUILanguage: asis, // Unsure if it is better than navigator.language
 		},
 		permissions: {
 			contains: promisify,
