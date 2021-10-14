@@ -424,17 +424,18 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	Object.assign(this, {
+		cleanupTitleVariant,
 		preferredPageTitle,
 		makeImageTitle,
 		makeLinkTitle,
 		preferShort,
+		siteNameVariants,
 		truncate,
 		limitComponentsLength,
 		urlVariants,
+		valuesFromDescriptors,
 		internal: {
 			titleCandidatesIterator,
-			cleanupTitleVariant,
-			valuesFromDescriptors,
 			urlWeightMap,
 			urlWeight,
 		},
@@ -605,7 +606,7 @@ function lr_format_org_frame(frame, options = {}) {
 		for (const entry of variants) {
 			try {
 				if (
-					property === 'site_name'
+					property === 'site_name' // TODO siteNameVariants
 					&& entry.keys.some(x => x.endsWith(".twitter:site"))
 					&& variants.length > 1
 					&& entry.value[0] === "@"

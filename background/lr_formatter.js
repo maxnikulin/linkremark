@@ -40,7 +40,21 @@ var lr_formatter = lr_util.namespace(lr_formatter, function lr_formatter() {
 		return [ date ];
 	};
 
+	function ensureSingleLine(text) {
+		if (typeof text !== 'string') {
+			return text;
+		}
+		return text.replace(/\s+/g, function normSpace(str) {
+			const first = str[0];
+			if (first === '\u200B' || first === '\u00a0' /* &nbsp */) {
+				return first;
+			}
+			return ' ';
+		});
+	}
+
 	Object.assign(this, {
+		ensureSingleLine,
 		parseDate,
 	});
 

@@ -59,9 +59,19 @@ var lr_iter = lr_util.namespace(lr_iter, function lr_iter() {
 		}
 	}
 
+	function* map(iterable, mapping) {
+		if (!iterable) {
+			return;
+		}
+		for (const value of iterable) {
+			yield mapping(value);
+		}
+	}
+
 	Object.assign(this, {
 		combine,
 		first,
+		map,
 		stableSort,
 	});
 });
