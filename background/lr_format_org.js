@@ -423,6 +423,17 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		yield* weightedVariants;
 	}
 
+	const _schemaOrgTypes = new Map();
+	function registerSchemaOrgType(name, handler) {
+		const existing = _schemaOrgTypes.get(name);
+		if (existing) {
+			console.warn(
+				"lr_format_org.registerSchemaOrgType: replacing %o %o %o",
+				name, existing.name, handler.name);
+		}
+		_schemaOrgTypes.set(name, handler);
+	}
+
 	Object.assign(this, {
 		cleanupTitleVariant,
 		preferredPageTitle,
@@ -434,6 +445,8 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		limitComponentsLength,
 		urlVariants,
 		valuesFromDescriptors,
+		_schemaOrgTypes,
+		registerSchemaOrgType,
 		internal: {
 			titleCandidatesIterator,
 			urlWeightMap,
@@ -581,7 +594,24 @@ function lr_do_format_org_selection(frame) {
 	return lr_org_tree.LrOrgQuote(null, ...lr_format_selection_body(selection));
 }
 
-function lr_format_org_frame(frame, options = {}) {
+function lr_format_org_frame(meta, options = {}) {
+	try {
+		const specialMeta = new LrMeta();
+		if (lr_schema_org.mergeSpecial(meta, specialMeta)) {
+			const typeDescr = lr_meta.firstValue(specialMeta.descriptors("schema_orgType"));
+			const handler = typeDescr && lr_format_org._schemaOrgTypes.get(typeDescr);
+			if (handler) {
+				return handler(specialMeta, meta, options);
+			}
+		}
+	} catch (ex) {
+		// TODO pass error to executor
+		console.error("lr_format_org_frame: fallback to WebPage due to: %o", ex);
+	}
+	return lr_format_org_frame_web_page(meta, options);
+}
+
+function lr_format_org_frame_web_page(frame, options = {}) {
 	const title = lr_format_org.preferredPageTitle(frame);
 	let url = null;
 	const properties = options.baseProperties && options.baseProperties.slice() || [];

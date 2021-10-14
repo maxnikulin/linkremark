@@ -423,6 +423,16 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	registerPropertyHandler("Person", handlePersonProperty);
 	registerPropertyHandler("AggregateRating", handleAggregateRatingProperty);
 
+	const specialTypeHandlerMap = new Map();
+	function registerSpecialTypeHandler(type, handler) {
+		if (specialTypeHandlerMap.has(type)) {
+			console.warn(
+				"lr_schema_org.registerSpecialTypeHandler: handler for type '%s' already registered, overriding it", type);
+		}
+		specialTypeHandlerMap.set(type, handler);
+	}
+
+
 	function handlePrimaryTyped(json, meta, props) {
 		const type = json["@type"];
 		if (!type) {
@@ -473,12 +483,37 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		return handlePrimaryCreativeWork(json, meta, props);
 	}
 
+	function mergeSpecial(srcMeta, targetMeta, _options) {
+		const unified = new LrSchemaOrgUnified(srcMeta);
+		const mainEntry = unified.findMainEntity();
+		if (mainEntry === undefined) {
+			return false;
+		}
+		const type = mainEntry.node["@type"];
+		if (!type) {
+			return false;
+		}
+		const handler = specialTypeHandlerMap.get(type);
+		if (!handler) {
+			return false;
+		}
+		const key = new Key(mainEntry.keys && mainEntry.keys[0] || "schema_org").concat(type);
+		const props = { key, recursionLimit: 32, idMap: unified.idMap };
+		const result = handler(mainEntry.node, targetMeta, { ...props, key });
+		if (result) {
+			targetMeta.addDescriptor("schema_orgType", { value: type, key: "" + key });
+		}
+		return result;
+	}
+
 	Object.assign(this, {
 		LrSchemaOrgUnified,
 		handlePrimaryThing,
 		handlePropertyValueProperty,
 		mergeMainEntry,
 		mergeUntyped,
+		mergeSpecial,
+		registerSpecialTypeHandler,
 		setProperty,
 		stripSchemaOrg,
 		internal: {
