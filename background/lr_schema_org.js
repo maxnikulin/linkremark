@@ -316,6 +316,31 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		return true;
 	}
 
+	function handleAggregateRatingProperty(json, meta, property, { key }) {
+		let value = json.ratingValue;
+		const bestRating = json.bestRating;
+		if (bestRating) {
+			let rating = bestRating;
+			const worstRating = json.worstRating;
+			if (worstRating) {
+				rating = worstRating + "-" + rating;
+			}
+			value = (value || "-") + "/" + rating;
+		}
+		const ratingCount = [];
+		if (json.ratingCount && json.ratingCount != "0") {
+			ratingCount.push(json.ratingCount);
+		}
+		const reviewCount = json.reviewCount || (ratingCount.length > 0 ? "0" : undefined);
+		if (reviewCount) {
+			ratingCount.unshift(reviewCount);
+		}
+		if (ratingCount.length > 0) {
+			value = (value || "-") + "(" + ratingCount.join("; ") + ")";
+		}
+		return meta.addDescriptor( property, { value, key: "" + key, }, { skipEmpty: true });
+	}
+
 	function handlePrimaryThing(json, meta, props) {
 		const nonrecursiveProps = { ...props, recursive: false };
 		const textFields = [
@@ -385,6 +410,7 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 
 	registerPropertyHandler("ImageObject", handleImageObjectProperty);
 	registerPropertyHandler("Person", handlePersonProperty);
+	registerPropertyHandler("AggregateRating", handleAggregateRatingProperty);
 
 	function handlePrimaryTyped(json, meta, props) {
 		const type = json["@type"];
