@@ -19,6 +19,12 @@
 
 var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 	var lr_schema_org = this;
+
+	function stripSchemaOrg(type) {
+		return type && typeof type === 'string' ?
+			type.replace(/^https?:\/\/schema.org\//, '') : undefined;
+	}
+
 	class Key extends Array {
 		toString() {
 			return this.join(".");
@@ -152,7 +158,14 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		return setProperty(json, "name", meta, field, { ...props, key, recursive: false });
 	}
 
-	function setProperty(src, srcField, meta, property, { key, recursive, recursionLimit, ...props }) {
+	function setProperty(src, srcField, meta, property, propsAll) {
+		if (propsAll == null) {
+			console.warn(
+				"lr_schema_org.setProperty(%o, %o, %o, %o, %o): caller error: no props",
+				src, srcField, meta, property, propsAll);
+			return false;
+		}
+		let { attrs = {}, key, handler, recursive, recursionLimit, ...props } = propsAll;
 		if (! (--recursionLimit >= 0)) {
 			console.warn("lr_schema_org.setProperty: recursion limit reached %s %s", property, key);
 			return false;
@@ -166,17 +179,20 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 		if (value == null || value === "") {
 			return result;
 		} else if (typeof value === "string") {
-			return meta.addDescriptor(property, { value, key: "" + key });
+			return meta.addDescriptor(property, { ...attrs, value, key: "" + key });
 		} else if (Array.isArray(value)) {
 			let i = 0;
 			for (const item of value) {
 				result = setProperty(item, null, meta, property,
-					{ ...props, key: "" + key, recursive, recursionLimit }) || result;
+					{ ...props, attrs, key: "" + key, recursive, recursionLimit }) || result;
 			}
 		} else if (value["@type"]) {
 			const type = value["@type"];
 			const typedKey = key.concat(type);
-			if (recursive) {
+			if (handler) {
+				result = handler(value, meta, property,
+					{ ...props, key: typedKey, recursive: false, recursionLimit });
+			} else if (recursive) {
 				const handler = propertyHandlerMap.get(type);
 				if (handler) {
 					// run always
@@ -297,6 +313,7 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 			{ ...props, key: topKey, recursive: false });
 		setProperty(json, "publisher", meta, "site_name",
 			{ ...props, recursive: true });
+		return true;
 	}
 
 	function handlePrimaryThing(json, meta, props) {
@@ -380,8 +397,7 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 			return false;
 		}
 		const key = props.key.concat(type);
-		handler(json, meta, { ...props, key });
-		return true;
+		return handler(json, meta, { ...props, key });
 	}
 
 	function mergeMainEntry(meta, options) {
@@ -422,13 +438,15 @@ var lr_schema_org = lr_util.namespace(lr_schema_org, function lr_schema_org() {
 
 	Object.assign(this, {
 		LrSchemaOrgUnified,
+		handlePrimaryThing,
 		mergeMainEntry,
 		mergeUntyped,
+		setProperty,
+		stripSchemaOrg,
 		internal: {
 			byId,
 			handleImageObjectProperty,
 			handlePrimaryCreativeWork,
-			handlePrimaryThing,
 			handlePrimaryWebPage,
 			handlePrimaryTyped,
 			primaryTypeHandlerMap,
