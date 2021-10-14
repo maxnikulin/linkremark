@@ -211,5 +211,25 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 	};
 
 	this.suites = [];
+
+	function withExecutor(func, ...args) {
+		if (!lr_util.isFunction(func)) {
+			throw new TypeError("func must be a synchronous function");
+		}
+		const executor = new lr_executor._internal.LrExecutor(
+			{ notifier: new lr_executor.LrNullNotifier() });
+		try {
+			executor.execInfo.result = executor.step(func, ...args);
+		} catch (ex) {
+			executor.execInfo.exception = ex;
+		} finally {
+			executor.execInfo.error = executor.totalError();
+		}
+		return executor.execInfo;
+	}
+
+	Object.assign(this, {
+		withExecutor,
+	});
 	return this;
 });
