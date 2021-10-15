@@ -67,7 +67,7 @@
 			"background/lr_rpc_store.js",
 			"background/lr_addon_rpc.js",
 			"background/lr_settings.js",
-			"background/async_script.js",
+			"background/lr_async_script.js",
 			"background/lr_export.js",
 			"background/lr_clipboard.js",
 			"background/lr_native_connection.js",
