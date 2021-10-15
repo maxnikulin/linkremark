@@ -62,7 +62,7 @@
 			"background/lr_org_buffer.js",
 			"background/lr_org_tree.js",
 			"background/lr_schema_org.js",
-			"background/meta.js",
+			"background/lr_meta.js",
 			"background/native.js",
 			"common/lr_org_protocol.js",
 			"background/result_cache.js",
