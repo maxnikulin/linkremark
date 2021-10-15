@@ -17,7 +17,9 @@
 
 "use strict";
 
-var lr_clipboard = function() {
+var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
+	var lr_clipboard = this;
+
 	async function lrCopyToClipboard(capture, options = null, executor) {
 		let { tab, format, version, usePreview, error, ...formatterOptions } = options || {};
 		if (tab == null) {
@@ -87,15 +89,16 @@ var lr_clipboard = function() {
 	 * However usually allows to avoid flashing new tab.
 	 * Skip if clipboard API is disabled.
 	 */
-	async function lrClipboardContentScript(capture, options) {
+	async function _lrClipboardContentScript(capture, options) {
 		const { usePreview, tab } = options || {}
 		if (usePreview || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return;
 		}
 		const tabId = tab != null ? tab.id : null;
 		if (!(tabId >= 0)) {
-			throw new Error("lrClipboardContentScript: invalid tabId");
+			throw new Error("_lrClipboardContentScript: invalid tabId");
 		}
+		// TODO handle warnings in return value
 		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "content_scripts/clipboard.js" }) };
 	}
 
@@ -108,7 +111,7 @@ var lr_clipboard = function() {
 	 * For Firefox it looks like the best method if clipboard permission
 	 * is requested. At least unless it is disabled through about:config.
 	 */
-	async function lrClipboardWriteBackground(capture, options) {
+	async function _lrClipboardWriteBackground(capture, options) {
 		const { skipBackground } = options || {}
 		if (skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return;
@@ -117,7 +120,7 @@ var lr_clipboard = function() {
 		let content = captureId && capture.formats && capture.formats[captureId];
 		content = content.body;
 		if (content == null) {
-			console.warn("lrClipboardWriteBackground: unsupported capture: %o", capture);
+			console.warn("_lrClipboardWriteBackground: unsupported capture: %o", capture);
 			throw new Error("Internal error: no capture content");
 		}
 		const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
@@ -127,19 +130,21 @@ var lr_clipboard = function() {
 		return { preview: false };
 	}
 
-	async function lrClipboardUsePreview(capture, options) {
+	async function _lrClipboardUsePreview(capture, options) {
 		return { previewParams: { action: "launch" } };
 	}
 
 	async function lrClipboardAny(capture, options) {
 		const retvalDefault = { preview: true, previewParams: null, previewTab: options.tab };
-		for (let method of [lrClipboardWriteBackground, lrClipboardContentScript, lrClipboardUsePreview]) {
+		for (let method of [
+			_lrClipboardWriteBackground, _lrClipboardContentScript, _lrClipboardUsePreview
+		]) {
 			try {
 				const result = await method(capture, options);
 				if (result) {
 					return { ...retvalDefault, ...result };
 				} else {
-					console.error(`lrClipboard: ${method.name} has not succeeded`);
+					console.error(`lr_clipboard: ${method.name} has not succeeded`);
 				}
 			} catch (ex) {
 				console.error(method && method.name, ex);
@@ -148,7 +153,7 @@ var lr_clipboard = function() {
 		return retvalDefault;
 	}
 
-	this.initSync = function() {
+	function initSync() {
 		lr_export.registerMethod({
 			method: "clipboard",
 			handler: lrCopyToClipboard,
@@ -355,5 +360,17 @@ var lr_clipboard = function() {
 			parent: "export.methods.orgProtocol",
 		});
 	};
+
+	Object.assign(this, {
+		initSync,
+		_lrClipboardWriteBackground,
+		_lrClipboardContentScript,
+		_lrClipboardUsePreview,
+		_internal: {
+			lrCopyToClipboard,
+			lrLaunchOrgProtocolHandler,
+			lrClipboardAny,
+		},
+	});
 	return this;
-}.call(lr_clipboard || {});
+});
