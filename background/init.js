@@ -39,7 +39,7 @@ var bapi;
 var lr_action;
 var lr_clipboard;
 var lr_export;
-var lr_native_messaging;
+var lr_native_export;
 var lr_notify;
 var lr_settings;
 var lr_util;

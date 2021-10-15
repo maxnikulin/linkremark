@@ -71,7 +71,7 @@
 			"background/lr_export.js",
 			"background/lr_clipboard.js",
 			"background/lr_native_connection.js",
-			"background/lr_native_messaging.js",
+			"background/lr_native_export.js",
 			"background/lr_tabframe.js",
 			"background/lr_notify.js",
 			"background/lr_action.js",

@@ -45,7 +45,7 @@ var lrResetLoadingState = lr_util.notFatal(function() {
 function lrMainSync() {
 	lr_settings.initSync();
 	lr_export.initSync();
-	lr_native_messaging.initSync();
+	lr_native_export.initSync();
 	lr_clipboard.initSync();
 	lrAddListeners();
 	lrInstallMenu();
@@ -62,9 +62,9 @@ async function lrMainAsync() {
 	gLrRpcServer.register("store.getCapture", gLrRpcStore.handleCapture);
 	gLrRpcServer.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
 	gLrRpcServer.register("polyfill.closeTab", lr_rpc_commands.closeTab);
-	gLrRpcServer.register("nativeMessaging.hello", lr_native_messaging.hello);
-	gLrRpcServer.register("nativeMessaging.mentions", lr_native_messaging.mentionsEndpoint);
-	gLrRpcServer.register("nativeMessaging.visit", lr_native_messaging.visitEndpoint);
+	gLrRpcServer.register("nativeMessaging.hello", lr_native_export.hello);
+	gLrRpcServer.register("nativeMessaging.mentions", lr_native_export.mentionsEndpoint);
+	gLrRpcServer.register("nativeMessaging.visit", lr_native_export.visitEndpoint);
 	gLrRpcServer.register("export.process", lr_export.processMessage.bind(lr_export));
 	gLrRpcServer.register("export.format", lr_export.formatMessage.bind(lr_export));
 	gLrRpcServer.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));

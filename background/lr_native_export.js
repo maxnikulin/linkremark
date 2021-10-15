@@ -17,7 +17,8 @@
 
 "use strict";
 
-var lr_native_messaging = function() {
+var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_export() {
+	var lr_native_export = this;
 	const TIMEOUT = 3000;
 
 	async function hello(params) {
@@ -176,7 +177,7 @@ var lr_native_messaging = function() {
 				} catch (ex) {
 					if (error) {
 						// TODO report to executor
-						console.error("lr_native_messaging._queryMentions: error: %o %o", ex, variants);
+						console.error("lr_native_export._queryMentions: error: %o %o", ex, variants);
 					} else {
 						error = ex;
 					}
@@ -188,7 +189,7 @@ var lr_native_messaging = function() {
 				}
 				return { response: "NO_MENTIONS", hello };
 			} else if (error) {
-				console.error("lr_native_messaging._queryMentions: error: %o", ex);
+				console.error("lr_native_export._queryMentions: error: %o", ex);
 			}
 			return { response, hello };
 		} finally {
@@ -217,7 +218,7 @@ var lr_native_messaging = function() {
 			async function checkKnownUrlsEndpoint(params, executor) {
 				const { backend, variants } = params && params[0] || {};
 				const id = bapiGetId();
-				const result = await lr_native_messaging._queryMentions(
+				const result = await lr_native_export._queryMentions(
 					[ { id, variants } ], { backend }, executor);
 				const { response } = result;
 				const mentions = typeof response === "string" ? response : response.get(id);
@@ -228,7 +229,7 @@ var lr_native_messaging = function() {
 
 	async function visitEndpoint(args) {
 		const [ query, params ] = args;
-		const timeout = params && params.timeout || TIMEOUT;
+		const timeout = params && params.timeout || lr_native_export.TIMEOUT;
 		const backend = _getBackend(params);
 		const connection = new LrNativeConnection(backend);
 		try {
@@ -241,7 +242,7 @@ var lr_native_messaging = function() {
 		}
 	}
 
-	this.initSync = function () {
+	function initSync() {
 		lr_settings.registerGroup({
 			name: "export.methods.nativeMessaging",
 			title: "Browser native messaging communication channel",
@@ -301,8 +302,10 @@ var lr_native_messaging = function() {
 		});
 	};
 	Object.assign(this, {
+		TIMEOUT,
 		hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint,
+		initSync,
 		_queryMentions,
 	});
 	return this;
-}.call(lr_native_messaging || {});
+});
