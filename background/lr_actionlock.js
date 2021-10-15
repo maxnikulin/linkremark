@@ -30,8 +30,8 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 
 	/// Lock object exposed to LrExecutor
 	class LrActionLock {
-		constructor({ abortSignal, abortPromise, onFinished }) {
-			this.abortSignal = abortSignal;
+		constructor({ signal, abortPromise, onFinished }) {
+			this.signal = signal;
 			this.abortPromise = abortPromise;
 			this.finished = onFinished;
 		}
@@ -46,7 +46,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			this.onFinished = onFinished;
 			this._abortController = new AbortController();
 			this.lock = new LrActionLock({
-				abortSignal: this._abortController.signal,
+				signal: this._abortController.signal,
 				abortPromise: new Promise((_, reject) => this._rejectAbortPromise = reject),
 				onFinished,
 			});

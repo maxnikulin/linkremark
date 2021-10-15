@@ -147,3 +147,73 @@ class LrNativeConnection {
 		this._state = new LrNativeConnectionDisconnected();
 	};
 }
+
+class LrAbortableNativeConnection extends LrNativeConnection {
+	/**
+	 * TODO In addition to `abortPromise`, support fallback to
+	 * `signal` (`AbortSignal`) field of the object `lockPromise` is resolved to.
+	 */
+	constructor(backend, lockPromise) {
+		super(backend);
+		this._lock = lockPromise;
+	}
+
+	withTimeout(timeout) {
+		return Object.create(this, { _timeout: {
+			value: timeout,
+			enumerable: true,
+			writable: false,
+		} });
+	}
+
+	async send(method, params) {
+		const promises = [
+			super.send(method, params),
+			this._getAbortPromise(),
+		];
+		let timeoutId;
+		if (this._timeout >= 0) {
+			promises.push(new Promise((_, reject) => timeoutId = setTimeout(() => {
+				this.disconnect();
+				reject(new Error("Timeout"));
+				timeoutId = undefined;
+			}, this._timeout)));
+		}
+		const retval = Promise.race(promises);
+		if (timeoutId !== undefined) {
+			function cancelTimeout() {
+				if (timeoutId !== undefined) {
+					clearTimeout(timeoutId);
+				}
+			}
+			retval.then(cancelTimeout, cancelTimeout);
+		}
+		return retval;
+	}
+
+	async _getAbortPromise() {
+		if (this._abortPromise === undefined) {
+			try {
+				const lock = await this._lock;
+				if (lock != null) {
+					this._abortPromise = lock.abortPromise.catch(ex => {
+						this.disconnect(); throw ex;
+					});
+				}
+			} catch (ex) {
+				if (
+					typeof lr_actionlock !== undefined
+					&& ex instanceof lr_actionlock.LrActionLockCancelledError
+				) {
+					throw ex;
+				}
+				console.error("LrAbortableNativeConnection: %o", ex);
+			}
+		}
+		if (this._abortPromise === undefined) {
+			console.warn("LrAbortableNativeConnection.send: not cancellable");
+			this._abortPromise = new Promise((_resilve, _reject) => /* never */ undefined);
+		}
+		return this._abortPromise;
+	}
+}
