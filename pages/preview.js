@@ -191,7 +191,7 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 	} else if (body != null && body != "") {
 		arg.body = body;
 	}
-	window.location.href = lrOrgProtocol.makeUrl(arg);
+	window.location.href = lr_org_protocol.makeUrl(arg);
 }
 
 async function lrPreviewGetCapture(dispatch, getState) {

@@ -70,7 +70,7 @@
 			"background/lr_schema_org.js",
 			"background/meta.js",
 			"background/native.js",
-			"common/org_protocol.js",
+			"common/lr_org_protocol.js",
 			"background/result_cache.js",
 			"background/rpc_server.js",
 			"background/lr_settings.js",

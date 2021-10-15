@@ -17,7 +17,7 @@
 
 "use strict";
 
-var lrOrgProtocol = function() {
+var lr_org_protocol = Object.assign(lr_org_protocol || new function lr_org_protocol() {}, {
 	/* It seems it is safer to avoid double slash "org-protocol://"
 	 * and it is better to choose either single or triple slash.
 	 * At least one slash is required by `org-protocol.el`.
@@ -50,7 +50,7 @@ var lrOrgProtocol = function() {
 	 * > the result of field code expansion inside a quoted argument is undefined.
 	 *
 	 * Let's try single slash. */
-	this.URL_CAPTURE = 'org-protocol:/capture';
+	URL_CAPTURE: 'org-protocol:/capture',
 
 	/* Make URL like
 	 * "org-protocol:/capture?template=x&title=Hello&body=World&url=http:%2F%2Fexample.com"
@@ -59,7 +59,7 @@ var lrOrgProtocol = function() {
 	 *
 	 * `template` field is optional. Emacs shows prompt if it is omitted.
 	 */
-	this.makeUrl = function(params, base=lrOrgProtocol.URL_CAPTURE) {
+	makeUrl(params, base=lr_org_protocol.URL_CAPTURE) {
 		// Prevent conversion of `undefined` to `"undefined"` string.
 		// Empty template can cause a problem in Emacs.
 		for (const [ key, value ] of Object.entries(params)) {
@@ -79,7 +79,5 @@ var lrOrgProtocol = function() {
 		// support distributions.
 		url.search = query.toString().replace(/\+/g, '%20');
 		return url.toString();
-	};
-
-	return this;
-}.call(lrOrgProtocol || {});
+	},
+});

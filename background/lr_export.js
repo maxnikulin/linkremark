@@ -101,7 +101,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 				} else {
 					arg.body = text;
 				}
-				retval.url = lrOrgProtocol.makeUrl(arg);
+				retval.url = lr_org_protocol.makeUrl(arg);
 				return retval;
 			},
 		});
