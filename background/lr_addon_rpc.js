@@ -21,7 +21,7 @@ class LrRpcError extends Error {
 	get name() { return this.__proto__.constructor.name; };
 }
 
-class LrRpcServer {
+class LrAddonRpc {
 	constructor() {
 		this.methods = new Map();
 		this.subscriptionHandlers = new Map();
@@ -35,11 +35,11 @@ class LrRpcServer {
 	};
 	register(name, callback, properties = null) {
 		if (!callback.call) {
-			throw new Error(`LrRpcServer.register(${name}, ${callback && callback.name}): callback is not a function`);
+			throw new Error(`LrAddonRpc.register(${name}, ${callback && callback.name}): callback is not a function`);
 		}
 		const override = properties && properties.override != null ? properties.override : false;
 		if (!override && this.methods.has(name)) {
-			throw new Error(`LrRpcServer: ${name} already registered, you could force override`);
+			throw new Error(`LrAddonRpc: ${name} already registered, you could force override`);
 		}
 		this.methods.set(name, { callback });
 	};
@@ -54,7 +54,7 @@ class LrRpcServer {
 			}
 			return { id, result };
 		} catch (error) {
-			console.error("LrRpcServer: %o when processing %o %o", error, request, port);
+			console.error("LrAddonRpc: %o when processing %o %o", error, request, port);
 			return { id, error: String(error && error.message || error), }
 		}
 	};
@@ -66,7 +66,7 @@ class LrRpcServer {
 			throw new LrRpcError(`Foreign message from ${port && port.id} rejected`);
 		}
 		if (!request) {
-			throw new Error("LrRpcServer: bad request");
+			throw new Error("LrAddonRpc: bad request");
 		}
 		let method, params, id;
 		const unknown = [];
@@ -99,7 +99,7 @@ class LrRpcServer {
 		const existing = this.subscriptionHandlers.get(name);
 		if (existing) {
 			console.warn(
-				"LrRpcServer.registerSubscription: replacing existing for %o from %o to %o",
+				"LrAddonRpc.registerSubscription: replacing existing for %o from %o to %o",
 				name, existing, handler);
 		}
 		this.subscriptionHandlers.set(name, handler);
@@ -117,19 +117,19 @@ class LrRpcServer {
 			// before listener has been removed, so it is likely not delivered
 			// to the subscriber.
 			console.log(
-				"LrRpcServer: relaying to subscribed: %o %o %o",
+				"LrAddonRpc: relaying to subscribed: %o %o %o",
 				request, port, subscribed);
 			subscribed.onMessage(request, port);
 			return;
 		}
 		const { subscription } = request || {};
 		if (subscription == null) {
-			console.warn("LrRpcServer: message from connection: expected subscription, got %o", request);
+			console.warn("LrAddonRpc: message from connection: expected subscription, got %o", request);
 			return;
 		}
 		const handler = this.subscriptionHandlers.get(subscription);
 		if (handler == null) {
-			console.warn("LrRpcServer: attempt to subscribe to unknown handler: %o %o", request, port);
+			console.warn("LrAddonRpc: attempt to subscribe to unknown handler: %o %o", request, port);
 			port.disconnect();
 			return;
 		}
@@ -140,7 +140,7 @@ class LrRpcServer {
 
 	_onConnectedDisconnect(port) {
 		if (!this.subscribed.has(port)) {
-			console.warn("LrRpcServer: connection closed before subscription: %o", port);
+			console.warn("LrAddonRpc: connection closed before subscription: %o", port);
 			port.onMessage.removeListener(this.onConnectedMessage);
 			port.onDisconnect.removeListener(this.onConnectedDisconnect);
 		}

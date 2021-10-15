@@ -65,7 +65,7 @@
 			"background/lr_meta.js",
 			"common/lr_org_protocol.js",
 			"background/result_cache.js",
-			"background/rpc_server.js",
+			"background/lr_addon_rpc.js",
 			"background/lr_settings.js",
 			"background/async_script.js",
 			"background/lr_export.js",

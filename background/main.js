@@ -19,7 +19,7 @@
 
 var gLrRpcStore;
 // Is not used in other scripts. Global is just for debug convenience.
-var gLrRpcServer;
+var gLrAddonRpc;
 
 var lrInstallMenu = lr_util.notFatal(function() {
 	bapi.runtime.onInstalled.addListener(lr_action.createMenu);
@@ -50,30 +50,30 @@ function lrMainSync() {
 	lrAddListeners();
 	lrInstallMenu();
 	gLrRpcStore = new lr_rpc_store.LrRpcStore();
-	gLrRpcServer = new LrRpcServer();
-	bapi.runtime.onMessage.addListener(gLrRpcServer.listener);
-	bapi.runtime.onConnect.addListener(gLrRpcServer.onConnect);
+	gLrAddonRpc = new LrAddonRpc();
+	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);
+	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
 }
 
 async function lrMainAsync() {
 	await lr_settings.initAsync();
 	await lr_export.initAsync();
-	gLrRpcServer.register("store.getResult", gLrRpcStore.handleResult);
-	gLrRpcServer.register("store.getCapture", gLrRpcStore.handleCapture);
-	gLrRpcServer.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
-	gLrRpcServer.register("polyfill.closeTab", lr_rpc_commands.closeTab);
-	gLrRpcServer.register("nativeMessaging.hello", lr_native_export.hello);
-	gLrRpcServer.register("nativeMessaging.mentions", lr_native_export.mentionsEndpoint);
-	gLrRpcServer.register("nativeMessaging.visit", lr_native_export.visitEndpoint);
-	gLrRpcServer.register("export.process", lr_export.processMessage.bind(lr_export));
-	gLrRpcServer.register("export.format", lr_export.formatMessage.bind(lr_export));
-	gLrRpcServer.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));
-	gLrRpcServer.register("action.captureTab", lr_action.captureCurrentTabEndpoint);
+	gLrAddonRpc.register("store.getResult", gLrRpcStore.handleResult);
+	gLrAddonRpc.register("store.getCapture", gLrRpcStore.handleCapture);
+	gLrAddonRpc.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
+	gLrAddonRpc.register("polyfill.closeTab", lr_rpc_commands.closeTab);
+	gLrAddonRpc.register("nativeMessaging.hello", lr_native_export.hello);
+	gLrAddonRpc.register("nativeMessaging.mentions", lr_native_export.mentionsEndpoint);
+	gLrAddonRpc.register("nativeMessaging.visit", lr_native_export.visitEndpoint);
+	gLrAddonRpc.register("export.process", lr_export.processMessage.bind(lr_export));
+	gLrAddonRpc.register("export.format", lr_export.formatMessage.bind(lr_export));
+	gLrAddonRpc.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));
+	gLrAddonRpc.register("action.captureTab", lr_action.captureCurrentTabEndpoint);
 	gLrAsyncScript = new LrAsyncScript();
-	gLrAsyncScript.register(gLrRpcServer);
-	lr_settings.register(gLrRpcServer);
+	gLrAsyncScript.register(gLrAddonRpc);
+	lr_settings.register(gLrAddonRpc);
 	try {
-		lr_actionlock.register(gLrRpcServer);
+		lr_actionlock.register(gLrAddonRpc);
 	} catch (ex) {
 		console.error("lr_actionlock: %o", ex);
 		++gLrLoadErrorCount;
