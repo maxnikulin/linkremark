@@ -49,7 +49,7 @@ function lrMainSync() {
 	lr_clipboard.initSync();
 	lrAddListeners();
 	lrInstallMenu();
-	gLrRpcStore = new lr_rpc_store.LrRpcStore();
+	gLrRpcStore = new LrRpcStore();
 	gLrAddonRpc = new LrAddonRpc();
 	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);
 	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
