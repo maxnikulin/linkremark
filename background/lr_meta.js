@@ -797,7 +797,7 @@ lr_meta.merge = function(frameInfo) {
 			key: "content_script"
 		});
 	} else {
-		for (const field of [ "referrer", "meta", "content", "image", "link", "microdata" ]) {
+		for (const field of [ "relations", "meta", "content", "image", "link", "microdata" ]) {
 			lr_meta.mergeContentScript(frameInfo, field, meta);
 		}
 	}

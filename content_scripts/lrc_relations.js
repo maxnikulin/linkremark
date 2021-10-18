@@ -47,7 +47,7 @@
 
 "use strict";
 
-(function lrReferrer() {
+(function lrc_relations() {
 
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
@@ -260,5 +260,5 @@
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: referrer.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_relations.js: should not reach end of the function" };
 })();

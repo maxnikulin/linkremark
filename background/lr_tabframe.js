@@ -463,11 +463,11 @@ async function lrFrameChainByClickData(tab, frameMap, clickData) {
 	if (topFrame && topFrame.clickData == null && clickData.pageUrl) {
 		topFrame.clickData = { url: clickData.pageUrl };
 	}
-	await lrExecuteReferrerScript(tab, frameMap.values());
+	await lrExecRelationsScript(tab, frameMap.values());
 	return chain;
 }
 
-async function lrExecuteReferrerScript(tab, frames) {
+async function lrExecRelationsScript(tab, frames) {
 	if (!Array.isArray(frames)) {
 		// To allow second pass if iterator is passed
 		frames = Array.from(frames);
@@ -477,19 +477,19 @@ async function lrExecuteReferrerScript(tab, frames) {
 		await Promise.all(Array.from(
 			frames,
 			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, "content_scripts/referrer.js", "referrer")
+				tab, wrappedFrame, "content_scripts/lrc_relations.js", "relations")
 		));
 	} catch (ex) {
-		console.error("lrExecuteReferrerScript: continue despite the error %s %o", ex, ex);
+		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
 	}
 	for (const wrappedFrame of frames) {
 		try {
-			const referrer = wrappedFrame.referrer && wrappedFrame.referrer.result;
-			if (!referrer) {
+			const relations = wrappedFrame.relations && wrappedFrame.relations.result;
+			if (!relations) {
 				continue;
 			}
 			const summary = wrappedFrame.summary = wrappedFrame.summary || {};
-			for (const { property, key, value } of referrer) {
+			for (const { property, key, value } of relations) {
 				if (property !== "frame_relations") {
 					continue;
 				}
@@ -505,13 +505,13 @@ async function lrExecuteReferrerScript(tab, frames) {
 				}
 			}
 		} catch (ex) {
-			console.error("lrExecuteReferrerScript: %o: continue despite the error %s %o", wrappedFrame, ex, ex);
+			console.error("lrExecRelationsScript: %o: continue despite the error %s %o", wrappedFrame, ex, ex);
 		}
 	}
 }
 
 async function lrFrameChainGuessSelected(tab, frameMap) {
-	await lrExecuteReferrerScript(tab, frameMap.values());
+	await lrExecRelationsScript(tab, frameMap.values());
 	return lrFrameChainOrTopFrame(frameMap);
 }
 
