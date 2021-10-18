@@ -28,7 +28,7 @@ class LrRpcStore {
 	putExecInfo(execInfo) {
 		this.execInfo = execInfo;
 	};
-	async getCapture() {
+	getCapture() {
 		if (this.execInfo === LrRpcStore.NO_CAPTURE) {
 			throw new Error("Nothing has captured yet");
 		}
