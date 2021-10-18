@@ -53,18 +53,25 @@
 
 	function lrCopyUsingEvent(text) {
 		let status = null;
+		// Document may install copy event interceptor earlier.
+		let listenerInvoked = false;
 		function oncopy(event) {
 			document.removeEventListener("copy", oncopy, true);
 			event.stopImmediatePropagation();
 			event.preventDefault();
 			event.clipboardData.clearData();
 			event.clipboardData.setData("text/plain", text);
+			listenerInvoked = false;
 		}
 		document.addEventListener("copy", oncopy, true);
 
 		const result = document.execCommand("copy");
 		if (!result) {
+			document.removeEventListener("copy", oncopy, true);
 			throw new Error("Copy using command and event listener failed");
+		} else if (!listenerInvoked) {
+			document.removeEventListener("copy", oncopy, true);
+			throw new Error("Document overrides copy action");
 		}
 		return result;
 	}
@@ -137,9 +144,19 @@
 				// const permission = await navigator.permissions.query({name: 'clipboard-write'});
 				// console.log("lrClipboardWrite permission", permission);
 				try {
-					await navigator.clipboard.writeText(text);
-					return true;
+					if (navigator.clipboard && navigator.clipboard.writeText) {
+						await navigator.clipboard.writeText(text);
+						return true;
+					} else {
+						warnings.push(lrToObject(new Error("navigator.clipboard API is disabled")));
+					}
 				} catch (ex) {
+					// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
+					// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
+					// Fixed in Firefox-85
+					if (ex === undefined) {
+						ex = new Error("navigator.clipboard.writeText not allowed");
+					}
 					warnings.push(lrToObject(ex));
 				}
 				return lrCopyUsingEvent(text);
