@@ -43,7 +43,7 @@
  *        { property: "title", value: "Special page", key: "twitter.title" },
  *
  * `window.location`, and `document.title` (text of `html/head/title` element)
- * are obtained by `capture.js`.
+ * are obtained by `lrc_selection.js`.
  */
 
 "use strict";

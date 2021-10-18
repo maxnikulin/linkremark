@@ -536,7 +536,7 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 		await lrFrameChainGuessSelected(activeTab, frameMap);
 	try {
 		const metaPromises = chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/capture.js", "content"));
+				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_selection.js", "selection"));
 		metaPromises.push(...chain.map(wrappedFrame =>
 				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/meta.js", "meta")));
 		metaPromises.push(...chain.map(wrappedFrame =>

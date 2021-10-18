@@ -15,18 +15,23 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* Script to collect data for capture:
+/* Script to collect minimal data sufficient for capture:
  *
  * - title,
+ * - window.location,
  * - selection if any.
  *
  * Injected using tabs.executeScript().
  * Produces array of property descriptors.
+ *
+ * Title and location are collected here to have some values
+ * even in the case of errors in other scripts. Main purpose
+ * of this script is selection text.
  */
 
 "use strict";
 
-(function lrContentSelection() {
+(function lrc_selection() {
 	const config = {
 		selection: "byRangesOrWhole",
 	};
@@ -318,5 +323,5 @@
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: capture.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_selection.js: should not reach end of the function" };
 })();
