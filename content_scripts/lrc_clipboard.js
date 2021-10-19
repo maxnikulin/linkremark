@@ -15,9 +15,17 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+/* Copy capture result to clipboard or launch org-protocol: handler
+ * using content script. Looks like a preferred way for org-protocol:
+ * handler. Does not work on privileged pages. Chrome does not
+ * allow `navigator.clipboard.writeText` from background page so
+ * this page might help to avoid opening of the preview page.
+ * This script is not called unless a users disables preview in add-on settings.
+ */
+
 "use strict";
 
-(function lrClipboardWrite() {
+(function lrc_clipboard() {
 	/**
 	 * Error instances could not be passed through `sendMessage()` to backend
 	 *
@@ -197,5 +205,5 @@
 		// clear warnings before async actions
 		warnings = [];
 	}
-	return { error: "LR internal error: clipboard.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_clipboard.js: should not reach end of the function" };
 })();

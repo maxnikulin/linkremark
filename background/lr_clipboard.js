@@ -99,7 +99,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			throw new Error("_lrClipboardContentScript: invalid tabId");
 		}
 		// TODO handle warnings in return value
-		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "content_scripts/clipboard.js" }) };
+		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "content_scripts/lrc_clipboard.js" }) };
 	}
 
 	/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
