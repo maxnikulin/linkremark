@@ -25,7 +25,7 @@
  */
 "use strict";
 
-(function lrMicrodata(){
+(function lrc_microdata(){
 	const LR_DISCARD = Symbol("LrDiscard");
 	const LR_PROPERTY_COUNT = Symbol("LrPropertyCount");
 	const LR_PROPERTY_COUNT_LIMIT = 16;
@@ -354,5 +354,5 @@
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: microdata.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_microdata.js: should not reach end of the function" };
 })();
