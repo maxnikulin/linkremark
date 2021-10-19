@@ -48,7 +48,7 @@
 
 "use strict";
 
-(function lrMeta() {
+(function lrc_meta() {
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -397,5 +397,5 @@
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: meta.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_meta.js: should not reach end of the function" };
 })();

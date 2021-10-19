@@ -14,7 +14,7 @@ PAGES_SRC += pages/lr_browseraction.html pages/lr_browseraction.css pages/lr_bro
 
 CONTENT_SRC += content_scripts/lrc_selection.js content_scripts/lrc_clipboard.js
 CONTENT_SRC += content_scripts/image.js content_scripts/link.js 
-CONTENT_SRC += content_scripts/meta.js content_scripts/microdata.js 
+CONTENT_SRC += content_scripts/lrc_meta.js content_scripts/microdata.js 
 CONTENT_SRC += content_scripts/lrc_relations.js
 
 ICONS_SRC += icons/lr-light-16.png icons/lr-32.png 

@@ -538,7 +538,7 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 		const metaPromises = chain.map(wrappedFrame =>
 				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_selection.js", "selection"));
 		metaPromises.push(...chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/meta.js", "meta")));
+				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_meta.js", "meta")));
 		metaPromises.push(...chain.map(wrappedFrame =>
 				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/microdata.js", "microdata")));
 		await Promise.all(metaPromises);
