@@ -100,6 +100,21 @@ var lr_test_format_org = lr_util.namespace(lr_test_format_org, function lr_test_
 				},
 			],
 		},
+		{
+			result: "Title is better than short description — The Sit",
+			descriptors: [
+				{
+					property: "title", key: "document.title",
+					value: "Title is better than short description",
+				}, {
+					property: "description", key: "meta.name.description",
+					value: "Not a title",
+				}, {
+					property: "site_name", key: "meta.property.og:site_name",
+					value: "The Sit",
+				}
+			],
+		}
 	];
 
 	var test_title = lr_test.parametrize(cases_title, function test_title({result, descriptors}) {

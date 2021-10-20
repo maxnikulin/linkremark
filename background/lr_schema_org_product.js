@@ -141,7 +141,7 @@ var lr_schema_org_product = lr_util.namespace(lr_schema_org_product, function lr
 		lr_schema_org.setProperty(json, "aggregateRating", meta, "aggregateRating", { ...props, recursive: true });
 
 		let primaryScore = 0;
-		for (const property of ["brand", "model", "price", "offer", "availability"]) {
+		for (const property of ["brand", "model", "price", "offer", "availability", "aggregateRating"]) {
 			for (const _ of meta.descriptors(property)) {
 				++primaryScore;
 			}
@@ -174,21 +174,25 @@ var lr_schema_org_product = lr_util.namespace(lr_schema_org_product, function lr
 				specialMeta.descriptors("model"),
 				meta.descriptors("site_name"),
 			)));
-			const titleCandidates = valuesFromDescriptors(lr_meta.errorsLast(preferShort(lr_iter.map(
-				lr_iter.combine(
-					specialMeta.descriptors("title"),
-					specialMeta.descriptors("description"),
-					meta.descriptors("title"),
-					meta.descriptors("description"),
+			function singleLineValue(descriptor) {
+				return {
+					...descriptor,
+					value: lr_formatter.ensureSingleLine(descriptor.value),
+				};
+			}
+			const titleCandidates = valuesFromDescriptors(lr_meta.errorsLast(lr_iter.combine(
+				preferShort(lr_iter.map(
+					lr_iter.combine(specialMeta.descriptors("title"), meta.descriptors("title")),
+					singleLineValue)),
+				preferShort(lr_iter.map(
+					lr_iter.combine(
+						specialMeta.descriptors("description"),
+						meta.descriptors("description"),
+					),
+					singleLineValue)),
 					// TODO consider selection line
 				),
-				function singleLineValue(descriptor) {
-					return {
-						...descriptor,
-						value: lr_formatter.ensureSingleLine(descriptor.value),
-					};
-				}
-			))));
+			));
 			let title = null;
 			for (title of titleCandidates) {
 				title = cleanupTitleVariant(title, toRemoveFromTitle);

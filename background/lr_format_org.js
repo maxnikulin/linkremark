@@ -78,10 +78,10 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	function* titleCandidatesIterator(meta) {
-		yield* valueFromDescriptor(lr_meta.errorsLast(preferShort(lr_iter.combine(
-			meta.get('title'),
-			meta.get('description'),
-		))));
+		yield* valueFromDescriptor(lr_meta.errorsLast(lr_iter.combine(
+			preferShort(meta.get('title')),
+			preferShort(meta.get('description')),
+		)));
 		yield* selectionLineGen(meta);
 		// site_name is not here since it will be stripped anyway,
 		// so it may be added at a later step.

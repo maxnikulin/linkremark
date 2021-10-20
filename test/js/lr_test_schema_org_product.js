@@ -183,6 +183,54 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 		test_withBrandAndCurrency,
 	});
 
+	const caseWithAggregateRating = {
+		"@type": "Product",
+		"name": "Vunder SpecialProduct 5X title test",
+		"aggregateRating": {
+			"@type": "AggregateRating",
+			"ratingValue": "87",
+			"bestRating": "100",
+			"ratingCount": "24"
+		},
+	};
+
+	function test_withAggregateRatingShortDescription() {
+		const meta = new LrMeta();
+		meta.addDescriptor("schema_org", {
+			value: caseWithAggregateRating, key: "microdata"
+		});
+		meta.addDescriptor("description", {
+			value: "Description is not title",
+			key: "meta.name.description",
+		});
+		lr_meta.mergeSchemaOrg({}, meta);
+		const execInfo = lr_test.withExecutor(
+			lr_format_org.format,
+			{ _type: "TabFrameChain", elements: [meta]}, null);
+		const projection = execInfo.result;
+		lr_test.assertEq(
+			projection.title,
+			"Vunder SpecialProduct 5X title test — 87/100(0; 24)")
+		lr_test.assertEq(projection.body.replace(/^(:DATE_ADDED:) \[.*\]$/m, "$1"),
+`* Vunder SpecialProduct 5X title test — 87/100(0; 24)
+:PROPERTIES:
+:DATE_ADDED:
+:END:
+
+- aggregateRating :: 87/100(0; 24)
+- title :: Vunder SpecialProduct 5X title test
+- description :: Description is not title`
+		);
+		lr_test.assertEq(projection.url, null, "result.url");
+		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");
+		lr_test.assertEq(execInfo.error, null, "execInfo.error");
+	}
+
+	Object.assign(lr_test_schema_org_product, {
+		caseWithAggregateRating,
+		test_withAggregateRatingShortDescription,
+	});
+
 	lr_test.suites.push(lr_test_schema_org_product);
 	return lr_test_schema_org_product;
 });
