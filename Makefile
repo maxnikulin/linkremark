@@ -60,12 +60,13 @@ clean:
 	$(RM) manifest.json
 
 firefox-dist: firefox
+	set -e ; \
 	out="`cat manifest-common.json | \
 		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"`" ; \
 	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
 	file="linkremark-$${out}.unsigned.xpi" ; \
 	$(RM) "$$file" ; \
-	zip "$$file" manifest.json $$background \
+	zip --must-match "$$file" manifest.json $$background \
 		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
