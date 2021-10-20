@@ -38,7 +38,7 @@
 		}
 	},
 	"options_ui": {
-		"page": "pages/settings.html",
+		"page": "pages/lrp_settings.html",
 		"browser_style": true
 	},
 	"permissions": [

@@ -481,7 +481,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			console.error("lr_action.openSettings: runtime.openOptionsPage: %o", ex);
 		}
 		return await bapi.tabs.create({
-			url: bapi.runtime.getURL("pages/settings.html"),
+			url: bapi.runtime.getURL("pages/lrp_settings.html"),
 			openerTabId: tab && tab.id,
 			windowId: tab && tab.windowId,
 		});
