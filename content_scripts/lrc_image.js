@@ -17,7 +17,7 @@
 
 "use strict";
 
-(function imageRemark() {
+(function lrc_image() {
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
@@ -159,14 +159,14 @@
 		return lrNormalize(node[attr]);
 	}
 
-	function addDescriptor(node, array, { attribute, property, key }) {
+	function lrcAddDescriptor(node, array, { attribute, property, key }) {
 		const value = node.getAttribute(attribute);
 		if (value != null) {
 			array.push({...lrNormalize(value), property, key});
 		}
 	}
 
-	async function lrImageProperties() {
+	async function lrcImageProperties() {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -189,7 +189,7 @@
 		];
 		for (const attr of attrArray) {
 			try {
-				addDescriptor(img, result, attr);
+				lrcAddDescriptor(img, result, attr);
 			} catch (ex) {
 				result.push({...attr, error: lrToObject(ex)});
 			}
@@ -200,10 +200,10 @@
 	try {
 		const promiseId = lrRandomId();
 		// async function does not block execution
-		lrSettleAsyncScriptPromise(promiseId, lrImageProperties);
+		lrSettleAsyncScriptPromise(promiseId, lrcImageProperties);
 		return { promise: promiseId };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: image.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_image.js: should not reach end of the function" };
 })();

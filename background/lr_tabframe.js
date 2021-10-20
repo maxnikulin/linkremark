@@ -552,10 +552,10 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 			if (!(wrappedFrame && wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden)) {
 				let script, target;
 				if (clickData && clickData.captureObject === 'image') {
-					script = "content_scripts/image.js";
+					script = "content_scripts/lrc_image.js";
 					target = 'image';
 				} else if (clickData && clickData.captureObject === 'link') {
-					script = "content_scripts/link.js";
+					script = "content_scripts/lrc_link.js";
 					target = "link";
 				}
 				if (target != null) {

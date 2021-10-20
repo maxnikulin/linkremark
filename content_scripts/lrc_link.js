@@ -17,7 +17,7 @@
 
 "use strict";
 
-(function linkRemark() {
+(function lrc_link() {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		if (obj instanceof Error) {
@@ -157,14 +157,14 @@
 		return lrNormalize(node[attr]);
 	}
 
-	function addDescriptor(node, array, { attribute, property, key }) {
+	function lrcAddDescriptor(node, array, { attribute, property, key }) {
 		const value = node.getAttribute(attribute);
 		if (value != null) {
 			array.push({...lrNormalize(value), property, key});
 		}
 	}
 
-	function getText(node) {
+	function lrcGetText(node) {
 		let result = null;
 		try {
 			// TODO more smart cut, avoid other links in siblings
@@ -189,7 +189,7 @@
 		return result && lrNormalize(result, TEXT_SIZE_LIMIT);
 	}
 
-	async function lrLinkProperties() {
+	async function lrcLinkProperties() {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -215,12 +215,12 @@
 		];
 		for (const attr of attrArray) {
 			try {
-				addDescriptor(link, result, attr);
+				lrcAddDescriptor(link, result, attr);
 			} catch (ex) {
 				result.push({...attr, error: lrToObject(ex)});
 			}
 		}
-		const textDescriptor = getText(link);
+		const textDescriptor = lrcGetText(link);
 		if (textDescriptor) {
 			result.push({ ...textDescriptor, property: 'linkText', key: 'link.text' });
 		}
@@ -230,10 +230,10 @@
 	try {
 		const promiseId = lrRandomId();
 		// async function does not block execution
-		lrSettleAsyncScriptPromise(promiseId, lrLinkProperties);
+		lrSettleAsyncScriptPromise(promiseId, lrcLinkProperties);
 		return { promise: promiseId };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
-	return { error: "LR internal error: link.js: should not reach end of the function" };
+	return { error: "LR internal error: lrc_link.js: should not reach end of the function" };
 })();
