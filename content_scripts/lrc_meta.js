@@ -198,6 +198,11 @@
 				attrs.property = 'image';
 				attrs.key = 'link.image_src';
 				break;
+			case 'dns-prefetch':
+			case 'preconnect':
+			case 'preload':
+			case 'stylesheet':
+				return;
 			default:
 				break;
 			}
