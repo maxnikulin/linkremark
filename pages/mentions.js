@@ -260,7 +260,7 @@ function lrMentionsReducer(state = { mentions: "MENTIONS_STATUS_UNKNOWN" }, { ty
 }
 
 function lrMentionsIsSilent(mentions) {
-	return ["NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"].indexOf(mentions) >= 0;
+	return ["APP_NOT_CONFIGURED", "NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"].indexOf(mentions) >= 0;
 }
 
 var gLrMentionsActions = {

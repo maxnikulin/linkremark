@@ -21,6 +21,10 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	var lr_native_export = this;
 	const TIMEOUT = 3000;
 
+	class LrNativeAppNotConfiguredError extends Error {
+		get name() { return Object.getPrototypeOf(this).constructor.name; }
+	}
+
 	async function hello(params) {
 		 return await lr_executor.run(
 			async function lrNativeAppHello(params, executor) {
@@ -71,7 +75,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			backend = lr_settings.getOption("export.methods.nativeMessaging.backend");
 		}
 		if (!backend) {
-			throw new Error("Native messaging backend is not specified");
+			throw new LrNativeAppNotConfiguredError("Native messaging backend is not specified");
 		}
 		return backend;
 	}
@@ -302,6 +306,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		});
 	};
 	Object.assign(this, {
+		LrNativeAppNotConfiguredError,
 		TIMEOUT,
 		hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint,
 		initSync,

@@ -386,7 +386,19 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			async function checkKnownUrls(capture) {
 				const { body } = capture.formats[capture.transport.captureId];
 				const urlObj = lrCaptureObjectMapUrls(body);
-				return lr_native_export.mentions(urlObj, undefined, executor);
+				try {
+					return await lr_native_export.mentions(urlObj, undefined, executor);
+				} catch (ex) {
+					if (ex instanceof lr_native_export.LrNativeAppNotConfiguredError) {
+						return {
+							mentions: "APP_NOT_CONFIGURED",
+							// TODO consider executor.log method to have non-iterrupting
+							// errors available from debug info page.
+							error: lr_util.errorToObject(ex),
+						};
+					}
+					throw ex;
+				}
 			},
 			capture);
 
@@ -397,7 +409,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				if (mentions == null) {
 					throw new LrWarning("Internal error during check for known URLs");
 				} else if (typeof mentions === "string") {
-					if (!(["NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"].indexOf(mentions) >= 0)) {
+					const ignore = ["APP_NOT_CONFIGURED", "NO_MENTIONS", "UNSUPPORTED", "NO_PERMISSIONS"];
+					if (!(ignore.indexOf(mentions) >= 0)) {
 						throw new LrWarning(`Check for known URL error: ${mentions}`);
 					}
 				} else {
