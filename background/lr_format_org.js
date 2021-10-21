@@ -19,17 +19,6 @@
 
 var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	var lr_format_org = this;
-	function* valueFromDescriptor(iterable) {
-		if (!iterable) {
-			return;
-		}
-		for (const descriptor of iterable) {
-			if (descriptor.value && typeof descriptor.value === 'string') {
-				yield descriptor.value;
-			}
-		}
-	}
-
 	function* preferShort(descriptorIterator) {
 		if (!descriptorIterator) {
 			return;
@@ -78,7 +67,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	function* titleCandidatesIterator(meta) {
-		yield* valueFromDescriptor(lr_meta.errorsLast(lr_iter.combine(
+		yield* valuesFromDescriptors(lr_meta.errorsLast(lr_iter.combine(
 			preferShort(meta.get('title')),
 			preferShort(meta.get('description')),
 		)));
@@ -113,7 +102,10 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 	}
 
 	function* valuesFromDescriptors(iterable) {
-		for (const descriptor of iterable || []) {
+		if (!iterable) {
+			return;
+		}
+		for (const descriptor of iterable) {
 			if (descriptor && descriptor.value && typeof descriptor.value === 'string') {
 				yield descriptor.value;
 			}
