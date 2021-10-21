@@ -458,20 +458,6 @@ function lr_sorted_title(meta) {
 	return valueVariants;
 }
 
-function lr_format_org_description(meta) {
-	if (!meta) {
-		return null;
-	}
-	const variants = (meta.get('description') || []).slice();
-	variants.sort((a, b) => {
-		if (a.value.length != b.value.length) {
-			return a.value.length - b.value.length;
-		}
-		return a.keys.length - b.keys.length;
-	});
-	return variants.length > 0 ? variants[0].value : null;
-}
-
 function lrOrgCollectProperties(result, frame) {
 	let limit = 3;
 	for (let img of frame.descriptors('image')) {
@@ -645,8 +631,9 @@ function lr_format_org_frame_web_page(frame, options = {}) {
 	if (options.addReferrer && !options.separateReferrer) {
 		body.push(...lr_format_org_referrer(frame));
 	}
-	const description = lr_format_org_description(frame);
-	if (description) {
+	for (const description of lr_format_org.valuesFromDescriptors(lr_meta.errorsLast(
+		lr_format_org.preferShort(frame.descriptors("description"))))
+	) {
 		body.push(LrOrgDefinitionItem({ term: "description" }, description));
 	}
 	if (lr_meta.firstValue(frame.descriptors("target")) !== "link") {

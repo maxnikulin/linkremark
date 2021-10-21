@@ -352,8 +352,11 @@ var lr_schema_org_product = lr_util.namespace(lr_schema_org_product, function lr
 		if (options.addReferrer && !options.separateReferrer) {
 			body.push(...lr_format_org_referrer(meta));
 		}
-		const description = lr_format_org_description(meta);
-		if (description) {
+		// There should be no additional source of description in specialMeta,
+		// however iterating over it will add duplicates.
+		for (const description of lr_format_org.valuesFromDescriptors(lr_meta.errorsLast(
+			lr_format_org.preferShort(meta.descriptors("description"))))
+		) {
 			body.push(LrOrgDefinitionItem({ term: "description" }, description));
 		}
 		for (const descriptor of meta.descriptors('image')) {
