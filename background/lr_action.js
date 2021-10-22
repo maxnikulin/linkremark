@@ -464,7 +464,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	this.openPreview = async function(tab, params) {
 		const { action } = params || {};
-		const url = new URL(bapi.runtime.getURL("pages/preview.html"));
+		const url = new URL(bapi.runtime.getURL("pages/lrp_preview.html"));
 		if (action) {
 			const query = new URLSearchParams();
 			query.set("action", action);
