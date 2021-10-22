@@ -55,7 +55,7 @@
 	],
 	"background": {
 		"scripts": [
-			"background/init.js",
+			"background/init_linkremark.js",
 			"common/bapi.js",
 			"common/lr_common.js",
 			"background/lr_util.js",
@@ -83,7 +83,7 @@
 			"background/lr_action.js",
 			"background/lr_rpc_commands.js",
 			"background/lr_schema_org_product.js",
-			"background/main.js"
+			"background/main_linkremark.js"
 		]
 	},
 	"optional_permissions": [
