@@ -1,143 +1,23 @@
+/*
+   Copyright (C) 2021 Max Nikulin
 
-class LrStateStoreComponent {
-	constructor(component, mapStateToProps) {
-		this.component = component;
-		this.mapStateToProps = mapStateToProps;
-	}
-}
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
 
-class LrStateStore {
-	constructor(reducer, state) {
-		this._reducer = reducer;
-		this._pendingPromises = [];
-		this._components = [];
-		this._state = state;
-		this._oldState = undefined;
-		this.dispatch = this._dispatch.bind(this);
-		this.getState = this._getState.bind(this);
-		this._applyState = this._doApplyState.bind(this);
-	}
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-	connect(mapStateToProps, mapDispatchToProps) {
-		const store = this;
-		const dispatchProps = mapDispatchToProps ?
-			mapDispatchToProps(store.dispatch) : { dispatch: store.dispatch };
-		return function(Component) {
-			return class extends Component {
-				constructor(props) {
-					const mergedProps = {
-						...(mapStateToProps ? mapStateToProps(store.getState()) : {}),
-						...dispatchProps,
-						...(props || {}),
-					};
-					super(mergedProps);
-					this.props = mergedProps;
-					this.ownProps = props;
-					if (mapStateToProps) {
-						store.registerComponent(
-							this,
-							state => ({
-								...(this.ownProps || {}),
-								...dispatchProps,
-								...mapStateToProps(state) || {},
-							}),
-						);
-					}
-				}
-			}
-		}
-	}
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
-	registerComponent(component, mapStateToProps, registerDispatch) {
-		const compObject = new LrStateStoreComponent(component, mapStateToProps);
-		// a hack to update parent before children
-		this._components.unshift(compObject);
-		if (registerDispatch) {
-			registerDispatch(this.dispatch);
-		}
-		const mapState = compObject.mapStateToProps;
-		if (mapState != null) {
-			const newProps = mapState(this._state);
-			compObject.component.updateProps(newProps);
-			// Set `props` only if `updateProps` completed without exceptions.
-			compObject.props = newProps;
-		}
-	}
+"use strict";
 
-	_dispatch(action) {
-		const t = Object.prototype.toString.apply(action);
-		if (t === '[object Function]' || t === '[object AsyncFunction]') {
-			action = action(this.dispatch, this.getState);
-		}
-		if (action == null) {
-			console.warn("LrStateStore: dispatch called with no action");
-			return action;
-		}
-		if (action.then) {
-			const tThen = Object.prototype.toString.apply(action.then);
-			if (tThen === '[object Function]' || tThen === '[object AsyncFunction]') {
-				const result = action.then(
-					r => this._onPromiseResolve(action, r),
-					e => this._onPromiseReject(action, e));
-				this._pendingPromises.push(action);
-				return result;
-			}
-		}
-		this._state = this._reducer(this._state, action);
-		if (this._state !== this._oldState) {
-			Promise.resolve().then(this._applyState);
-		}
-		return action;
-	}
-
-	_getState() {
-		return this._state;
-	}
-
-	_doApplyState() {
-		if (this._oldState === this._state) {
-			return;
-		}
-
-		for (const c of this._components) {
-			try {
-				if (c.mapStateToProps == null) {
-					continue;
-				}
-				const newProps = c.mapStateToProps(this._state);
-				if (newProps !== c.props) {
-					c.component.updateProps(newProps);
-					// Set `props` only if `updateProps` completed without exceptions.
-					c.props = newProps;
-				}
-			} catch (ex) {
-				console.error("LrStateStore: error while applying state to %o: %o", c, ex);
-			}
-		}
-		this._oldState = this._state;
-	}
-
-	_onPromiseResolve(action, _result) {
-		this._removePromise(action);
-		return action;
-	}
-
-	_onPromiseReject(action, ex) {
-		this._removePromise(action);
-		throw ex;
-	}
-
-	_removePromise(action) {
-		const i = this._pendingPromises.indexOf(action);
-		if (!(i >= 0)) {
-			console.error("LrStateStore: internal error: unknown promise %o", action);
-		} else {
-			this._pendingPromises.splice(i, 1);
-		}
-	}
-}
-
-var LrEventActions = {
+var LrPermissionsActions = {
 	permissionsAdded: function(permissions) {
 		return { type: "permissions/added", data: permissions };
 	},
@@ -156,25 +36,6 @@ var LrEventActions = {
 	permissionRequestFailed: function(id, permissions, error) {
 		return { type: "permissions/request/failed", data: { id, permissions, error } };
 	},
-}
-
-function LrCombinedReducer(map, initState = {}) {
-	return function lrCombinedReducer(state = initState, action) {
-		const {type} = action;
-		const key = type.substring(0, type.indexOf("/"));
-		const handler = map.get(key);
-		if (handler) {
-			const substate = state[key];
-			const result = handler(substate, action);
-			if (result !== substate) { // FIXME shallow equal
-				state = { ...state, [key]: result };
-			}
-		}
-		if (!handler) {
-			console.error("lrCombinedReducer: unknown action: %o %o %o", key, type, action)
-		}
-		return state;
-	};
 }
 
 function lrPermissionsReducer(state = {}, {type, data}) {
@@ -234,7 +95,7 @@ function lrPermissionsReducer(state = {}, {type, data}) {
 				const ind = prop.requests.findIndex(r => r.id === data.id);
 				if (type === "permissions/request/started") {
 					if (ind >= 0) {
-						console.error("lrEventReducer: id already exists %o %o", type, data);
+						console.error("lrPermissionsReducer: id already exists %o %o", type, data);
 						prop.requests.splice(ind, 1);
 					}
 					prop.requests = prop.requests.filter(r => r.error == null);
@@ -243,24 +104,24 @@ function lrPermissionsReducer(state = {}, {type, data}) {
 					if (ind >= 0) {
 						prop.requests.splice(ind, 1);
 					} else {
-						console.error("lrEventReducer: id does not exists %o %o", type, data);
+						console.error("lrPermissionsReducer: id does not exists %o %o", type, data);
 					}
 				} else if (type === "permissions/request/failed") {
 					if (ind >= 0) {
 						prop.requests.splice(ind, 1);
 						prop.requests.push({ id: data.id, error: data.error });
 					} else {
-						console.error("lrEventReducer: id does not exists %o %o", type, data);
+						console.error("lrPermissionsReducer: id does not exists %o %o", type, data);
 					}
 				} else {
-					console.error("lrEventReducer: unknown subaction %o %o", type, data);
+					console.error("lrPermissionsReducer: unknown subaction %o %o", type, data);
 				}
 			}
 			return permissions;
 			break;
 		}
 		default:
-			console.error("lrEventReducer: unknown action %o %o", data, type);
+			console.error("lrPermissionsReducer: unknown action %o %o", data, type);
 	}
 	return state;
 }
@@ -294,26 +155,26 @@ class LrPermissionsEvents {
 		}
 	}
 	_onAdded(permissions) {
-		this._dispatch(LrEventActions.permissionsAdded(permissions));
+		this._dispatch(LrPermissionsActions.permissionsAdded(permissions));
 	}
 	_onRemoved(permissions) {
-		this._dispatch(LrEventActions.permissionsRemoved(permissions));
+		this._dispatch(LrPermissionsActions.permissionsRemoved(permissions));
 	}
 	async _getAll(dispatch) {
-		return dispatch(LrEventActions.permissionsCurrent(await bapi.permissions.getAll()));
+		return dispatch(LrPermissionsActions.permissionsCurrent(await bapi.permissions.getAll()));
 	}
 	async change(request, permissions) {
 		const id = this._getNewId();
-		this._dispatch(LrEventActions.permissionRequestStarted(id, permissions));
+		this._dispatch(LrPermissionsActions.permissionRequestStarted(id, permissions));
 		try {
 			if (await (request ? bapi.permissions.request(permissions)
 				: bapi.permissions.remove(permissions))) {
-				this._dispatch(LrEventActions.permissionRequestCompleted(id, permissions));
+				this._dispatch(LrPermissionsActions.permissionRequestCompleted(id, permissions));
 			} else {
-				this._dispatch(LrEventActions.permissionRequestFailed(id, permissions, "Request declined"));
+				this._dispatch(LrPermissionsActions.permissionRequestFailed(id, permissions, "Request declined"));
 			}
 		} catch (ex) {
-			this._dispatch(LrEventActions.permissionRequestFailed(id, permissions, ex));
+			this._dispatch(LrPermissionsActions.permissionRequestFailed(id, permissions, ex));
 		}
 	}
 	_dispatch(action) {
