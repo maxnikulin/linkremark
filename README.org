@@ -157,41 +157,92 @@ This permission may be revoked as soon as you configure native application
 or desktop-wide org-protocol handler.
 
 * Usage
+  :PROPERTIES:
+  :EXPORT_TITLE: LinkRemark Help
+  :END:
 
-Optionally select some text and choose an option from the context menu (right click).
+Optionally select some text and choose an option from context menu (right click,
+=[Shift+F10]= in Firefox).
+Unless you are going to capture a particular link,
+you can click on the extension icon in browser toolbar ("browser action")
+or may configure a shortcut on the add-ons page.[fn:addons]
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
-so it can be just yanked to the text editor.
+so it can be just pasted to a text editor.
+Emacs Org mode has a convenient command [[help:org-paste-subtree][=C-c C-x C-y=, ~org-paste-subtree~]].[fn:pastesubtree]
+A hint: to navigate to the parent heading before pasting
+you can use [[help:org-refile][=C-u C-c C-w= ~org-refile~]]
+or [[help:org-goto][=C-c C-j= ~org-goto~]] (maybe with prefix argument as well).
+
 # Sorry, github renderer can not transform info: to hyperlinks
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
 or [[info:org#Capture][info "(org) Capture"]] is the next step.
 You could start with a very simple template having "plain" type
 #+begin_example emacs-lisp
-  ("c" "Clipboard with tree (plain)"
-   plain (file "capture.org")
-   "%(org-get-x-clipboard 'CLIPBOARD)"
-   :empty-lines 1)
+  (custom-set-variables
+   '(org-capture-templates
+     (quote (
+      ("c" "Clipboard with tree (plain)"
+       plain (file "~/org/capture.org")
+       "%(org-get-x-clipboard 'CLIPBOARD)"
+       :empty-lines 1)
+  ))))
 #+end_example
 On the current development stage I do not recommend
 =:immediate-finish= option, it is better to inspect capture result.
+It is impossible to refile plain entry directly from a capture buffer,
+so likely you wish to change "plain" to "entry" type
+in Emacs configuration and to change template to
+="* %(org-get-x-clipboard 'CLIPBOARD)"=.
+Please, update "Template type configured in org-capture-templates"
+in add-on settings as well (may be opened from preview page,
+or from browser add-ons page[fn:addons].
+
+There is an option to avoid preview page for successful captures:
+disable "Open preview tab with capture result for clipboard".
 
 Usually, to minimize keyboard and mouse interaction,
-it is recommended to setup desktop-wide [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol:]] handler.
-Personally I am a bit afraid that some web page may try to inject
-some malicious content into my notes, so I consider exporting
-through a native messaging application as a safer option.
-This repository contains simple variant in
+it is recommended to setup desktop-wide [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol:]] handler
+(currently readme for
+[[https://github.com/sprig/org-capture-extension/][Org Capture Extension]]
+may be more useful than Worg page).
+I am a bit afraid that some web page may try to inject
+some malicious content into my notes when I click on an innocent link,
+so I suggest to consider exporting
+through a native messaging application as a safer option.[fn:snap]
+LinkRemark repository contains a simple variant in
 [[file:examples/backend-python/lr_emacsclient.py]]
 Run it with =-h= option for a brief guide. To enable it,
 you should do something like (Linux, Firefox)
 #+begin_example
   mkdir ~/.mozilla/native-messaging-hosts
-  python3 examples/backend-python/lr_emacsclient.py -manifest-firefox \
+  python3 examples/backend-python/lr_emacsclient.py --manifest-firefox \
      >~/.mozilla/native-messaging-hosts/lr_emacsclient.json
 #+end_example
-and should specify "native-messaging" and =lr_emacsclient=
-in the add-on settings.
+and should specify "=native-messaging="
+for "Communication Channel" / "Method how to pass capture to desktop environment"
+and "=lr_emacsclient=" for "Browser native messaging communication channel" /
+"Name of native messaging backend application" add-on settings.
+Emacs init file should have something like the following:
+#+begin_example emacs-lisp
+  (custom-set-variables
+   '(org-capture-templates
+     (quote (
+      ("r" "LinkRemark (entry)"
+       entry (file "~/org/capture.org")
+       "* %:initial"
+       :empty-lines 1)
+  ))))
+#+end_example
+Certainly Emacs server should be running: =M-x server-start=
+and org-protocol should be loaded: =M-: (require 'org-protocol)=.
+Keep capture type in Emacs consistent with
+"Template type configured in org-capture-templates"
+add-on setting. Another option you may find useful
+is "Template name". They are in the "Org Protocol" section,
+but applied for native app export as well.
+
 If you wish to experiment with metadata formatting, have a look at
 [[file:examples/backend-python/lr_example.py]] for inspiration.
 See the next section for a more powerful native messaging helper.
@@ -200,6 +251,26 @@ If you are not familiar with Org Mode capture feature,
 you could find description of workflow in blogs, e.g.
 [[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
 by Sacha Chua.
+
+[fn:addons] Firefox: "Add-ons and Themes" from hamburger menu
+or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
+
+[fn:pastesubtree] There is some bug and subtree is not recognized
+first time in X clipboard. Workaround is yank =C-y=, undo =C-y= =C-/=
+(required once per Emacs session), and =C-c C-x C-y= to paste subtree.
+
+[fn:snap] There is a problem with browsers distriuted
+as snap or flatpack. Such applications works with
+additional level of isolation in respect to system files,
+so external application can not be invoked even through
+native messaging API. Chromium in Ubuntu is shipped as
+snap package only since Ubuntu-20.04 LTS focal, for Firefox snap is made
+default option in Ubuntu-21.10 impish, but Firefox is still
+can be installed as a deb package using apt.
+Related Firefox bugs:
+- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1661935][Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org]],
+- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
+
 
 * Checking if an URL is already in your notes
 
@@ -227,7 +298,7 @@ describes how to install and to configure the native application
 - [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info "(org) Protocols"]])
   is loaded and a template is configured
   to enable capture feature. Alternatively use clipboard and
-  [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
+  [[help:org-paste-subtree][=C-c C-x C-y=, ~org-paste-subtree~]].
 - Native application is enabled in browser for LinkRemark extension.
   On Linux a JSON file should be created.
 - List of files to search for URLs is provided to bURL.
