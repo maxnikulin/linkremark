@@ -500,6 +500,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return await lr_action._openUniqueAddonPage("pages/lrp_help.html", openerTab);
 	}
 
+	async function openHelpEndpoint(_params, port) {
+		return lr_action.openHelp(port && port.tab);
+	}
+
 	async function _openUniqueAddonPage(relativeURL, openerTab) {
 		if (openerTab == null) {
 			openerTab = await lr_action.getActiveTab();
@@ -572,6 +576,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		getActiveTab,
 		captureCurrentTabEndpoint,
 		openHelp,
+		openHelpEndpoint,
 		_openUniqueAddonPage,
 		_run,
 		_waitLock,

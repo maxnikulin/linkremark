@@ -69,6 +69,7 @@ async function lrMainAsync() {
 	gLrAddonRpc.register("export.format", lr_export.formatMessage.bind(lr_export));
 	gLrAddonRpc.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));
 	gLrAddonRpc.register("action.captureTab", lr_action.captureCurrentTabEndpoint);
+	gLrAddonRpc.register("action.help", lr_action.openHelpEndpoint);
 	gLrAsyncScript = new LrAsyncScript();
 	gLrAsyncScript.register(gLrAddonRpc);
 	lr_settings.register(gLrAddonRpc);

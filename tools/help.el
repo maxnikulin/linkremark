@@ -32,6 +32,9 @@
 <link rel=\"icon\" sizes=\"32x32\" href=\"/icons/lr-32.png\">
 <link rel=\"icon\" sizes=\"48x48\" href=\"/icons/lr-48.png\">
 <link rel=\"icon\" sizes=\"96x96\" href=\"/icons/lr-96.png\">
+<script src=\"/common/bapi.js\"></script>
+<script src=\"/pages/lrp_navigation.js\"></script>
+<script src=\"/pages/lrp_help.js\"></script>
 <style>
 body {
 	background-color: white;
@@ -65,7 +68,9 @@ div#preamble {
 <div><p>Find more information on the project page
 <a href=\"https://github.com/maxnikulin/linkremark\">https://github.com/maxnikulin/linkremark</a>,
 e.g. how to setup <a href=\"https://github.com/maxnikulin/burl\">bURL</a>
-native application helper for checking your notes for known URLs.</p></div>
+native application helper for checking your notes for known URLs.</p>
+<p>Open <a href=\"lrp_settings.html\" id=\"settings\" target=\"_blank\">settings</a> page.</p>
+</div>
 ")))
   (with-current-buffer (find-file input-file)
     ;; Try to avoid execution of embedded code. It may be redefined

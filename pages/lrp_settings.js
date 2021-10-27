@@ -377,3 +377,4 @@ function lrInitEventSources() {
 var lrEventSources = lrInitEventSources();
 renderDescriptors();
 initLoadSave();
+lrpSetupHelpHandler();

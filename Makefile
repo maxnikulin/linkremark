@@ -10,6 +10,7 @@ MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
 HELP_PAGE = pages/lrp_help.html
 
 PAGES_SRC = pages/lr_dom.js pages/lrp_irreducible.js pages/lrp_permissions.js 
+PAGES_SRC += pages/lrp_help.js pages/lrp_navigation.js
 PAGES_SRC += pages/lrp_settings.html pages/lrp_settings.js 
 PAGES_SRC += pages/lrp_preview_model.js pages/lrp_mentions.js pages/lrp_preview.js 
 PAGES_SRC += pages/lr.css pages/lrp_preview.html

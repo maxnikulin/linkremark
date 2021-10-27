@@ -120,20 +120,6 @@ function lrAdjustTextAreaHeight(textarea) {
 	textarea.rows = Math.min(maxHeight, windowHeight, contentHeight);
 }
 
-function openSettings(ev) {
-	function onOpenOptionsPageError(ex) {
-		console.error("lr_action.openSettings: runtime.openOptionsPage: %o", ex);
-		// Next time use default browser action to open link target.
-		ev.target.removeEventListener("click", openSettings);
-	}
-	try {
-		bapi.runtime.openOptionsPage().catch(onOpenOptionsPageError);
-		ev.preventDefault();
-	} catch (ex) {
-		onOpenOptionsPageError(ex);
-	}
-}
-
 function lrCaptureForExport(state, format) {
 	if (!format) {
 		format = state.transport && state.transport.format;
@@ -1293,8 +1279,8 @@ async function lrPreviewMain(eventSources) {
 	}
 
 	try {
-		const link = byId("settings");
-		link.addEventListener("click", openSettings, false);
+		lrpSetupSettingsHandler();
+		lrpSetupHelpHandler();
 	} catch (ex) {
 		lrPreviewLogException(store, { message: "Settings button init failure", error: ex });
 	}
