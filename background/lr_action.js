@@ -123,6 +123,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				title: "Debug info",
 			},
 			{
+				contexts: [ "browser_action" ],
+				enabled: true,
+				id: "LR_HELP",
+				title: "LR Help", // TODO i18n
+			},
+			{
 				contexts: [ "image" ],
 				id: "LR_IMAGE_REMARK",
 				title: "Remark for this image",
@@ -174,6 +180,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 					break;
 				case "LR_SETTINGS":
 					await lr_action.openSettings(tab);
+					break;
+				case "LR_HELP":
+					await lr_action.openHelp(tab);
 					break;
 				case "LR_FRAME_REMARK":
 					await lr_action._run(
@@ -487,6 +496,55 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 	};
 
+	async function openHelp(openerTab) {
+		return await lr_action._openUniqueAddonPage("pages/lrp_help.html", openerTab);
+	}
+
+	async function _openUniqueAddonPage(relativeURL, openerTab) {
+		if (openerTab == null) {
+			openerTab = await lr_action.getActiveTab();
+		}
+		const pageURL = bapi.runtime.getURL(relativeURL);
+		if (openerTab.url && openerTab.url.startsWith(pageURL)) {
+			return;
+		}
+		try {
+			const tabs = await bapi.tabs.query({
+				currentWindow: null, // `false` ignores tabs in the current window
+				url: pageURL + "*",
+			});
+			let existingTab;
+			if (tabs) {
+				for (const tabCandidate of tabs) {
+					if (
+						openerTab == null || !(openerTab.windowId >= 0) ||
+						openerTab.windowId === tabCandidate.windowId
+					) {
+						existingTab = tabCandidate;
+						break;
+					}
+					existingTab = existingTab || tabCandidate;
+				}
+			}
+			if (existingTab != null) {
+				if (existingTab.windowId >= 0) {
+					await bapi.windows.update(existingTab.windowId, {
+						drawAttention: true,
+						focused: true,
+					});
+				}
+				return await bapi.tabs.update(existingTab.id, { active: true });
+			}
+		} catch (ex) {
+			console.error("lr_action._openUniqueAddonPage: ignored error: %o", ex);
+		}
+		return await bapi.tabs.create({
+			url: pageURL,
+			openerTabId: openerTab && openerTab.id >= 0 ? openerTab.id : undefined,
+			windowId: openerTab && openerTab.windowId >= 0 ? openerTab.windowId : undefined,
+		});
+	}
+
 	this.openSettings = async function(tab) {
 		try {
 			return await bapi.runtime.openOptionsPage();
@@ -511,7 +569,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	Object.assign(this, {
+		getActiveTab,
 		captureCurrentTabEndpoint,
+		openHelp,
+		_openUniqueAddonPage,
 		_run,
 		_waitLock,
 		_singleTabAction,

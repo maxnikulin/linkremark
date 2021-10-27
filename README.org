@@ -1,4 +1,5 @@
 
+#+PROPERTY: header-args :eval never-export :exports code :results silent
 #+TITLE: LinkRemark — notes for web pages augmented by metadata
 
 * Introduction

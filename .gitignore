@@ -2,3 +2,5 @@
 manifest.json
 manifest-firefox-test.json
 manifest-chrome-test.json
+pages/lrp_help.html
+local.mk

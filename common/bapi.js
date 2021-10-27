@@ -184,6 +184,9 @@ function bapiChrome(chrome) {
 			remove: promisify,
 			update: promisify,
 		},
+		windows: {
+			update: promisify,
+		},
 		webNavigation: {
 			getAllFrames: promisify,
 		},
