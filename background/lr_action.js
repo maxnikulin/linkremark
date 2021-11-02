@@ -81,18 +81,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	async function _waitLock(executor) {
-		try {
-			await executor.lock;
-		} catch (ex) {
-			if (
-				typeof lr_actionlock !== undefined
-				&& ex instanceof lr_actionlock.LrActionLockCancelledError
-			) {
-				throw ex;
-			} else {
-				executor.addError(new LrWarning("Action lock problem", { cause: ex }));
-			}
-		}
+		await executor.waitLock();
 		executor.step(
 			{ errorAction: lr_executor.IGNORE_ERROR, },
 			function storeResultToCache(executor) {

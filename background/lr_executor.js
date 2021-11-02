@@ -386,10 +386,26 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				// No async-await in this method to minimize impact of concurrent
 				// attempts to acquire lock for the same executor due to programming error.
 				top.lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
+				top.lock.then(lock => top._lockResolved = lock);
 			} else {
 				top.addError(new LrWarning("Internal error with action locks"));
 			}
 			return top.lock;
+		}
+
+		async waitLock() {
+			try {
+				await this._getTop().lock;
+			} catch (ex) {
+				if (
+					typeof lr_actionlock !== undefined
+					&& ex instanceof lr_actionlock.LrActionLockCancelledError
+				) {
+					throw ex;
+				} else {
+					executor.addError(new LrWarning("Action lock problem", { cause: ex }));
+				}
+			}
 		}
 
 		_onException(descr, ex) {
