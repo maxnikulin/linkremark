@@ -206,11 +206,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			let cancelRunning = false;
 			for (const id of ids) {
 				if (this._pending != null && id === this._pending.id) {
-					if (this._subscription != null) {
-						this._subscription.notify({ id: this._pending.id, status: "cancelled" });
-					}
-					this._pending.reject(new LrActionLockCancelledError("Cancelled"));
-					this._pending = undefined;
+					this._rejectPending();
 				} else if (this._running != null && id === this._running.id) {
 					cancelRunning = true;
 				} else {
@@ -218,7 +214,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				}
 			}
 			if (cancelRunning) {
-				this._running.abort();
+				this._abortRunning();
 			}
 		}
 
@@ -232,18 +228,12 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				console.error("LrActionLockQueue.reset: disable popup: %o", ex);
 			}
 			try {
-				if (this._pending !== undefined) {
-					this._pending.reject(new LrActionLockCancelledError("Cancelled"));
-					this._pending = undefined;
-				}
+				this._rejectPending();
 			} catch (ex) {
 				console.error("LrActionLockQueue.reset: cancel pending: %o", ex);
 			}
 			try {
-				if (this._running) {
-					this._running.abort();
-					this._running = undefined;
-				}
+				this._abortRunning();
 			} catch (ex) {
 				console.error("LrActionLockQueue.reset: cancel pending: %o", ex);
 			}
@@ -260,6 +250,28 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				result.push({ id, title, status: "pending" });
 			}
 			return result;
+		}
+
+		_rejectPending() {
+			if (this._pending === undefined) {
+				return;
+			}
+			this._pending.reject(new LrActionLockCancelledError("Cancelled"));
+			if (this._subscription != null) {
+				this._subscription.notify({ id: this._pending.id, status: "cancelled" });
+			}
+			this._pending = undefined;
+		}
+
+		_abortRunning() {
+			if (this._running === undefined) {
+				return;
+			}
+			this._running.abort();
+			if (this._subscription != null) {
+				this._subscription.notify({ id: this._running.id, status: "cancelled" });
+			}
+			this._running = undefined;
 		}
 	}
 
