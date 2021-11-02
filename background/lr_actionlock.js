@@ -86,12 +86,11 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			// Force string to make "data-" (`dataset`) DOM operations more convenient.
 			this.id = id != null ? id : String(bapiGetId());
 			this.title = title;
-			this.onFinished = onFinished;
 			this._abortController = new AbortController();
 			this.lock = new LrActionLock({
 				signal: this._abortController.signal,
 				abortPromise: new Promise((_, reject) => this._rejectAbortPromise = reject),
-				onFinished,
+				onFinished: onFinished && onFinished.bind(null, this),
 			});
 
 		}
@@ -168,18 +167,20 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			return undefined;
 		}
 
-		_doOnRunningFinished(status) {
-			if (this._running != null) {
-				if (this._subscription != null) {
-					this._subscription.notify({
-						id: this._running.id,
-						title: this._running.title,
-						status: status || "unknown"
-					});
-				}
+		_doOnRunningFinished(lock, status) {
+			if (this._subscription != null) {
+				this._subscription.notify({
+					id: lock.id,
+					title: lock.title,
+					status: status || "unknown"
+				});
+			}
+			if (this._running !== undefined && this._running.id === lock.id) {
 				this._running = undefined;
 			} else {
-				console.warn("LrActionLockQueue.onRunningFinished: no running task: %o", this._running);
+				console.warn(
+					"LrActionLockQueue.onRunningFinished: lock %o != running %o",
+					lock, this._running);
 			}
 			const pending = this._pending;
 			if (pending) {
