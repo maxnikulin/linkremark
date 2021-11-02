@@ -477,7 +477,7 @@ async function lrExecRelationsScript(tab, frames) {
 		await Promise.all(Array.from(
 			frames,
 			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, "content_scripts/lrc_relations.js", "relations")
+				tab, wrappedFrame, "/content_scripts/lrc_relations.js", "relations")
 		));
 	} catch (ex) {
 		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
@@ -536,11 +536,11 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 		await lrFrameChainGuessSelected(activeTab, frameMap);
 	try {
 		const metaPromises = chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_selection.js", "selection"));
+				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_selection.js", "selection"));
 		metaPromises.push(...chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_meta.js", "meta")));
+				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_meta.js", "meta")));
 		metaPromises.push(...chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "content_scripts/lrc_microdata.js", "microdata")));
+				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_microdata.js", "microdata")));
 		await Promise.all(metaPromises);
 	} catch (ex) {
 		console.error(
@@ -552,10 +552,10 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 			if (!(wrappedFrame && wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden)) {
 				let script, target;
 				if (clickData && clickData.captureObject === 'image') {
-					script = "content_scripts/lrc_image.js";
+					script = "/content_scripts/lrc_image.js";
 					target = 'image';
 				} else if (clickData && clickData.captureObject === 'link') {
-					script = "content_scripts/lrc_link.js";
+					script = "/content_scripts/lrc_link.js";
 					target = "link";
 				}
 				if (target != null) {
