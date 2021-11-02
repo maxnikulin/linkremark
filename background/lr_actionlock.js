@@ -28,6 +28,49 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		}
 	}
 
+	this._bounceTime = Date.now();
+	// `browserAction.openPopup()` is in progress.
+	this._openPopupCount = 0;
+	Object.defineProperty(this, "_openPopupSuppressTime", {
+		value: 333,
+		enumerable: true,
+		configurable: true, // To be able to disable for automatic tests
+	});
+
+	/**
+	 * In Firefox (78, 93) `browserAction.openPopup` fires `browserAction.onClicked`
+	 * if popup is currently suppressed. Due to a nasty error in my code
+	 * I accidentally got infinite loop calling `browserAction.onClicked` listener.
+	 * This function is added to mitigate effect of such mistakes.
+	 */
+	function _popupAllowed() {
+		if (lr_actionlock._openPopupCount !== 0) {
+			console.warn("lr_actionlock._popupAllowed: opening popups: %o", lr_actionlock._openPopupCount);
+		}
+		const now = Date.now();
+		if (!(now > lr_actionlock._bounceTime)) {
+			console.error(
+				"lr_actionlock._popupAllowed: time till debounce timeout: %o",
+				lr_actionlock._bounceTime - now);
+			return false;
+		}
+		return true;
+	}
+
+	async function _openPopup() {
+		if (!lr_actionlock._popupAllowed()) {
+			return;
+		}
+		++lr_actionlock._openPopupCount;
+		try {
+			lr_actionlock._bounceTime = Date.now() + lr_actionlock._openPopupSuppressTime;
+			return await bapi.browserAction.openPopup();
+		} finally {
+			--lr_actionlock._openPopupCount;
+			lr_actionlock._bounceTime = Date.now() + lr_actionlock._openPopupSuppressTime;
+		}
+	}
+
 	/// Lock object exposed to LrExecutor
 	class LrActionLock {
 		constructor({ signal, abortPromise, onFinished }) {
@@ -98,7 +141,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 							}
 							// Hidden behind a flag #extension apis in Chrome
 							// https://crbug.com/436489
-							await bapi.browserAction.openPopup();
+							await lr_actionlock._openPopup();
 						}
 					} catch (ex) {
 						// Calling after await (out of user action scope)
@@ -331,7 +374,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 	queue.subscription = subscription;
 
 	function register(rpcServer) {
-		rpcServer.register("lock.reset", this.queue.reset.bind(this));
+		rpcServer.register("lock.reset", this.queue.reset.bind(this.queue));
 		rpcServer.registerSubscription("captureStatus", subscription);
 	}
 
@@ -339,6 +382,8 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		LrActionLockCancelledError,
 		queue,
 		register,
+		_openPopup,
+		_popupAllowed,
 		_internal: {
 			LrActionLockQueue,
 			LrActiveActionLock,
