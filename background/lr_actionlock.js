@@ -114,9 +114,14 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		}
 		async acquire(title, fromBrowserActionPopup) {
 			try {
-				console.assert(
-					!this._pending || this._running,
-					"There should be a running task when pending one exists");
+				if (this._pending !== undefined && this._running === undefined) {
+					console.error("LrActionLockQueue.acquire: pending task with no running one");
+					try {
+						this._rejectPending();
+					} catch (ex) {
+						console.error("LrActionLockQueue.acquire: rejecting pending: %o", ex);
+					}
+				}
 				if (this._running) {
 					if (this._pending) {
 						if (this._subscription != null) {
