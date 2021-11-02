@@ -251,6 +251,10 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				if (!lr_util.isFunction(func)) {
 					throw new TypeError("LrExecutor.step: not a function");
 				}
+				const lock = this._getTop._lockResolved;
+				if (lock && lock.signal && lock.signal.aborted) {
+					throw new Error("Aborted");
+				}
 				args.push(this);
 				const result = func(...args);
 				if (saveResult) {
@@ -269,8 +273,39 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 				descr.result = null;
 			}
 			try {
+				const lock = this._getTop()._lockResolved;
+				if (lock && lock.signal && lock.signal.aborted) {
+					throw new Error("Aborted");
+				}
 				args.push(this);
-				const result = await func(...args);
+				const resultPromise = func(...args);
+				let result;
+				const timeout = descr.timeout
+				if ((lock && lock.abortPromise) || timeout > 0) {
+					const promises = [ resultPromise ];
+					if (lock && lock.abortPromise) {
+						promises.push(lock.abortPromise);
+					}
+					let timeoutId;
+					if (timeout > 0) {
+						// Unconditionally created `Error` instance adds overhead
+						// but failure when happened may be cause by something really obscure,
+						// so real stack trace is valueable.
+						let rejectError = new Error("Timeout");
+						let rejectFunc;
+						promises.push(new Promise((_resolve, reject) => rejectFunc = reject));
+						timeoutId = setTimeout(() => rejectFunc(rejectError), timeout);
+					}
+					try {
+						result = await Promise.race(promises);
+					} finally {
+						if (timeoutId !== undefined) {
+							clearTimeout(timeoutId);
+						}
+					}
+				} else {
+					result = await resultPromise;
+				}
 				if (saveResult) {
 					descr.result = result;
 				}
