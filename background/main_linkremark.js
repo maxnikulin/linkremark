@@ -21,10 +21,6 @@ var gLrRpcStore;
 // Is not used in other scripts. Global is just for debug convenience.
 var gLrAddonRpc;
 
-var lrInstallMenu = lr_util.notFatal(function() {
-	bapi.runtime.onInstalled.addListener(lr_action.createMenu);
-});
-
 var lrAddListeners = lr_util.notFatal(function() {
 	bapi.contextMenus.onClicked.addListener(lr_action.contextMenuListener);
 	bapi.browserAction.onClicked.addListener(lr_action.browserActionListener);
@@ -48,7 +44,12 @@ function lrMainSync() {
 	lr_native_export.initSync();
 	lr_clipboard.initSync();
 	lrAddListeners();
-	lrInstallMenu();
+	try {
+		lr_action.createMenu();
+	} catch (ex) {
+		++gLrLoadErrorCount;
+		console.log("lrMainSync: createMenu: %o", ex);
+	}
 	gLrRpcStore = new LrRpcStore();
 	gLrAddonRpc = new LrAddonRpc();
 	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);

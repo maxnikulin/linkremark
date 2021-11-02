@@ -140,6 +140,8 @@ function bapiChrome(chrome) {
 		contextMenus: {
 			ContextType: asis, // "TAB" feature detection in Firefox
 			create: asis,
+			removeAll: promisify,
+			update: promisify,
 			onClicked: asis,
 		},
 		i18n: {
@@ -162,6 +164,7 @@ function bapiChrome(chrome) {
 			id: asis,
 			getURL: asis,
 			onInstalled: asis,
+			onStartup: asis,
 			sendMessage: promisify,
 			getPlatformInfo: promisify,
 			openOptionsPage: promisify,

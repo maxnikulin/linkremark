@@ -100,7 +100,97 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			});
 	}
 
-	this.createMenu = function() {
+	function createMenu() {
+		// The following snippet
+		//
+		//     bapi.runtime.onInstalled.addListener(lr_action._doCreateMenu);
+		//
+		// recommended in https://developer.chrome.com/docs/extensions/mv2/background_pages/
+		// "Manage events with background scripts" (Manifest v2, v3 has the same snippet)
+		// does no work in Firefox since event pages are not supported,
+		// moreover due to Chrome bugs it may be unreliable when updates of disabled
+		// extensions or private tabs are involved.
+		// - https://crbug.com/388231
+		//   388231 - chrome.runtime.onInstalled not run when extension is updated while its disabled
+		// - https://crbug.com/264963
+		//   264963 - chrome.runtime.onInstalled is not fired for incognito profiles in split mode
+		// - https://crbug.com/389631 (closed, sync with android)
+		//   389631 - runtime.onInstalled never fired
+		// In addition either `contextMenus.removeAll` should be called or
+		// existing items should be updated with some additional logic
+		// during extension update.
+
+		const manifest = bapi.runtime.getManifest();
+		// `true` is default value when omitted, so identity test
+		if (manifest.background.persistent !== false) {
+			// Firefox
+			console.log("lr_action.createMenu: run for persistent extension");
+			return _doCreateMenu();
+		}
+
+		let menuCreated = false;
+		bapi.runtime.onInstalled.addListener(async function lr_onInstalled_menu(details) {
+			if (menuCreated) {
+				console.log("lr_action.createMenu: onInstalled: created earlier");
+				return;
+			}
+			console.log("lr_action.createMenu: onInstalled(%o)", details);
+			try {
+				await bapi.contextMenus.removeAll();
+			} catch (ex) {
+				console.error("lr_action.createMenu: onInstalled: ignored error: %o", ex);
+			}
+			lr_action._doCreateMenu();
+			menuCreated = true;
+		});
+
+		// Try to deal with bugs, unsure if it is really necessary
+		// since there is fallback with timeout below.
+		bapi.runtime.onStartup.addListener(async function lr_onStartup_menu() {
+			if (menuCreated) {
+				console.log("lr_action.createMenu: onStartup: created earlier");
+				return;
+			}
+			console.log("lr_action.createMenu: onStartup");
+			try {
+				await bapi.contextMenus.removeAll();
+			} catch (ex) {
+				console.error("lr_action.createMenu: onStartup: ignored error: %o", ex);
+			}
+			lr_action._doCreateMenu();
+			menuCreated = true;
+		});
+
+		// Last resort when neither of listeners above invoked due to bugs.
+		setTimeout(async function lr_createMenu_delayed() {
+			// There is no point to check `menuCreated` since it is `false`
+			// for resumed extension.
+			console.log("lr_action.createMenu: delayed: checking...");
+			try {
+				await bapi.contextMenus.update("LR_FRAME_REMARK", {});
+				// menu created.
+				// TODO: Are there cases when after extension update
+				// menu is not recreated, so versions for normal and incognito
+				// contexts (separately) should be added to local storage?
+				console.log("lr_action.createMenu: delayed: menu is ready");
+				return;
+			} catch (ex) {
+				console.log("lr_action.createMenu: delayed: recreating due to check error: %o", ex);
+			}
+			try {
+				await bapi.contextMenus.removeAll();
+			} catch (ex) {
+				console.error("lr_action.createMenu: delayed: ignored error: %o", ex);
+			}
+			lr_action._doCreateMenu();
+			menuCreated = true;
+		}, 333);
+	}
+
+	async function _doCreateMenu() {
+		// Chrome bugs do not allow to just follow recommendations,
+		// so log action to facilitate debugging.
+		console.log("lr_action._doCreateMenu...");
 		const itemArray = [
 			{
 				contexts: [ "all" ],
@@ -140,14 +230,14 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			},
 		];
 		for (const item of itemArray) {
-			lr_action.createMenuItem(item);
+			lr_action._createMenuItem(item);
 		}
 
 		// Firefox-only extension. Click on not highlighted
 		// (selected with Ctrl) tab captures just it.
 		// Click on a highlighted tab initiates capture of all highlighted tabs.
 		if ("TAB" in bapi.contextMenus.ContextType) {
-			lr_action.createMenuItem({
+			lr_action._createMenuItem({
 				contexts: [ "tab" ],
 				enabled: true,
 				id: "LR_TAB",
@@ -156,7 +246,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 	};
 
-	this.createMenuItem = function(details, error_cb = null) {
+	function _createMenuItem(details, error_cb = null) {
 		return bapi.contextMenus.create(details, function lrCreateMenuCallback() {
 			if (bapi.runtime.lastError) {
 				console.error("LR: createMenu %o %o", details, bapi.runtime.lastError);
@@ -573,10 +663,13 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	Object.assign(this, {
+		createMenu,
 		getActiveTab,
 		captureCurrentTabEndpoint,
 		openHelp,
 		openHelpEndpoint,
+		_doCreateMenu,
+		_createMenuItem,
 		_openUniqueAddonPage,
 		_run,
 		_waitLock,
