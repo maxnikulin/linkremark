@@ -134,13 +134,16 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		return { previewParams: { action: "launch" } };
 	}
 
-	async function lrClipboardAny(capture, options) {
+	async function lrClipboardAny(capture, options, executor) {
 		const retvalDefault = { preview: true, previewParams: null, previewTab: options.tab };
 		for (let method of [
 			_lrClipboardWriteBackground, _lrClipboardContentScript, _lrClipboardUsePreview
 		]) {
 			try {
-				const result = await method(capture, options);
+				const result = await executor.step(
+					{ timeout: lr_tabframe.scriptTimeout },
+					method, capture, options
+				);
 				if (result) {
 					return { ...retvalDefault, ...result };
 				} else {

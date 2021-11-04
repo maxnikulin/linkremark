@@ -22,6 +22,9 @@ var lr_tabframe = lr_util.namespace(lr_tabframe, function lr_tabframe() {
 
 	const FORMAT = "object";
 	const VERSION = "0.2";
+
+	lr_tabframe.scriptTimeout = 2000;
+
 	function makeCapture(result) {
 		const id = result.id || bapiGetId();
 		return {
@@ -144,26 +147,22 @@ function focusedFrameChain(frameMap) {
 async function lrGetAllFrames(tab) {
 	// Likely redundant protection, tab should be valid here
 	const tabId = tab != null ? tab.id : -1;
-	try {
-		if (!(tabId >= 0)) {
-			// May happen in Chromium-87 when context menu is invoked for a PDF file
-			// but should be handled by caller since <embed> element
-			// in Chrome created for PDF file has its own "tab".
-			return [];
-		}
-		let frames = await bapi.webNavigation.getAllFrames({tabId});
-		if (frames && frames.length > 0) {
-			return frames;
-		}
-		console.warn(
-			"lrGetAllFrames: tab {id: %s, url=%s}: empty frames: %o",
-			tabId, tab.url, frames);
-	} catch (ex) {
-		console.error(
-			"lrGetAllFrames: tab {id: %s, url=%s): exception %s\n%o",
-			tabId, tab.url, ex, ex);
+	if (!(tabId >= 0)) {
+		// May happen in Chromium-87 when context menu is invoked for a PDF file
+		// but should be handled by caller since <embed> element
+		// in Chrome created for PDF file has its own "tab".
+		return [];
 	}
-	return [];
+	let frames = await bapi.webNavigation.getAllFrames({tabId});
+	// Chromium-95 returns `[]` for privileged pages as "chrome-extension://"
+	// however it gives array with valid frame for "chrome://extensions"
+	if (frames && frames.length >= 0) {
+		return frames;
+	}
+	console.warn(
+		"lrGetAllFrames: tab {id: %s, url=%s}: empty frames: %o",
+		tabId, tab.url, frames);
+	throw new LrWarning("Invalid list of frames");
 }
 
 /**
@@ -208,10 +207,12 @@ function lrFormatFrameError(tab, wrappedFrame) {
  * Its return value (array element) may be `undefined` on a privileged page in Firefox.
  * Try to eval simple code.
  */
-async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
+async function lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor) {
 	const tabId = tab && tab.id;
 	const frameId = wrappedFrame && wrappedFrame.frame && wrappedFrame.frame.frameId;
-	async function lrExecutePermissionForbiddenCheckScript(tabId, frameId) {
+
+	async function lrExecutePermissionForbiddenCheckScript(tab, frameId, executor) {
+		const tabId = tab && tab.id;
 		if (!(tabId >= 0)) {
 			return true;
 		}
@@ -221,23 +222,36 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
 				frameId,
 				allFrames: false,
 			});
-			return !(retvalArray && retvalArray[0] == 314);
+			if (retvalArray && retvalArray[0] == 314) {
+				return false;
+			} else {
+				// TODO make it less noisy in preview page.
+				// e.g. URLs and titles should be reported instead just several
+				// identical warnings.
+				// executor.addError(new LrWarning("No permissions for a page"));
+				return true;
+			}
 		} catch (ex) {
 			console.debug(
 				"lrCheckFrameScriptsForbidden: tab %o (%o) frame %o: content scripts are not allowed: %o",
 				tabId, tab && tab.url, frameId, ex);
+			// TODO This cause noise in Chrome-95 on privileged pages.
+			// It is acceptible since frame list is unavailable.
+			executor.addError(new LrWarning("No permissions for a page", { cause: ex }));
 			return true;
 		}
 		return null;
 	}
+
 	const summary = wrappedFrame.summary = wrappedFrame.summary || {};
-	try {
-		if (summary.scripts_forbidden == null) {
-			summary.scripts_forbidden = await lrExecutePermissionForbiddenCheckScript(tabId, frameId);
-		}
-	} catch (ex) {
-		console.error("lrCheckFrameScriptsForbidden: tab %o frame %o error %o",
-			tab, frameId, ex);
+	if (summary.scripts_forbidden == null) {
+		summary.scripts_forbidden = await executor.step(
+			{
+				errorAction: lr_executor.ERROR_IS_WARNING,
+				timeout: lr_tabframe.scriptTimeout,
+			},
+			lrExecutePermissionForbiddenCheckScript, tab, frameId
+		);
 	}
 	return summary.scripts_forbidden;
 }
@@ -245,26 +259,33 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame) {
 /**
  * Set `wrappedFrame` `property` to result or error of `file` execution
  */
-async function lrExecuteFrameScript(tab, wrappedFrame, file, property) {
+async function lrExecuteFrameScript(tab, wrappedFrame, file, property, executor) {
 	try {
 		if (wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden) {
 			return;
 		}
 		if (!(tab && tab.id >= 0)) {
 			console.debug("lrExecuteFrameScript: skipping due to unknown tab.id, likely privileged content %o", tab);
-			throw new Error("Unknown tab.id. Privileged page?");
+			throw new LrWarning("Unknown tab.id. Privileged page?");
 		}
-		const retvalArray = await bapi.tabs.executeScript(tab.id, {
-			file: file,
-			frameId: wrappedFrame.frame.frameId,
-			allFrames: false,
-		});
+		const retvalArray = await executor.step(
+			{
+				timeout: lr_tabframe.scriptTimeout,
+				file
+			},
+			async function executeScriptInFrame() {
+				return await bapi.tabs.executeScript(tab.id, {
+					file: file,
+					frameId: wrappedFrame.frame.frameId,
+					allFrames: false,
+				});
+			});
 		if (!retvalArray || !(retvalArray.length > 0)) {
-			throw new Error('tabs.executeScript got no result');
+			throw new LrWarning('tabs.executeScript got no result');
 		}
 		const retval = retvalArray[0];
 		if (!retval) {
-			throw new Error('tabs.executeScript is likely called for a privileged frame');
+			throw new LrWarning('tabs.executeScript is likely called for a privileged frame');
 		} else if (lr_util.has(retval, "result") || lr_util.has(retval, "error")) {
 			wrappedFrame[property] = retval;
 		} else {
@@ -278,7 +299,8 @@ async function lrExecuteFrameScript(tab, wrappedFrame, file, property) {
 			error.stack = error.stack && error.stack.trim().split("\n");
 		}
 		wrappedFrame[property] = { error };
-		if (!(await lrCheckFrameScriptsForbidden(tab, wrappedFrame))) {
+		if (!(await lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor))) {
+			executor.addError(ex);
 			console.error('lrExecuteFrameScript', lrFormatFrameError(tab, wrappedFrame), file, error);
 		}
 	}
@@ -430,7 +452,7 @@ async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
  * by avoiding queries to the most of frames if there are a lot of them on
  * the page.
  */
-async function lrFrameChainByClickData(tab, frameMap, clickData) {
+async function lrFrameChainByClickData(tab, frameMap, clickData, executor) {
 	let { frameId } = clickData;
 	const chain = [];
 	let targetFrame = frameMap.get(frameId);
@@ -463,11 +485,11 @@ async function lrFrameChainByClickData(tab, frameMap, clickData) {
 	if (topFrame && topFrame.clickData == null && clickData.pageUrl) {
 		topFrame.clickData = { url: clickData.pageUrl };
 	}
-	await lrExecRelationsScript(tab, frameMap.values());
+	await lrExecRelationsScript(tab, frameMap.values(), executor);
 	return chain;
 }
 
-async function lrExecRelationsScript(tab, frames) {
+async function lrExecRelationsScript(tab, frames, executor) {
 	if (!Array.isArray(frames)) {
 		// To allow second pass if iterator is passed
 		frames = Array.from(frames);
@@ -477,7 +499,7 @@ async function lrExecRelationsScript(tab, frames) {
 		await Promise.all(Array.from(
 			frames,
 			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, "/content_scripts/lrc_relations.js", "relations")
+				tab, wrappedFrame, "/content_scripts/lrc_relations.js", "relations", executor)
 		));
 	} catch (ex) {
 		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
@@ -510,20 +532,25 @@ async function lrExecRelationsScript(tab, frames) {
 	}
 }
 
-async function lrFrameChainGuessSelected(tab, frameMap) {
-	await lrExecRelationsScript(tab, frameMap.values());
+async function lrFrameChainGuessSelected(tab, frameMap, executor) {
+	await lrExecRelationsScript(tab, frameMap.values(), executor);
 	return lrFrameChainOrTopFrame(frameMap);
 }
 
 /**
  * clickData { frameId, captureObject[some fields of menus.OnClickData] }
  */
-async function lrGatherTabInfo(tab, clickData, activeTab) {
+async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
+	const stepTimeout = { timeout: lr_tabframe.scriptTimeout };
 	const frameId = clickData && tab && tab.id >= 0 ? clickData.frameId : null;
 	// The only reason to call webNavigation.getFrame()
 	// might be errorOccured property, but it is unused currently.
 	// Fake top level frame will be added by lrMakeFrameMap.
-	const frameArray = frameId === 0 ? [] : await lrGetAllFrames(activeTab);
+	const frameArray = (
+		frameId !== 0 && await executor.step(
+			{ errorAction: lr_executor.ERROR_IS_WARNING, ...stepTimeout },
+			lrGetAllFrames, activeTab)
+	) || [];
 	const frameMap = lrMakeFrameMap(activeTab, frameArray);
 	console.assert(frameMap.has(0), "frameMap has at least synthetic frameId 0");
 	frameMap.get(0).tab = {
@@ -532,17 +559,23 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 		title: activeTab.title,
 		favIconUrl: activeTab.favIconUrl
 	};
-	const chain = frameId != null ? await lrFrameChainByClickData(tab, frameMap, clickData) :
-		await lrFrameChainGuessSelected(activeTab, frameMap);
+	const chain = frameId != null ? await lrFrameChainByClickData(tab, frameMap, clickData, executor) :
+		await lrFrameChainGuessSelected(activeTab, frameMap, executor);
 	try {
-		const metaPromises = chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_selection.js", "selection"));
-		metaPromises.push(...chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_meta.js", "meta")));
-		metaPromises.push(...chain.map(wrappedFrame =>
-				lrExecuteFrameScript(activeTab, wrappedFrame, "/content_scripts/lrc_microdata.js", "microdata")));
+		const scripts = [
+			[ "/content_scripts/lrc_selection.js", "selection" ],
+			[ "/content_scripts/lrc_meta.js", "meta" ],
+			[ "/content_scripts/lrc_microdata.js", "microdata" ],
+		];
+
+		const metaPromises = [];
+		for (const wrappedFrame of chain) {
+			metaPromises.push(...scripts.map(script =>
+				executor.step(lrExecuteFrameScript, activeTab, wrappedFrame, ...script)));
+		}
 		await Promise.all(metaPromises);
 	} catch (ex) {
+		// FIXME handle abort
 		console.error(
 			"lrGatherTabInfo: meta, capture, or microdata: continue despite the error %s %o", ex, ex);
 	}
@@ -559,8 +592,13 @@ async function lrGatherTabInfo(tab, clickData, activeTab) {
 					target = "link";
 				}
 				if (target != null) {
-					chain[0][target] = await gLrAsyncScript.resultOrError(
-						tab.id, clickData.frameId, { file: script });
+					chain[0][target] = await executor.step(
+						{ timeout: lr_tabframe.scriptTimeout },
+						async function lrTargetObjectScript() {
+							return await gLrAsyncScript.resultOrError(
+								tab.id, clickData.frameId, { file: script });
+						}
+					);
 				}
 			}
 		} else if (tab && clickData) {
