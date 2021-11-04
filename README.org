@@ -100,6 +100,21 @@ permission means on the following page:
 [[https://support.mozilla.org/en-US/kb/permission-request-messages-explained]]
 
 ** Requested on Install
+
+*** Access your data for all websites (=<all_urls>=)
+
+It is necessary to capture frames loaded from other site
+or a group of selected (highlighted) tabs in Firefox.
+An alternative is to request access to particulars site
+on demand and maybe I will implement such option in future.
+Per-action permission requests may be annoying
+and sometimes will require second capture attempt
+due to restriction of context when permission request
+may be shown.
+
+By default extension has access only to the current tab
+and in some cases could not inspect subframes.
+
 *** Exchange messages with other programs (=nativeMessaging=)
 
 Chrome: "Communicate with cooperating native applications", optional.
@@ -119,7 +134,18 @@ Extension can not launch any application till it is explicitly added
 to a configuration file (manifest) by the user, so do not worry,
 extensions can not run arbitrary binaries with no cooperation from users.
 
+*** Access browser activity during navigation (=webNavigation=)
+
+Necessary to reliably restore tree of nested frames.
+Maybe I will add a less reliable fallback in future
+to make this permission optional.
+
 ** Optional permissions
+
+Open browser extensions preferences[fn:addons] to manage this set of permissions.
+Switches are available on add-on custom settings page and in browser settings UI.
+They may be requested on demand to successfully complete requested action
+taking into account current settings.
 
 *** Access browser tabs (=tabs=)
 
