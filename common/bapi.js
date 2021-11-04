@@ -163,6 +163,7 @@ function bapiChrome(chrome) {
 			getManifest: asis,
 			id: asis,
 			getURL: asis,
+			onConnect: asis,
 			onInstalled: asis,
 			onStartup: asis,
 			sendMessage: promisify,
