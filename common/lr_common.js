@@ -41,6 +41,8 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 				continue;
 			}
 			if (typeof value !== "string") {
+				// FIXME added to preserve `Number`, actually may cause problems
+				// due to failure of structured clone.
 				error[prop] = value;
 				continue;
 			}
@@ -83,8 +85,22 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	},
 });
 
-class LrWarning extends Error {
+let LrError = Error;
+if (!(new Error(undefined, { cause: true }).cause)) {
+	LrError = class LrError extends Error {
+		constructor(message, options) {
+			super(message);
+			if (options && options.cause) {
+				this.cause = options.cause;
+			}
+		}
+	}
+}
+
+class LrWarning extends LrError {
 	constructor(message, options) {
+		// TODO at least in Firefox-78 it leads to `fileName` and first `stack` entry
+		// associated with common.
 		super(message, options);
 		if (options != null && options.cause && !this.cause) {
 			this.cause = options.cause;
