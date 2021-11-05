@@ -47,10 +47,10 @@
 	"permissions": [
 		"storage",
 		"activeTab",
-		"menus",
 		"contextMenus",
 		"webNavigation",
 		"<all_urls>",
+		"menus",
 		"nativeMessaging"
 	],
 	"background": {

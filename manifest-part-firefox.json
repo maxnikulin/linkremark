@@ -1,6 +1,6 @@
 {
 	"permissions": [
-		"nativeMessaging"
+		"menus", "nativeMessaging"
 	],
 	"optional_permissions": [
 		"clipboardWrite",

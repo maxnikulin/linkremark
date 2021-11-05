@@ -44,7 +44,7 @@
 	"permissions": [
 		"storage",
 		"activeTab",
-		"menus", "contextMenus",
+		"contextMenus",
 		"webNavigation", "<all_urls>"
 	],
 	"background": {

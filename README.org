@@ -87,7 +87,8 @@ Signed Firefox extension could be found in releases section
 on github: https://github.com/maxnikulin/linkremark/releases
 
 In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
-and load it as unpacked extension.
+and load it as unpacked extension. Pin the extension to have its icon
+in the toolbar.
 
 For everyday use you might wish to configure native application
 helper or desktop-wide org-protocol handler instead of
@@ -136,6 +137,8 @@ extensions can not run arbitrary binaries with no cooperation from users.
 
 *** Access browser activity during navigation (=webNavigation=)
 
+Chrome: "Read your browsing history".
+
 Necessary to reliably restore tree of nested frames.
 Maybe I will add a less reliable fallback in future
 to make this permission optional.
@@ -148,8 +151,6 @@ They may be requested on demand to successfully complete requested action
 taking into account current settings.
 
 *** Access browser tabs (=tabs=)
-
-Chrome: "Read your browsing history".
 
 Additional feature is available in Firefox only.
 When granted, it is possible to capture a group of tabs.
@@ -189,7 +190,7 @@ or desktop-wide org-protocol handler.
   :END:
 
 Optionally select some text and choose an option from context menu (right click,
-=[Shift+F10]= in Firefox).
+=[Menu]= or =[Shift+F10]= keys).
 Unless you are going to capture a particular link,
 you can click on the extension icon in browser toolbar ("browser action")
 or may configure a shortcut on the add-ons page.[fn:addons]
@@ -216,10 +217,11 @@ You could start with a very simple template having "plain" type
        :empty-lines 1)
   ))))
 #+end_example
+You can add such entry using =M-x customize-variable RET org-capture-templates=.
 On the current development stage I do not recommend
 =:immediate-finish= option, it is better to inspect capture result.
 It is impossible to refile plain entry directly from a capture buffer,
-so likely you wish to change "plain" to "entry" type
+so likely you wish to change "plain" (Plain text) to "entry" (Org entry) type
 in Emacs configuration and to change template to
 ="* %(org-get-x-clipboard 'CLIPBOARD)"=.
 Please, update "Template type configured in org-capture-templates"
@@ -372,7 +374,7 @@ with clipboard or org-protocol desktop-wide handler.
    the extension button in tool bar (extension browser action)
    end expand debug info section there.
 2. Look for errors in console pane in browser developer tools for the extension.
-   It could be opened using "Inspect" link from the [[about:debugging#/runtime/this-firefox]]
+   It could be opened using "Inspect" link from the =about:debugging#/runtime/this-firefox=
    page for Firefox. In Chrome menu choose "More tools", "Extensions" and click on the link
    followed "Inspect views" on the add-on card.
 
