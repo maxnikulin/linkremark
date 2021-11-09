@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Frames: Empty iframe</title>
+    <style type="text/css">
+      iframe {
+        border: 2px solid green;
+        background-color: yellow;
+        padding: 1em;
+        margin: 1em;
+      }
+    </style>
+    </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Frames</a>
+      <a href="frame-regular.html">Simple iframe</a>
+      <a href="frame-sandbox.html">Sandboxed iframe</a>
+    </nav>
+    <h1>LinkRemark Test: Frames: Empty <code>&lt;iframe&gt;</code></h1>
+    <p>It seems, <code>sandbox<code> attribute does not matter, in Firefox content scripts can not
+        access <code>&lt;iframe&gt;</code> without <code>src</code> anyway.</p>
+    <iframe id="iframe"></iframe>
+  </body>
+</html>
+

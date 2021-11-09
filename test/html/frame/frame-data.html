@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Frames: Data URI iframe</title>
+    <style type="text/css">
+      iframe {
+        max-width: 100%;
+        width: 70ex;
+        max-height: 100%;
+      }
+    </style>
+    </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Frames</a>
+      <a href="frame-sandbox.html">Sandboxed iframe</a>
+      <a href="frame-write.html">JS filled iframe</a>
+    </nav>
+    <h1>LinkRemark Test: <code>&lt;iframe&gt;</code> with data URI <code>src</code></h1>
+    <p>In Firefox it does not matter if the <code>&lt;iframe&gt;</code>
+    has <code>sandbox</code> attribute since data: URI is anyway not accessible by content scripts.</p>
+    <iframe id="iframe" src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sPgogIDxoZWFkPgogICAgPG1ldGEgY2hhcnNldD0idXRmLTgiPgogICAgPHRpdGxlPkxSIFRlc3Q6IEZyYW1lIGNvbnRlbnQ8L3RpdGxlPgogICAgPG1ldGEgbmFtZT0iYXV0aG9yIiBjb250ZW50PSJGcmFtZSBBdXRob3IiPgogICAgPG1ldGEgbmFtZT0iZGVzY3JpcHRpb24iIGNvbnRlbnQ9IkRlc2NyaXB0aW9uIG9mIGEgRnJhbWUiPgogIDwvaGVhZD4KICA8Ym9keT4KICAgIDxoMT5MaW5rUmVtYXJrIFRlc3Q6IENvbnRlbnQgb2YgYSBGcmFtZSB3aXRoIE1ldGFkYXRhPC9oMT4KICAgIDxwPlRoaXMgcGFnZSBoYXMgYXV0aG9yIGFuZCBkZXNjcmlwdGlvbiBtZXRhZGF0YS48L3A+CiAgICA8cD5JdCBpcyBpbnRlbmRlZCB0byB0ZXN0IGlmIGNvbnRlbnQgc2NyaXB0cyBoYXMgYWNjZXNzIHRvIGZyYW1lcy48L3A+CiAgICA8cD5TZWUgZS5nLiA8YSBocmVmPSJodHRwczovL2J1Z3ppbGxhLm1vemlsbGEub3JnLzE0MTE2NDEiCiAgICAgID5GaXJlZm94IGJ1ZyAxNDExNjQxIC0gQ1NQICdzYW5kYm94JyBkaXJlY3RpdmUgcHJldmVudHMgY29udGVudCBzY3JpcHRzIGZyb20gbWF0Y2hpbmc8L2E+CiAgICA8L3A+CiAgPC9ib2R5Pgo8L2h0bWw+Cg==" height="480"></iframe>
+  </body>
+</html>

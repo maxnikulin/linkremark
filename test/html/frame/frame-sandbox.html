@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Frames: sandbox</title>
+    <style type="text/css">
+      iframe {
+        max-width: 100%;
+        width: 70ex;
+        max-height: 100%;
+      }
+    </style>
+    </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Frames</a>
+      <a href="frame-empty.html">Empty iframe</a>
+      <a href="frame-data.html">data: URI iframe</a>
+    </nav>
+    <h1>LinkRemark Test: Frames: <code>&lt;iframe sandbox&gt;</code></h1>
+    <p>Nothing besides URL is exposed in Firefox for the following frame.</p>
+    <iframe id="iframe" sandbox src="iframe-content.html" height="480"></iframe>
+  </body>
+</html>
+

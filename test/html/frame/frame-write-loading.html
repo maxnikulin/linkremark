@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Frames: iframe in loading state</title>
+    <style type="text/css">
+      iframe {
+        border: 2px solid green;
+        background-color: yellow;
+        padding: 1em;
+        margin: 1em;
+      }
+    </style>
+    </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Frames</a>
+      <a href="frame-write.html">JS filled iframe</a>
+      <a href="frameset.html">Frameset</a>
+    </nav>
+    <h1>LinkRemark Test: Frames: <code>&lt;iframe&gt;</code> in loading state</h1>
+    <p>Content filled using <code>document.write()</code> but
+    <code>document.close()</code> is not called to leave it in loading state.</p>
+    <p>In Firefox it causes timeouts.</p>
+    <p>With <code>sandbox</code> attribute iframe content becomes unavailable for JavaScript
+    from the parent page.</p>
+    <iframe id="iframe">
+    </iframe>
+    <script>
+      "use strict";
+      var iframeDocument = document.getElementById("iframe").contentDocument;
+      iframeDocument.open();
+      iframeDocument.write(
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>\n<title>LR Iframe Loading...</title></head>\n<body><h1>LR Iframe loading...</h1></body></html>");
+    </script>
+  </body>
+</html>
+

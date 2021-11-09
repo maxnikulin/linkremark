@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Frames: Regular iframe</title>
+    <style type="text/css">
+      iframe {
+        max-width: 100%;
+        width: 70ex;
+        max-height: 100%;
+      }
+    </style>
+    </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Frames</a>
+      <a href="frame-empty.html">Empty iframe</a>
+    </nav>
+    <h1>LinkRemark Test: Regular <code>&lt;iframe&gt;</code></h1>
+    <p>Regular <code>iframe</code> loaded from the same site.
+    No <code>sandbox</code> attribute, so it should be available for content script</p>
+    <iframe id="iframe" src="iframe-content.html" height="480"></iframe>
+  </body>
+</html>
+
