@@ -162,7 +162,7 @@ async function lrGetAllFrames(tab) {
 	console.warn(
 		"lrGetAllFrames: tab {id: %s, url=%s}: empty frames: %o",
 		tabId, tab.url, frames);
-	throw new LrWarning("Invalid list of frames");
+	throw new LrWarning("Restricted page (unavailable frame list)");
 }
 
 /**
@@ -225,19 +225,19 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor) {
 			if (retvalArray && retvalArray[0] == 314) {
 				return false;
 			} else {
-				// TODO make it less noisy in preview page.
-				// e.g. URLs and titles should be reported instead just several
-				// identical warnings.
-				// executor.addError(new LrWarning("No permissions for a page"));
+				// Firefox-93 about: tab has `retval === undefined`
 				return true;
 			}
 		} catch (ex) {
+			// Firefox-93: `<iframe>` empty, `sandbox`, or `src="data:..."`.
+			// https://bugzilla.mozilla.org/1411641
+			// "1411641 - CSP 'sandbox' directive prevents content scripts from matching..."
+			// Chromium-95: (actually `runtime.lastError` and `undefined` as callback args)
+			// for chrome: or chrome-extension: pages.
+			const frameURL = wrappedFrame && wrappedFrame.frame && wrappedFrame.frame.url;
 			console.debug(
-				"lrCheckFrameScriptsForbidden: tab %o (%o) frame %o: content scripts are not allowed: %o",
-				tabId, tab && tab.url, frameId, ex);
-			// TODO This cause noise in Chrome-95 on privileged pages.
-			// It is acceptible since frame list is unavailable.
-			executor.addError(new LrWarning("No permissions for a page", { cause: ex }));
+				"lrCheckFrameScriptsForbidden: tab %o (%o) frame %o %o: content scripts are not allowed: %o",
+				tabId, tab && tab.url, frameId, frameURL, ex);
 			return true;
 		}
 		return null;
@@ -561,6 +561,23 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 	};
 	const chain = frameId != null ? await lrFrameChainByClickData(tab, frameMap, clickData, executor) :
 		await lrFrameChainGuessSelected(activeTab, frameMap, executor);
+	// Hope that checking here instead of `lrExecutePermissionForbiddenCheckScript`
+	// allows to avoid noise due to e.g. empty `<iframe>` somewhere on the page.
+	executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		function lrCheckFramePermissionsErrors(chain) {
+			let count = 0;
+			for (const wrappedFrame of chain) {
+				if (wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden) {
+					++count;
+				}
+			}
+			if (count > 0) {
+				throw new LrWarning(`Frames with restricted access: ${count}`);
+			}
+		},
+		chain);
+
 	try {
 		const scripts = [
 			[ "/content_scripts/lrc_selection.js", "selection" ],
