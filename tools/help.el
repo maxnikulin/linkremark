@@ -86,6 +86,11 @@ native application helper for checking your notes for known URLs.</p>
 		(manual (car parts))
 		(node (or (nth 1 parts) "Top")))
 	   (format "<code>M-: (info \"(%s) %s\")</code>" manual node))))
+      (org-link-set-parameters
+       "elisp"
+       :export
+       (lambda (path desc format)
+	   (format "<code>%s</code>" desc)))
       (goto-char (point-min))
       (re-search-forward "^\* Usage$")
       (org-export-to-file 'html output-file
