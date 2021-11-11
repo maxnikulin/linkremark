@@ -6,7 +6,7 @@
 
 LinkRemark is a browser extension that allows to save some context
 while capturing notes using [[https://orgmode.org][Org mode]] for [[https://www.gnu.org/software/emacs/][GNU Emacs]].
-The add-on attempts to extract some metadata of the current web page:
+The add-on attempts to extract some metadata from the current web page, e.g.
 author, time when the text was written.
 Actually it just generates (almost) text notes using a few elements
 of Org mode markup.
@@ -71,7 +71,7 @@ could be more convenient:
 - [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp]]:
   A reliable org-capture browser extension for Chrome/Firefox.
 
-If would like to have more details on web pages in you notes then consider
+If you would like to have more details on web pages in you notes then consider
 [[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref]]:
 Extract metadata/bibtex info from websites for org-capture.
 It is suitable if web browser of your choice is Emacs or Qute Browser.
@@ -97,24 +97,25 @@ clipboard to pass captures to your notes.
 * Permissions
 
 You could find more information what every requested
-permission means on the following page:
-[[https://support.mozilla.org/en-US/kb/permission-request-messages-explained]]
+permission means on the following page frim the Mozilla Support site:
+[[https://support.mozilla.org/kb/permission-request-messages-explained]]
+"Permission request messages explained".
 
 ** Requested on Install
 
 *** Access your data for all websites (=<all_urls>=)
 
-It is necessary to capture frames loaded from other site
-or a group of selected (highlighted) tabs in Firefox.
-An alternative is to request access to particulars site
-on demand and maybe I will implement such option in future.
-Per-action permission requests may be annoying
-and sometimes will require second capture attempt
-due to restriction of context when permission request
-may be shown.
+The add-on may gather data for a group of selected (highlighted)
+tabs in Firefox or from subframes loaded from other site
+than top level page in the tab. Due to some limitations
+of WebExtensions API, per-site permission requests on demand
+may require several steps of interaction with
+user to complete a capture. It may be annoying after all.
+This permission may be perceived as "too much". In future I may
+consider making it optional one.
 
-By default extension has access only to the current tab
-and in some cases could not inspect subframes.
+It is a bug, if this extension attempts to inspect content
+of some tab without explicit user action.
 
 *** Exchange messages with other programs (=nativeMessaging=)
 
@@ -127,7 +128,8 @@ either trust this external tool or should develop it yourself.
 
 This permission is relevant for experienced Emacs and Org Mode users.
 
-This permission can not be requested on demand in Firefox-78.10 ESR,
+This permission can not be requested on demand in Firefox-78.10 ESR
+available in Debian stable,
 see [[https://bugzilla.mozilla.org/1630415]]
 "1630415 - make nativeMessaging an optional permission".
 
@@ -139,7 +141,9 @@ extensions can not run arbitrary binaries with no cooperation from users.
 
 Chrome: "Read your browsing history".
 
-Necessary to reliably restore tree of nested frames.
+It is necessary to reliably restore tree of nested frames.
+Consider the case when some element is focused in a subframe
+and capture is invoked using keyboard shortcut.
 Maybe I will add a less reliable fallback in future
 to make this permission optional.
 
@@ -197,7 +201,7 @@ or may configure a shortcut on the add-ons page.[fn:addons]
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
-so it can be just pasted to a text editor.
+so you just can paste ot to a text editor.
 Emacs Org mode has a convenient command [[help:org-paste-subtree][=C-c C-x C-y=, ~org-paste-subtree~]].[fn:pastesubtree]
 A hint: to navigate to the parent heading before pasting
 you can use [[help:org-refile][=C-u C-c C-w= ~org-refile~]]
@@ -205,7 +209,7 @@ or [[help:org-goto][=C-c C-j= ~org-goto~]] (maybe with prefix argument as well).
 
 # Sorry, github renderer can not transform info: to hyperlinks
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
-or [[info:org#Capture][info "(org) Capture"]] is the next step.
+or [[info:org#Capture][info "(org) Capture"]] is the next step for Org mode users.
 You could start with a very simple template having "plain" type
 #+begin_example emacs-lisp
   (custom-set-variables
@@ -217,7 +221,7 @@ You could start with a very simple template having "plain" type
        :empty-lines 1)
   ))))
 #+end_example
-You can add such entry using =M-x customize-variable RET org-capture-templates=.
+You can add such entry using [[elisp:(progn (require 'org-capture) (customize-variable 'org-capture-templates))][M-x customize-variable RET org-capture-templates]].
 On the current development stage I do not recommend
 =:immediate-finish= option, it is better to inspect capture result.
 It is impossible to refile plain entry directly from a capture buffer,
@@ -264,8 +268,8 @@ Emacs init file should have something like the following:
        :empty-lines 1)
   ))))
 #+end_example
-Certainly Emacs server should be running: =M-x server-start=
-and org-protocol should be loaded: =M-: (require 'org-protocol)=.
+Certainly Emacs server should be running: [[elisp:(server-start)][M-x server-start]]
+and org-protocol should be loaded: [[elisp:(require 'org-protocol)][M-: (require 'org-protocol)]].
 Keep capture type in Emacs consistent with
 "Template type configured in org-capture-templates"
 add-on setting. Another option you may find useful
@@ -281,14 +285,16 @@ you could find description of workflow in blogs, e.g.
 [[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
 by Sacha Chua.
 
-[fn:addons] Firefox: "Add-ons and Themes" from hamburger menu
+[fn:addons] Context menu (right click) on the add-on's browser action
+button or through generic browser menu,
+e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
 
 [fn:pastesubtree] There is some bug and subtree is not recognized
 first time in X clipboard. Workaround is yank =C-y=, undo =C-y= =C-/=
 (required once per Emacs session), and =C-c C-x C-y= to paste subtree.
 
-[fn:snap] There is a problem with browsers distriuted
+[fn:snap] There is a problem with browsers distributed
 as snap or flatpack. Such applications works with
 additional level of isolation in respect to system files,
 so external application can not be invoked even through
@@ -352,8 +358,7 @@ It should create =burl_wrapper= shell script and =burl.json= file
 [[file:~/.mozilla/native-messaging-hosts/]] (its basename is the identifier
 of the native application).
 
-Open LinkRemark settings page (from context menu for the browser action button
-or from preview and debug info page). Set "Name of native messaging backend
+Open LinkRemark settings page[fn:addons]. Set "Name of native messaging backend
 application" in the "Browser native messaging communication channel" section
 to the id of configured native app (e.g. =burl=
 or =io.github.maxnikulin.burl=). Grant permission for
