@@ -55,29 +55,6 @@ Unsure if it is reliable enough, personally I find it acceptable.
   - referrer :: [[https://www.google.com/]]
 #+end_example
 
-* Alternatives
-
-There are some projects that allows to capture URL + page title +
-selection text or URL + text link. It is not enough for me.
-I would like to save to my notes who and when wrote the text
-at least for sites that have such fields in page metadata.
-
-To capture a minimal bookmark one of the following projects
-could be more convenient:
-- [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension]]:
-  A Chrome and firefox extension facilitating org-capture in emacs.
-- [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html]]:
-  Capture HTML from the browser selection into Emacs as org-mode content.
-- [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp]]:
-  A reliable org-capture browser extension for Chrome/Firefox.
-
-If you would like to have more details on web pages in you notes then consider
-[[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref]]:
-Extract metadata/bibtex info from websites for org-capture.
-It is suitable if web browser of your choice is Emacs or Qute Browser.
-Unlike this extension, it supports custom handlers for particular
-websites, and has recipes for scientific papers and BibTeX format.
-
 * Install
 
 This extension is in its alpha stage, so it has not published to
@@ -93,100 +70,6 @@ in the toolbar.
 For everyday use you might wish to configure native application
 helper or desktop-wide org-protocol handler instead of
 clipboard to pass captures to your notes.
-
-* Permissions
-
-You could find more information what every requested
-permission means on the following page frim the Mozilla Support site:
-[[https://support.mozilla.org/kb/permission-request-messages-explained]]
-"Permission request messages explained".
-
-** Requested on Install
-
-*** Access your data for all websites (=<all_urls>=)
-
-The add-on may gather data for a group of selected (highlighted)
-tabs in Firefox or from subframes loaded from other site
-than top level page in the tab. Due to some limitations
-of WebExtensions API, per-site permission requests on demand
-may require several steps of interaction with
-user to complete a capture. It may be annoying after all.
-This permission may be perceived as "too much". In future I may
-consider making it optional one.
-
-It is a bug, if this extension attempts to inspect content
-of some tab without explicit user action.
-
-*** Exchange messages with other programs (=nativeMessaging=)
-
-Chrome: "Communicate with cooperating native applications", optional.
-
-Allows the extension to communicate with Emacs without global org-protocol
-handler, so allows to have more secure setup. On the other hand
-you need to install and configure an extra application, so you should
-either trust this external tool or should develop it yourself.
-
-This permission is relevant for experienced Emacs and Org Mode users.
-
-This permission can not be requested on demand in Firefox-78.10 ESR
-available in Debian stable,
-see [[https://bugzilla.mozilla.org/1630415]]
-"1630415 - make nativeMessaging an optional permission".
-
-Extension can not launch any application till it is explicitly added
-to a configuration file (manifest) by the user, so do not worry,
-extensions can not run arbitrary binaries with no cooperation from users.
-
-*** Access browser activity during navigation (=webNavigation=)
-
-Chrome: "Read your browsing history".
-
-It is necessary to reliably restore tree of nested frames.
-Consider the case when some element is focused in a subframe
-and capture is invoked using keyboard shortcut.
-Maybe I will add a less reliable fallback in future
-to make this permission optional.
-
-** Optional permissions
-
-Open browser extensions preferences[fn:addons] to manage this set of permissions.
-Switches are available on add-on custom settings page and in browser settings UI.
-They may be requested on demand to successfully complete requested action
-taking into account current settings.
-
-*** Access browser tabs (=tabs=)
-
-Additional feature is available in Firefox only.
-When granted, it is possible to capture a group of tabs.
-Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
-and open context menu (right click) for a header of selected tab.
-
-Requested on demand when not granted.
-
-*** Input data to the clipboard (=clipboardWrite=)
-
-Chrome: "Modify data you copy and paste", but it is currently
-requested for Firefox only.
-
-In Firefox, without such permission, an extension can not copy data
-to clipboard except if it is immediate action in response to e.g.
-click on a button. Clicking on extension button is not the case
-since a lot of work should be done before data become ready for copy,
-so it is not considered as "in response to user action".
-Enable this permission if you prefer to avoid preview page
-as an intermediate state.
-
-Browsers consider overwriting clipboard content as a potentially
-dangerous action, so they perform, some measures to protect users.
-Security model in Chrome is different from Firefox, so this permission
-does not do anything really useful in Chrome. However unlike Firefox
-it allows to call ~document.execCommand("copy")~ from content scripts,
-so the extension can do its job. For privileged tabs (e.g. PDF files)
-preview page is unavoidable in Chrome and can appear for a second.
-Sorry for this inconvenience.
-
-This permission may be revoked as soon as you configure native application
-or desktop-wide org-protocol handler.
 
 * Usage
   :PROPERTIES:
@@ -372,6 +255,123 @@ of this feature.
 You can set "Method how to pass capture to desktop environment" to
 "native-messaging", however it is not required. You can continue
 with clipboard or org-protocol desktop-wide handler.
+
+* Alternatives
+
+There are some projects that allows to capture URL + page title +
+selection text or URL + text link. It is not enough for me.
+I would like to save to my notes who and when wrote the text
+at least for sites that have such fields in page metadata.
+
+To capture a minimal bookmark one of the following projects
+could be more convenient:
+- [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension]]:
+  A Chrome and firefox extension facilitating org-capture in emacs.
+- [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html]]:
+  Capture HTML from the browser selection into Emacs as org-mode content.
+- [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp]]:
+  A reliable org-capture browser extension for Chrome/Firefox.
+
+If you would like to have more details on web pages in you notes then consider
+[[https://github.com/yantar92/org-capture-ref][GitHub - yantar92/org-capture-ref]]:
+Extract metadata/bibtex info from websites for org-capture.
+It is suitable if web browser of your choice is Emacs or Qute Browser.
+Unlike this extension, it supports custom handlers for particular
+websites, and has recipes for scientific papers and BibTeX format.
+
+* Permissions
+
+You could find more information what every requested
+permission means on the following page frim the Mozilla Support site:
+[[https://support.mozilla.org/kb/permission-request-messages-explained]]
+"Permission request messages explained".
+
+** Requested on Install
+
+*** Access your data for all websites (=<all_urls>=)
+
+The add-on may gather data for a group of selected (highlighted)
+tabs in Firefox or from subframes loaded from other site
+than top level page in the tab. Due to some limitations
+of WebExtensions API, per-site permission requests on demand
+may require several steps of interaction with
+user to complete a capture. It may be annoying after all.
+This permission may be perceived as "too much". In future I may
+consider making it optional one.
+
+It is a bug, if this extension attempts to inspect content
+of some tab without explicit user action.
+
+*** Exchange messages with other programs (=nativeMessaging=)
+
+Chrome: "Communicate with cooperating native applications", optional.
+
+Allows the extension to communicate with Emacs without global org-protocol
+handler, so allows to have more secure setup. On the other hand
+you need to install and configure an extra application, so you should
+either trust this external tool or should develop it yourself.
+
+This permission is relevant for experienced Emacs and Org Mode users.
+
+This permission can not be requested on demand in Firefox-78.10 ESR
+available in Debian stable,
+see [[https://bugzilla.mozilla.org/1630415]]
+"1630415 - make nativeMessaging an optional permission".
+
+Extension can not launch any application till it is explicitly added
+to a configuration file (manifest) by the user, so do not worry,
+extensions can not run arbitrary binaries with no cooperation from users.
+
+*** Access browser activity during navigation (=webNavigation=)
+
+Chrome: "Read your browsing history".
+
+It is necessary to reliably restore tree of nested frames.
+Consider the case when some element is focused in a subframe
+and capture is invoked using keyboard shortcut.
+Maybe I will add a less reliable fallback in future
+to make this permission optional.
+
+** Optional permissions
+
+Open browser extensions preferences[fn:addons] to manage this set of permissions.
+Switches are available on add-on custom settings page and in browser settings UI.
+They may be requested on demand to successfully complete requested action
+taking into account current settings.
+
+*** Access browser tabs (=tabs=)
+
+Additional feature is available in Firefox only.
+When granted, it is possible to capture a group of tabs.
+Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
+and open context menu (right click) for a header of selected tab.
+
+Requested on demand when not granted.
+
+*** Input data to the clipboard (=clipboardWrite=)
+
+Chrome: "Modify data you copy and paste", but it is currently
+requested for Firefox only.
+
+In Firefox, without such permission, an extension can not copy data
+to clipboard except if it is immediate action in response to e.g.
+click on a button. Clicking on extension button is not the case
+since a lot of work should be done before data become ready for copy,
+so it is not considered as "in response to user action".
+Enable this permission if you prefer to avoid preview page
+as an intermediate state.
+
+Browsers consider overwriting clipboard content as a potentially
+dangerous action, so they perform, some measures to protect users.
+Security model in Chrome is different from Firefox, so this permission
+does not do anything really useful in Chrome. However unlike Firefox
+it allows to call ~document.execCommand("copy")~ from content scripts,
+so the extension can do its job. For privileged tabs (e.g. PDF files)
+preview page is unavoidable in Chrome and can appear for a second.
+Sorry for this inconvenience.
+
+This permission may be revoked as soon as you configure native application
+or desktop-wide org-protocol handler.
 
 * Troubleshooting
 
