@@ -29,9 +29,10 @@
 		 :html-head "
 <link rel=\"fluid-icon\" sizes=\"128x128\" href=\"/icons/lr-128.png\">
 <link rel=\"icon\" sizes=\"16x16\" href=\"/icons/lr-16.png\">
+<link rel=\"icon\" sizes=\"24x24\" href=\"/icons/lr-24.png\">
 <link rel=\"icon\" sizes=\"32x32\" href=\"/icons/lr-32.png\">
 <link rel=\"icon\" sizes=\"48x48\" href=\"/icons/lr-48.png\">
-<link rel=\"icon\" sizes=\"96x96\" href=\"/icons/lr-96.png\">
+<link rel=\"icon\" sizes=\"64x64\" href=\"/icons/lr-64.png\">
 <script src=\"/common/bapi.js\"></script>
 <script src=\"/pages/lrp_navigation.js\"></script>
 <script src=\"/pages/lrp_help.js\"></script>

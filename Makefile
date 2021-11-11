@@ -22,9 +22,9 @@ CONTENT_SRC += content_scripts/lrc_image.js content_scripts/lrc_link.js
 CONTENT_SRC += content_scripts/lrc_meta.js content_scripts/lrc_microdata.js 
 CONTENT_SRC += content_scripts/lrc_relations.js
 
-ICONS_SRC += icons/lr-light-16.png icons/lr-32.png 
-ICONS_SRC += icons/lr-light-32.png icons/lr-96.png 
-ICONS_SRC += icons/lr-128.png icons/lr-16.png icons/lr-48.png 
+ICONS_SRC += icons/lr-16.png icons/lr-32.png
+ICONS_SRC += icons/lr-24.png icons/lr-48.png
+ICONS_SRC += icons/lr-64.png icons/lr-128.png
 
 EMACS = LC_ALL=en_US.UTF-8 TZ=Z LANGUAGE=en emacs
 EMACS_FLAGS = --batch --no-init-file

@@ -9,27 +9,19 @@
 	"default_locale": "en",
 	"icons": {
 		"16": "icons/lr-16.png",
+		"24": "icons/lr-24.png",
+		"32": "icons/lr-32.png",
 		"48": "icons/lr-48.png",
-		"96": "icons/lr-96.png"
+		"64": "icons/lr-64.png",
+		"128": "icons/lr-128.png"
 	},
 	"browser_action": {
 		"default_title": "__MSG_cmdPageRemark__",
 		"browser_style": true,
 		"default_icon": {
-			"16": "icons/lr-16.png"
-		},
-		"theme_icons": [
-			{
-				"dark": "icons/lr-16.png",
-				"light": "icons/lr-light-16.png",
-				"size": 16
-			},
-			{
-				"dark": "icons/lr-32.png",
-				"light": "icons/lr-light-32.png",
-				"size": 32
-			}
-		]
+			"16": "icons/lr-16.png",
+			"32": "icons/lr-32.png"
+		}
 	},
 	"commands": {
 		"_execute_browser_action": {
