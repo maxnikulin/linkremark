@@ -61,7 +61,7 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 		const projection = execInfo.result;
 		lr_test.assertEq(
 			projection.title,
-			"Vunder SpecialProduct 5X useful thing — $1250-$1495(8) — 87/100(0; 24)")
+			"Vunder SpecialProduct 5X useful thing — $1250-$1495(8) — 87/100(0; 24)");
 		lr_test.assertEq(projection.body.replace(/^(:DATE_ADDED:) \[.*\]$/m, "$1"),
 `* Vunder SpecialProduct 5X useful thing — $1250-$1495(8) — 87/100(0; 24)
 :PROPERTIES:
@@ -152,7 +152,7 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 		const projection = execInfo.result;
 		lr_test.assertEq(
 			projection.title,
-			"Backpack BrightPack v5 dark white 99 l — CUR 3,450.00 — OutOfStock — 5.0(1)")
+			"Backpack BrightPack v5 dark white 99 l — CUR 3,450.00 — OutOfStock — 5.0(1)");
 		lr_test.assertEq(projection.body.replace(/^(:DATE_ADDED:) \[.*\]$/m, "$1"),
 `* Backpack BrightPack v5 dark white 99 l — CUR 3,450.00 — OutOfStock — 5.0(1)
 :PROPERTIES:
@@ -210,7 +210,7 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 		const projection = execInfo.result;
 		lr_test.assertEq(
 			projection.title,
-			"Vunder SpecialProduct 5X title test — 87/100(0; 24)")
+			"Vunder SpecialProduct 5X title test — 87/100(0; 24)");
 		lr_test.assertEq(projection.body.replace(/^(:DATE_ADDED:) \[.*\]$/m, "$1"),
 `* Vunder SpecialProduct 5X title test — 87/100(0; 24)
 :PROPERTIES:
@@ -229,6 +229,55 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 	Object.assign(lr_test_schema_org_product, {
 		caseWithAggregateRating,
 		test_withAggregateRatingShortDescription,
+	});
+
+	const caseWithZeroPriceAndNoBrand = {
+		"@context": "http://schema.org",
+		"@type": "Product",
+		"description": "Some obsolete product.",
+		"image": "https://sold.out/pic/2222322.jpg",
+		"name": "Just Hole",
+		"offers": {
+			"@type": "Offer",
+			"url": "https://trash.buy/product/just-hole-234/",
+			"availability": "http://schema.org/OutOfStock",
+			"price": "0",
+			"priceCurrency": "CUR"
+		},
+	};
+	function test_withZeroPriceAndNoBrand() {
+		const meta = new LrMeta();
+		meta.addDescriptor("schema_org", {
+			value: caseWithZeroPriceAndNoBrand, key: "microdata"
+		});
+		lr_meta.mergeSchemaOrg({}, meta);
+		const execInfo = lr_test.withExecutor(
+			lr_format_org.format,
+			{ _type: "TabFrameChain", elements: [meta]}, null);
+		const projection = execInfo.result;
+		lr_test.assertEq(
+			projection.title,
+			"Just Hole — OutOfStock");
+		lr_test.assertEq(projection.body.replace(/^(:DATE_ADDED:) \[.*\]$/m, "$1"),
+`* Just Hole — OutOfStock
+:PROPERTIES:
+:DATE_ADDED:
+:END:
+
+- URL :: [[https://trash.buy/product/just-hole-234/]]
+- availability :: OutOfStock
+- title :: Just Hole
+- description :: Some obsolete product.
+- image :: [[https://sold.out/pic/2222322.jpg]]`
+		);
+		lr_test.assertEq(projection.url, "https://trash.buy/product/just-hole-234/", "result.url");
+		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");
+		lr_test.assertEq(execInfo.error, null, "execInfo.error");
+	}
+
+	Object.assign(lr_test_schema_org_product, {
+		caseWithZeroPriceAndNoBrand,
+		test_withZeroPriceAndNoBrand,
 	});
 
 	lr_test.suites.push(lr_test_schema_org_product);

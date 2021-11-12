@@ -27,13 +27,17 @@ var lr_schema_org_product = lr_util.namespace(lr_schema_org_product, function lr
 
 		function formatPrice(json, formatter, formatterNoCurrency) {
 			let price = json.price;
-			if (price) {
-				price = formatter(price);
+			if (price !== null) {
+				// `0` as a number should be skipped here.
+				price = price && price !== "0" ? formatter(price) : undefined;
 			}
 			let range = [];
 			for (const field of ["lowPrice", "highPrice"]) {
 				const value = json[field];
-				if (value) {
+				// `0` as a number almost certainly should be skipped.
+				// An exception might be `lowPrice = 0`, `highPrice = 12.34`
+				// when there is an offer with `price = 9.99` in the list.
+				if (value && value !== "0") {
 					range.push(price ?  formatterNoCurrency(value) : formatter(value));
 				}
 			}
