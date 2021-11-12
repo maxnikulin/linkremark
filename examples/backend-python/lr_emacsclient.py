@@ -117,7 +117,10 @@ Usage: {0} IGNORED_ARGS_PASSED_BY_BROWSER...
 
 def run(*args, error_message="", **kwargs):
     kwargs.setdefault("check", True)
-    kwargs.setdefault("capture_output", True)
+    # new in Python-3.7
+    if "capture_output" not in kwargs:
+        kwargs.setdefault("stdout", subprocess.PIPE)
+        kwargs.setdefault("stderr", subprocess.PIPE)
     exe = EMACSCLIENT
     cmd_args = [exe] + EMACSCLIENT_ARGS + list(args)
     try:
