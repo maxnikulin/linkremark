@@ -28,6 +28,9 @@ class LrNativeConnectionDisconnected {
 
 class LrNativeConnectionActive {
 	constructor(backend, proxy) {
+		if (!("connectNative" in bapi.runtime)) {
+			throw new Error("No permission for native apps");
+		}
 		this.port = bapi.runtime.connectNative(backend);
 		this.proxy = proxy;
 		this.promiseMap = new Map();
