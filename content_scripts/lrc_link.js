@@ -130,10 +130,13 @@
 
 	async function getTargetElement(errorCb) {
 		try {
-			const targetElementId = await lrSendMessage("store.getTargetElement", []);
-			const menus = typeof browser !== "undefined" ? browser.menus : chrome.menus;
-			if (targetElementId != null) {
-				return menus.getTargetElement(targetElementId);
+			const bapi = typeof browser !== "undefined" ? browser : chrome;
+			const menus =  bapi && (bapi.menus || bapi.contextMenus);
+			if (menus && menus.getTargetElement) {
+				const targetElementId = await lrSendMessage("store.getTargetElement", []);
+				if (targetElementId != null) {
+					return menus.getTargetElement(targetElementId);
+				}
 			}
 		} catch (ex) {
 			if (errorCb) {
