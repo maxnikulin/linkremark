@@ -18,7 +18,11 @@
 "use strict";
 
 class LrRpcStore {
-	static NO_CAPTURE = "NO_CAPTURE";
+	// addons,mozilla.org validator error:
+	//     JavaScript syntax error (Parsing as module error:
+	//     Unexpected token = at line: 21 and column: 20)
+	//     (Parsing as script error: Unexpected token = at line: 21 and column: 20)
+	// static NO_CAPTURE = "NO_CAPTURE";
 	constructor() {
 		this.handleCapture = this.getCapture.bind(this);
 		this.handleTargetElement = this.getTargetElement.bind(this);
@@ -69,3 +73,10 @@ class LrRpcStore {
 		return this.targetElement.targetElementId;
 	};
 }
+
+Object.defineProperty(LrRpcStore, "NO_CAPTURE", {
+	value: "NO_CAPTURE",
+	enumerable: true,
+	configurable: true,
+	writable: false,
+});

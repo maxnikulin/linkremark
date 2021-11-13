@@ -80,8 +80,12 @@ var lr_notify = lr_util.namespace(lr_notify, function lr_notify() {
 				console.warn("lr_notify.notify: invalid state %o", state);
 		}
 		// TODO await
-		bapi.browserAction.setBadgeBackgroundColor({ tabId, color });
-		bapi.browserAction.setBadgeText({ tabId, text });
+		if (bapi.browserAction.setBadgeBackgroundColor) {
+			bapi.browserAction.setBadgeBackgroundColor({ tabId, color });
+		}
+		if (bapi.browserAction.setBadgeText) {
+			bapi.browserAction.setBadgeText({ tabId, text });
+		}
 		if (title == null) {
 			title = bapi.i18n.getMessage("cmdPageRemark");
 		}

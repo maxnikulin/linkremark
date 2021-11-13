@@ -44,6 +44,9 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 	 * This function is added to mitigate effect of such mistakes.
 	 */
 	function _popupAllowed() {
+		if (!bapi.browserAction.openPopup) {
+			return;
+		}
 		if (lr_actionlock._openPopupCount !== 0) {
 			console.warn("lr_actionlock._popupAllowed: opening popups: %o", lr_actionlock._openPopupCount);
 		}

@@ -46,9 +46,14 @@ var lr_util;
 var gLrAsyncScript;
 
 !function lrNotifyLoading() {
+	// Make load errors visible to users.
 	// `bapi` has not initialized yet, so use `chrome` as more portable
-	chrome.browserAction.setBadgeText({ text: "…"});
-	chrome.browserAction.setBadgeBackgroundColor({ color: [159, 0, 0, 159] });
+	if (chrome.browserAction.setBadgeText) {
+		chrome.browserAction.setBadgeText({ text: "…"});
+	}
+	if (chrome.browserAction.setBadgeBackgroundColor) {
+		chrome.browserAction.setBadgeBackgroundColor({ color: [159, 0, 0, 159] });
+	}
 	var name = chrome.runtime.getManifest().short_name || "";
 	chrome.browserAction.setTitle({ title: name + " Loading..." });
 }();

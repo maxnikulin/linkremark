@@ -29,11 +29,15 @@ var lrAddListeners = lr_util.notFatal(function() {
 });
 
 var lrResetLoadingState = lr_util.notFatal(function() {
+	if (bapi.browserAction.setBadgeText) {
+		bapi.browserAction.setBadgeText({
+			text: gLrLoadErrorCount === 0 ? "": "\\!/"
+		});
+	}
 	if (gLrLoadErrorCount === 0) {
-		bapi.browserAction.setBadgeText({ text: "" });
 		bapi.browserAction.setTitle({ title: bapi.i18n.getMessage("cmdPageRemark") });
 	} else {
-		bapi.browserAction.setBadgeText({ text: "\\!/" });
+		const name = chrome.runtime.getManifest().short_name || "";
 		bapi.browserAction.setTitle({ title: name + " Error" }); // TODO i18n
 	}
 });
