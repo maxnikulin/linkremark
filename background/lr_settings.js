@@ -340,6 +340,7 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		return true;
 	};
 
+	// TODO Separate into model part and async part actuall updating the storage.
 	this.update = async function(params) {
 		const [obj, replace] = params;
 		let needCommit = false;
@@ -368,6 +369,7 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 					)) {
 						update[name] = updateFields;
 						needCommit = true;
+						break;
 					}
 					continue;
 				}
@@ -379,6 +381,21 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 				if (lr_util.has(this.current, name)) {
 					deleted.push(name);
 					needCommit = true;
+				}
+			}
+		}
+		if (!needCommit && replace) {
+			for (const descriptor of this.settingsMap.values()) {
+				if (!this._isSetting(descriptor)) {
+					continue;
+				}
+				const { name } = descriptor;
+				if (name in obj) {
+					continue;
+				}
+				if (name in this.current) {
+					needCommit = true;
+					break;
 				}
 			}
 		}
@@ -401,6 +418,7 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 			return update;
 		}
 	};
+
 	this.handleUpdate = this.update.bind(this);
 
 	return this;
