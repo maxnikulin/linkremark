@@ -281,16 +281,18 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			version: "0.1",
 			title: "Name of native messaging backend application",
 			description: [
-				"Native messaging application could be used to invoke other programs,",
-				"e.g. emacs-client, to avoid setting up of org-protocol",
-				"handler for security or other reasons.",
-				"It could be used to experiment with custom formatting of captured data",
-				"\n",
-				"Only example application is included to the sources of the extension",
+				"Native messaging application is the recommended way to invoke emacs-client.",
+				"It is a bit safer than desktop-wide org-protocol: scheme handler.",
+				"Visit project page https://github.com/maxnikulin/linkremark/",
+				"to get a simple lr_emacsclient python backend",
+				"or to install more advanced bURL app.",
 				"\n",
 				"See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging",
 				"or https://developer.chrome.com/docs/apps/nativeMessaging",
-				"for details how to configure native messaging application"
+				"for details how to configure native messaging application.",
+				"\n",
+				"You can create your own trusted application yourself,",
+				"in a minimal variant it does not need much of code.",
 			],
 		});
 
