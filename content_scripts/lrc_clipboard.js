@@ -147,43 +147,42 @@
 		}
 
 		async function lrClipboardCopyFromContentScript(content) {
-			if (content != null) {
-				const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
-				// const permission = await navigator.permissions.query({name: 'clipboard-write'});
-				// console.log("lrClipboardWrite permission", permission);
-				try {
-					if (navigator.clipboard && navigator.clipboard.writeText) {
-						await navigator.clipboard.writeText(text);
-						return true;
-					} else {
-						warnings.push(lrToObject(new Error("navigator.clipboard API is disabled")));
-					}
-				} catch (ex) {
-					// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
-					// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
-					// Fixed in Firefox-85
-					if (ex === undefined) {
-						ex = new Error("navigator.clipboard.writeText not allowed");
-					}
-					warnings.push(lrToObject(ex));
-				}
-				return lrCopyUsingEvent(text);
+			if (content == null || content === "") {
+				return false;
 			}
+			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
+			// const permission = await navigator.permissions.query({name: 'clipboard-write'});
+			// console.log("lrClipboardWrite permission", permission);
+			try {
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(text);
+					return true;
+				} else {
+					warnings.push(lrToObject(new Error("navigator.clipboard API is disabled")));
+				}
+			} catch (ex) {
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
+				// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
+				// Fixed in Firefox-85
+				if (ex === undefined) {
+					ex = new Error("navigator.clipboard.writeText not allowed");
+				}
+				warnings.push(lrToObject(ex));
+			}
+			return lrCopyUsingEvent(text);
 		}
 
 		async function lrPostResultFromContentScript() {
 			const { transport, formats } = await lrSendMessage("store.getCapture");
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
-				await lrClipboardCopyFromContentScript(content.body);
+				return await lrClipboardCopyFromContentScript(content.body);
 			} else if (transport.method === "org-protocol") {
 				await lrClipboardCopyFromContentScript(content.body);
 				await lrLaunchProtocolHandlerFromContentScript(content.url);
-			} else {
-				throw new Error(`Unsupported method ${method}`);
+				return true;
 			}
-
-			return true;
+			throw new Error(`Unsupported method ${method}`);
 		}
 
 		if (!navigator.clipboard || !navigator.clipboard.writeText) {
