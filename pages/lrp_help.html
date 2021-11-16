@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2021-11-16 Tue 05:55 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LinkRemark Help</title>
+<meta name="generator" content="Org Mode" />
+
+<link rel="fluid-icon" sizes="128x128" href="/icons/lr-128.png">
+<link rel="icon" sizes="16x16" href="/icons/lr-16.png">
+<link rel="icon" sizes="24x24" href="/icons/lr-24.png">
+<link rel="icon" sizes="32x32" href="/icons/lr-32.png">
+<link rel="icon" sizes="48x48" href="/icons/lr-48.png">
+<link rel="icon" sizes="64x64" href="/icons/lr-64.png">
+<script src="/common/bapi.js"></script>
+<script src="/pages/lrp_navigation.js"></script>
+<script src="/pages/lrp_help.js"></script>
+<style>
+body {
+	background-color: white;
+	max-width: 70ex;
+	margin-inline: auto;
+	padding-inline: 1ex;
+	hyphens: auto;
+	text-align: justify;
+}
+html {
+	background-color: lightblue;
+}
+div.footdef > sup {
+	float: left;
+	display: block;
+	margin-inline-end: 1ex;
+}
+img.logo {
+	float: left;
+	margin-inline: 1ex;
+}
+pre.example {
+	white-space: pre-wrap;
+}
+div#preamble {
+	margin-inline-start: calc(max(-50vw + 50%,-128px - 2ex));
+}
+</style>
+</head>
+<body>
+<div id="preamble" class="status">
+<img src="/icons/lr-128.png" alt="LinkRemark logo" class="logo">
+<div><p>Find more information on the project page
+<a href="https://github.com/maxnikulin/linkremark">https://github.com/maxnikulin/linkremark</a>,
+e.g. how to setup <a href="https://github.com/maxnikulin/burl">bURL</a>
+native application helper for checking your notes for known URLs.</p>
+<p>Open <a href="lrp_settings.html" id="settings" target="_blank">settings</a> page.</p>
+</div>
+</div>
+<div id="content" class="content">
+<header>
+<h1 class="title">LinkRemark Help</h1>
+</header><p>
+Optionally select some text and choose an option from context menu (right click,
+<code>[Menu]</code> or <code>[Shift+F10]</code> keys).
+Unless you are going to capture a particular link,
+you can click on the extension icon in browser toolbar ("browser action")
+or may configure a shortcut on the add-ons page.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
+</p>
+
+<p>
+By default the extension just shows preview for the note
+and offers to copy it to clipboard,
+so you just can paste ot to a text editor.
+Emacs Org mode has a convenient command <code>C-c C-x C-y</code>, <code>org-paste-subtree</code>.<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup>
+A hint: to navigate to the parent heading before pasting
+you can use <code>C-u C-c C-w</code> <code>org-refile</code>
+or <code>C-c C-j</code> <code>org-goto</code> (maybe with prefix argument as well).
+</p>
+
+<p>
+<a href="https://orgmode.org/manual/Capture.html#Capture">Capture templates (web)</a>
+or <code>M-: (info "(org) Capture")</code> is the next step for Org mode users.
+You could start with a very simple template having "plain" type
+</p>
+<pre class="example" id="orge453e34">
+(custom-set-variables
+ '(org-capture-templates
+   (quote (
+    ("c" "Clipboard with tree (plain)"
+     plain (file "~/org/capture.org")
+     "%(org-get-x-clipboard 'CLIPBOARD)"
+     :empty-lines 1)
+))))
+</pre>
+<p>
+You can add such entry using <code>M-x customize-variable RET org-capture-templates</code>.
+On the current development stage I do not recommend
+<code>:immediate-finish</code> option, it is better to inspect capture result.
+It is impossible to refile plain entry directly from a capture buffer,
+so likely you wish to change "plain" (Plain text) to "entry" (Org entry) type
+in Emacs configuration and to change template to
+<code>"* %(org-get-x-clipboard 'CLIPBOARD)"</code>.
+Please, update "Template type configured in org-capture-templates"
+in add-on settings as well (may be opened from preview page,
+or from browser add-ons page<sup><a id="fnr.1.100" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>.
+</p>
+
+<p>
+There is an option to avoid preview page for successful captures:
+disable "Open preview tab with capture result for clipboard".
+</p>
+
+<p>
+Usually, to minimize keyboard and mouse interaction,
+it is recommended to setup desktop-wide <a href="https://orgmode.org/worg/org-contrib/org-protocol.html">org-protocol:</a> handler
+(currently readme for
+<a href="https://github.com/sprig/org-capture-extension/">Org Capture Extension</a>
+may be more useful than Worg page).
+I am a bit afraid that some web page may try to inject
+some malicious content into my notes when I click on an innocent link,
+so I suggest to consider exporting
+through a native messaging application as a safer option.<sup><a id="fnr.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>
+LinkRemark repository contains a simple variant in
+<a rel="nofollow noreferrer" href="https://github.com/maxnikulin/linkremark/blob/master/examples/backend-python/lr_emacsclient.py">examples/backend-python/lr_emacsclient.py</a>
+Run it with <code>-h</code> option for a brief guide. To enable it,
+you should do something like (Linux, Firefox)
+</p>
+<pre class="example" id="org49c4dad">
+mkdir ~/.mozilla/native-messaging-hosts
+python3 examples/backend-python/lr_emacsclient.py --manifest-firefox \
+   &gt;~/.mozilla/native-messaging-hosts/lr_emacsclient.json
+</pre>
+<p>
+and should specify "<code>native-messaging</code>"
+for "Communication Channel" / "Method how to pass capture to desktop environment"
+and "<code>lr_emacsclient</code>" for "Browser native messaging communication channel" /
+"Name of native messaging backend application" add-on settings.
+Emacs init file should have something like the following:
+</p>
+<pre class="example" id="orgdd76668">
+(custom-set-variables
+ '(org-capture-templates
+   (quote (
+    ("r" "LinkRemark (entry)"
+     entry (file "~/org/capture.org")
+     "* %:initial"
+     :empty-lines 1)
+))))
+</pre>
+<p>
+Certainly Emacs server should be running: <code>M-x server-start</code>
+and org-protocol should be loaded: <code>M-: (require 'org-protocol)</code>.
+Keep capture type in Emacs consistent with
+"Template type configured in org-capture-templates"
+add-on setting. Another option you may find useful
+is "Template name". They are in the "Org Protocol" section,
+but applied for native app export as well.
+</p>
+
+<p>
+If you wish to experiment with metadata formatting, have a look at
+<a rel="nofollow noreferrer" href="https://github.com/maxnikulin/linkremark/blob/master/examples/backend-python/lr_example.py">examples/backend-python/lr_example.py</a> for inspiration.
+See the next section for a more powerful native messaging helper.
+</p>
+
+<p>
+If you are not familiar with Org Mode capture feature,
+you could find description of workflow in blogs, e.g.
+<a href="https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/">Learn how to take notes more efficiently in Org Mode</a>
+by Sacha Chua.
+</p>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+
+<div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+"Settings" or "Manage extension" in context menu (right click)
+for the add-on's browser action
+button or through generic browser menu,
+e.g. Firefox: "Add-ons and Themes" from hamburger menu
+or from "Tools" in menu bar, <code>[Ctrl+Shift+A]</code>.
+</p></div></div>
+
+<div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+There is some bug and subtree is not recognized
+first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-y</code> <code>C-/</code>
+(required once per Emacs session), and <code>C-c C-x C-y</code> to paste subtree.
+</p></div></div>
+
+<div class="footdef"><sup><a id="fn.3" class="footnum" href="#fnr.3" role="doc-backlink">3</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+There is a problem with browsers distributed
+as snap or flatpack. Such applications works with
+additional level of isolation in respect to system files,
+so external application can not be invoked even through
+native messaging API. Chromium in Ubuntu is shipped as
+snap package only since Ubuntu-20.04 LTS focal, for Firefox snap is made
+default option in Ubuntu-21.10 impish, but Firefox is still
+can be installed as a deb package using apt.
+Related Firefox bugs:
+</p>
+<ul class="org-ul">
+<li><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1661935">Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org</a>,</li>
+<li><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1621763">Bug 1621763: (flatpak) native messaging support missing</a>.</li>
+</ul></div></div>
+
+
+</div>
+</div></div>
+<div id="postamble" class="status">
+<p class="date">Created: 2021-11-16 Tue 05:55</p>
+</div>
+</body>
+</html>
