@@ -226,7 +226,16 @@ async function lrPreviewGetCapture(dispatch, getState) {
 			const state = getState();
 			const current = state && state.capture && state.capture.current;
 			let format;
-			for (const f of ["org", "object"]) {
+			const formatVariants = ["org", "object"];
+			// TODO Fallback to org may be reasonable mostly in the case of export errors
+			// but not others such as privileged frames or known URL.
+			const projectionId = capture && capture.transport && capture.transport.captureId;
+			const projection = projectionId == null ? null : state && state.capture &&
+				state.capture.formats && state.capture.formats[projectionId];
+			if (projection && projection.format) {
+				formatVariants.unshift(projection.format);
+			}
+			for (const f of formatVariants) {
 				if (current && current[f]) {
 					format = f;
 					break;
@@ -268,7 +277,10 @@ async function lrPreviewGetCapture(dispatch, getState) {
 	const method = capture && capture.transport && capture.transport.method;
 	try {
 		if (method) {
-			if (mentions || method != "native-messaging") {
+			/* TODO At least privileged tab or frame warning should not cause
+			 * fallback to another export method. Maybe only export error
+			 * should prevent switch to configured export method. */
+			if (true /* mentions || method != "native-messaging" */) {
 				dispatch(gLrPreviewActions.exportMethodSelected(method));
 			}
 			dispatch(gLrPreviewActions.focusTransportMethod(method));
