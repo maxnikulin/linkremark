@@ -176,7 +176,11 @@
 			const { transport, formats } = await lrSendMessage("store.getCapture");
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
-				return await lrClipboardCopyFromContentScript(content.body);
+				const text = content.format === "org-protocol" ? content.url : content.body;
+				if (text == null || text === "") {
+					throw new Error("Internal error: nothing to copy");
+				}
+				return await lrClipboardCopyFromContentScript(text);
 			} else if (transport.method === "org-protocol") {
 				await lrClipboardCopyFromContentScript(content.body);
 				await lrLaunchProtocolHandlerFromContentScript(content.url);

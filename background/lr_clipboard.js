@@ -116,9 +116,10 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
 			return;
 		}
-		const { captureId } = capture && capture.transport;
+		const { captureId, method } = capture && capture.transport;
 		let content = captureId && capture.formats && capture.formats[captureId];
-		content = content.body;
+		content = method === "org-protocol" || content.format !== "org-protocol" ?
+			content.body : content.url;
 		if (content == null) {
 			console.warn("_lrClipboardWriteBackground: unsupported capture: %o", capture);
 			throw new Error("Internal error: no capture content");
