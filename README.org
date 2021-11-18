@@ -179,7 +179,7 @@ e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
 
 [fn:pastesubtree] There is some bug and subtree is not recognized
-first time in X clipboard. Workaround is yank =C-y=, undo =C-y= =C-/=
+first time in X clipboard. Workaround is yank =C-y=, undo =C-/=
 (required once per Emacs session), and =C-c C-x C-y= to paste subtree.
 
 [fn:snap] There is a problem with browsers distributed
@@ -197,8 +197,8 @@ Related Firefox bugs:
 
 * Checking if an URL is already in your notes
 
-This feature is planned for LinkRemark-0.2 release
-and is not included in 0.1 version. Please, consider current implementation
+This is a new feature in LinkRemark-0.2, it was not included in 0.1 version.
+Please, consider current implementation
 as a proof of concept, there are a lot of things to polish yet.
 It is tested on Linux only.
 
