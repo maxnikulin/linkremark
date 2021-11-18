@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2021-11-16 Tue 05:55 -->
+<!-- 2021-11-18 Thu 11:57 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark Help</title>
@@ -69,11 +69,11 @@ or may configure a shortcut on the add-ons page.<sup><a id="fnr.1" class="footre
 <p>
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
-so you just can paste ot to a text editor.
-Emacs Org mode has a convenient command <code>C-c C-x C-y</code>, <code>org-paste-subtree</code>.<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup>
+so you just can paste it to a text editor.
+Emacs Org mode has a convenient command C-c C-x C-y, org-paste-subtree.<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup>
 A hint: to navigate to the parent heading before pasting
-you can use <code>C-u C-c C-w</code> <code>org-refile</code>
-or <code>C-c C-j</code> <code>org-goto</code> (maybe with prefix argument as well).
+you can use C-u C-c C-w, org-refile
+or C-c C-j, org-goto (maybe with prefix argument as well).
 </p>
 
 <p>
@@ -98,7 +98,12 @@ On the current development stage I do not recommend
 It is impossible to refile plain entry directly from a capture buffer,
 so likely you wish to change "plain" (Plain text) to "entry" (Org entry) type
 in Emacs configuration and to change template to
-<code>"* %(org-get-x-clipboard 'CLIPBOARD)"</code>.
+</p>
+<pre class="example">
+"* %(org-get-x-clipboard 'CLIPBOARD)"
+</pre>
+
+<p>
 Please, update "Template type configured in org-capture-templates"
 in add-on settings as well (may be opened from preview page,
 or from browser add-ons page<sup><a id="fnr.1.100" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>.
@@ -206,7 +211,7 @@ Related Firefox bugs:
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2021-11-16 Tue 05:55</p>
+<p class="date">Created: 2021-11-18 Thu 11:57</p>
 </div>
 </body>
 </html>

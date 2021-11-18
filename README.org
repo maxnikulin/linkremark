@@ -2,6 +2,8 @@
 #+PROPERTY: header-args :eval never-export :exports code :results silent
 #+TITLE: LinkRemark — notes for web pages augmented by metadata
 
+Install [[https://addons.mozilla.org/en-GB/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
+
 * Introduction
 
 LinkRemark is a browser extension that allows to save some context
@@ -24,10 +26,13 @@ by Douglas Engelbart.
 I have not seized experiments with this extension,
 that is why I could not give compatibility promise.
 Unsure if it is reliable enough, personally I find it acceptable.
+Be ready to edit created notes. Almost every site has its own
+peculiarities, so you will have to manually add some info
+and to remove some redundant entries.
 
 * Example of link capture
 
-#+begin_example org
+#+begin_src org
   ,* Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
   :PROPERTIES:
   :DATE_ADDED: [2021-09-28 Tue 12:15]
@@ -53,17 +58,16 @@ Unsure if it is reliable enough, personally I find it acceptable.
   - title :: org-almanac
   - author :: Adam Porter
   - referrer :: [[https://www.google.com/]]
-#+end_example
+#+end_src
 
 * Install
 
-This extension is in its alpha stage, so it has not published to
-browsers' add-on catalogues.
-
-Signed Firefox extension could be found in releases section
-on github: https://github.com/maxnikulin/linkremark/releases
-
-In Chrome create a symlink =manifest.json= to the =manifest-chrome.json= file
+This extension is in its beta stage.
+You can install [[https://addons.mozilla.org/en-GB/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
+It is not available from Chrome store, so, please, clone this repository
+or download an archive from releases section on github:
+https://github.com/maxnikulin/linkremark/releases
+Create a symlink =manifest.json= to the =manifest-chrome.json= file
 and load it as unpacked extension. Pin the extension to have its icon
 in the toolbar.
 
@@ -84,11 +88,11 @@ or may configure a shortcut on the add-ons page.[fn:addons]
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
-so you just can paste ot to a text editor.
-Emacs Org mode has a convenient command [[help:org-paste-subtree][=C-c C-x C-y=, ~org-paste-subtree~]].[fn:pastesubtree]
+so you just can paste it to a text editor.
+Emacs Org mode has a convenient command [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].[fn:pastesubtree]
 A hint: to navigate to the parent heading before pasting
-you can use [[help:org-refile][=C-u C-c C-w= ~org-refile~]]
-or [[help:org-goto][=C-c C-j= ~org-goto~]] (maybe with prefix argument as well).
+you can use [[help:org-refile][C-u C-c C-w, org-refile]]
+or [[help:org-goto][C-c C-j, org-goto]] (maybe with prefix argument as well).
 
 # Sorry, github renderer can not transform info: to hyperlinks
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
@@ -110,7 +114,7 @@ On the current development stage I do not recommend
 It is impossible to refile plain entry directly from a capture buffer,
 so likely you wish to change "plain" (Plain text) to "entry" (Org entry) type
 in Emacs configuration and to change template to
-="* %(org-get-x-clipboard 'CLIPBOARD)"=.
+: "* %(org-get-x-clipboard 'CLIPBOARD)"
 Please, update "Template type configured in org-capture-templates"
 in add-on settings as well (may be opened from preview page,
 or from browser add-ons page[fn:addons].
@@ -203,7 +207,7 @@ It is tested on Linux only.
 [[file:doc/burl-linkremark-preview-demo.png]]
 
 bURL [[https://github.com/maxnikulin/burl]] native messaging app (backend)
-is required. It allows to invoke emacsclient directly without setting up
+is required. It allows to invoke =emacsclient= directly without setting up
 of desktop-wide handler for org-protocol. I do not think that protocol
 of internal communication between LinkRemark and bURL is stabilized already.
 
@@ -217,7 +221,7 @@ describes how to install and to configure the native application
 - [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info "(org) Protocols"]])
   is loaded and a template is configured
   to enable capture feature. Alternatively use clipboard and
-  [[help:org-paste-subtree][=C-c C-x C-y=, ~org-paste-subtree~]].
+  [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
 - Native application is enabled in browser for LinkRemark extension.
   On Linux a JSON file should be created.
 - List of files to search for URLs is provided to bURL.
@@ -267,7 +271,7 @@ at least for sites that have such fields in page metadata.
 To capture a minimal bookmark one of the following projects
 could be more convenient:
 - [[https://github.com/sprig/org-capture-extension/][GitHub - sprig/org-capture-extension]]:
-  A Chrome and firefox extension facilitating org-capture in emacs.
+  A Chrome and Firefox extension facilitating org-capture in Emacs.
 - [[https://github.com/alphapapa/org-protocol-capture-html][GitHub - alphapapa/org-protocol-capture-html]]:
   Capture HTML from the browser selection into Emacs as org-mode content.
 - [[https://github.com/karlicoss/grasp][GitHub - karlicoss/grasp]]:
@@ -283,9 +287,8 @@ websites, and has recipes for scientific papers and BibTeX format.
 * Permissions
 
 You could find more information what every requested
-permission means on the following page frim the Mozilla Support site:
-[[https://support.mozilla.org/kb/permission-request-messages-explained]]
-"Permission request messages explained".
+permission means on the following page from the Mozilla Support site:
+[[https://support.mozilla.org/kb/permission-request-messages-explained][Permission request messages explained]].
 
 ** Requested on Install
 
@@ -395,3 +398,5 @@ just try =journalctl --user --follow=.
 
 LinkRemark is published under [[https://www.gnu.org/licenses/gpl-3.0.html][the GNU GPLv3 license]] or any later
 version. See the [[file:LICENSE.txt]] file in this directory.
+
+# LocalWords: LinkRemark bURL backend JSON
