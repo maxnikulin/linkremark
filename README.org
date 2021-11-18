@@ -2,7 +2,7 @@
 #+PROPERTY: header-args :eval never-export :exports code :results silent
 #+TITLE: LinkRemark — notes for web pages augmented by metadata
 
-Install [[https://addons.mozilla.org/en-GB/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
+Install [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
 
 * Introduction
 
@@ -63,7 +63,7 @@ and to remove some redundant entries.
 * Install
 
 This extension is in its beta stage.
-You can install [[https://addons.mozilla.org/en-GB/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
+You can install [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox extension from addons.mozilla.org]].
 It is not available from Chrome store, so, please, clone this repository
 or download an archive from releases section on github:
 https://github.com/maxnikulin/linkremark/releases
