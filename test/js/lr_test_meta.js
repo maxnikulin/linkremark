@@ -20,13 +20,32 @@
 
 var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
 	var lr_test_meta = this;
-	this.casesValid = [
-		[ "10.0.1/just-doi", "doi:10.0.1/just-doi" ],
-		[ "doi:10.0.2/with-doi-schema", "doi:10.0.2/with-doi-schema" ],
+
+	const cases_matchDOI = [
 		[
-			"hdl:10.0.3/hdl-schema", "doi:10.0.3/hdl-schema",
-			"Handle.net registry extension schema https://www.handle.net/firefox_hdlclient.html"
+			{
+				value: "10.0.1/just-doi",
+				key: "meta.name.doi",
+			},
+			"doi:10.0.1/just-doi", "Raw DOI"
 		],
+		[
+			{
+				value: "https://unknown.com/10.0.10/http-heuristics",
+				keys: [ "meta.property.citation_doi" ],
+			},
+			[
+				"https://unknown.com/10.0.10/http-heuristics",
+				"doi:10.0.10/http-heuristics",
+			],
+		],
+		[ "doi:10.0.2/with-doi-scheme", "doi:10.0.2/with-doi-scheme", "doi: scheme" ],
+		[
+			"hdl:10.0.3/hdl-scheme", "doi:10.0.3/hdl-scheme",
+			"Handle.net registry extension scheme https://www.handle.net/firefox_hdlclient.html"
+		],
+		[ "info:doi/10.0.8/info-doi", "doi:10.0.8/info-doi" ],
+		[ "info:hdl/10.0.9/info-hdl", "doi:10.0.9/info-hdl" ],
 		[
 			"http://dx.doi.org/10.0.4/dx.doi.org/http-resolver",
 			"doi:10.0.4/dx.doi.org/http-resolver",
@@ -36,70 +55,78 @@ var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
 			"doi:10.0.5/dx.doi.org/tls-resolver",
 		],
 		[
-			"http://doi.pangaea.de/10.0.6/pangea-http-resolver",
-			"doi:10.0.6/pangea-http-resolver",
-		],
-		[
 			"https://hdl.handle.net/10.0.7(handle.net)resolver",
 			"doi:10.0.7(handle.net)resolver",
+			"https, handle.net resolver",
 		],
-		[ "info:doi/10.0.8/info-doi", "doi:10.0.8/info-doi" ],
-		[ "info:hdl/10.0.9/info-hdl", "doi:10.0.9/info-hdl" ],
-		[ "https://unknown.com/10.0.10/http-heuristics", "doi:10.0.10/http-heuristics" ],
 		[
-			"https://oadoi.org/10.0.11/http-oadoi-unpaywall", "doi:10.0.11/http-oadoi-unpaywall",
+			"http://doi.pangaea.de/10.0.6/pangea-http-resolver",
+			"doi:10.0.6/pangea-http-resolver",
+			"pangaea.de resolver"
+		],
+		[
+			"https://oadoi.org/10.0.11/http-oadoi-unpaywall",
+			[ "https://oadoi.org/10.0.11/http-oadoi-unpaywall", "doi:10.0.11/http-oadoi-unpaywall" ],
 			"https://unpaywall.org resolver",
 		],
-		[ "http://doai.io/10.0.12/http-doai-dissemin", "doi:10.0.12/http-doai-dissemin" ],
-		// "TODO: https://dissem.in/api/ https://dissemin.readthedocs.io/en/latest/api.html"
+		[
+			"http://doai.io/10.0.12/http-doai-dissemin",
+			[ "http://doai.io/10.0.12/http-doai-dissemin", "doi:10.0.12/http-doai-dissemin" ],
+			"doai alternative resolver"
+		],
+		[
+			"https://www.science.org/doi/10.12345/science.abc01234",
+			[
+				"https://www.science.org/doi/10.12345/science.abc01234",
+				"doi:10.12345/science.abc01234"
+			],
+			"publisher site, with prefix",
+		],
+		[
+			"https://dissem.in/api/10.1016/j.paid.2009.02.013",
+			[
+				"https://dissem.in/api/10.1016/j.paid.2009.02.013",
+				"doi:10.1016/j.paid.2009.02.013"
+			],
+			"Dissemin https://dissemin.readthedocs.io/en/latest/api.html",
+		],
+		[ "https://orgmode.org/", null, "reject general URLs" ],
+		[ "ftp://dx.doi.org/10.1.1", null, "reject unusual protocol" ],
+		[ "https://dx.doi.org/not-a-doi", null, "reject not 10.* code" ],
+		[ "http://doai.io/not-a-doi-alt", null, "reject not 10.* code for alternatives" ],
+		[ "two words", null, "reject URL consructor error" ],
 	];
 
-	this.test_validDOI = lr_test.parametrize(
-		this.casesValid,
-		function test_validDOI(input, doi, comment) {
-			const result = lr_meta.doSanitizeDOI({ value: input });
-			lr_test.assertEq(doi, result.value);
-			lr_test.assertTrue(!result.error);
+	lr_test.assignParametrized(
+		this, cases_matchDOI,
+		function test_matchDOI(url, expect, comment) {
+			const actual = lr_meta.matchDOI(typeof url === "string" ? { value: url } : url);
+			if (expect && !Array.isArray(expect)) {
+				expect = [ expect ];
+			}
+			if (Array.isArray(expect)) {
+				lr_test.assertTrue(Array.isArray(actual), `should be an Array: ${actual}`);
+				lr_test.assertEq(actual.length, expect.length);
+				for (let i = 0; i < expect.length; ++i) {
+					lr_test.assertEq(expect[i], actual[i].value);
+				}
+			} else {
+				lr_test.assertTrue(actual == null, `should be null: ${actual}`);
+			}
 		});
-
-	const casesIsDoiUrl = [
-		[ "http://dx.doi.org/10.0.1", { doi: true, url: false }, "http, doi.org resolver" ],
-		[ "https://hdl.handle.net/10.0.2", { doi: true, url: false }, "https, handle.net resolver" ],
-		[ "https://doi.pangea.de/10.0.3", { doi: true, url: false }, "pangea.de resolver" ],
-		[ "https://oadoi.org/10.0.4", { doi: true, url: true }, "oadoi alternative resolver" ],
-		[ "http://doai.io/10.0.5", { doi: true, url: true }, "doai alternative resolver" ],
-		[ "doi:10.0.6", { doi: true, url: false }, "raw doi" ],
-		[ "hdl:10.0.7", { doi: true, url: false }, "raw hdl" ],
-		[ "info:doi/10.0.8", { doi: true, url: false }, "raw info:doi" ],
-		[ "info:hdl/10.0.9", { doi: true, url: false }, "raw info:hdl" ],
-		[ "https://orgmode.org/", { doi: false, url: true }, "reject general URLs" ],
-		[ "ftp://dx.doi.org/10.1.1", { doi: false, url: true }, "reject unusual protocol" ],
-		[ "https://dx.doi.org/not-a-doi", { doi: false, url: true }, "reject not 10.* code" ],
-		[ "10.1.2", { doi: false, url: true }, "reject doi without explicit schema" ],
-		[ "http://doai.io/not-a-doi-alt", { doi: false, url: true }, "reject not 10.* code for alternatives" ],
-		[ "two words", { doi: false, url: true }, "reject URL consructor error" ],
-	];
-
-	this.test_isDoiUrl = lr_test.parametrize(
-		casesIsDoiUrl,
-		function test_isDoiUrl(url, expect, comment) {
-			const actual = lr_meta.isDoiUrl(url);
-			lr_test.assertTrue(actual.doi === expect.doi && actual.url === expect.url,
-				`Should ${JSON.stringify(expect)} == ${JSON.stringify(actual)}`);
-		});
-
-	/* Have not managed to invent argument that causes TypeError exception
-	 * while constructing URL object with "doi:" prefix */
-	/*
-	this.test_invalidDOI = function() {
-		const result = lr_meta.sanitizeDOI("bad doi with space");
-		lr_test.assertTrue(result.error);
-		lr_test.assertEq("bad doi with space", result.value);
-	};
-	*/
 
 	Object.assign(this, {
-		casesIsDoiUrl,
+		test_invalidDOI() {
+			const variants = [...lr_meta.sanitizeUrl({ value: "bad doi with space", key: "head.name.doi" })];
+			lr_test.assertEq(1, variants.length);
+			const result = variants[0];
+			lr_test.assertEq(result.error, "LrNotURL");
+			lr_test.assertEq("bad doi with space", result.value);
+		},
+	});
+
+	Object.assign(this, {
+		cases_matchDOI,
 	});
 
 	lr_test.suites.push(this);

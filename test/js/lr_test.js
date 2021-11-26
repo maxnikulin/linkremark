@@ -109,6 +109,9 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 	};
 
 	this.parametrize = function(iterable, func) {
+		if (!func.name) {
+			console.warn("lr_test.parametrize: argument has no name");
+		}
 		const retval = function*() {
 			var arg;
 			const call = function() {
@@ -128,6 +131,13 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 		lr_util.setFuncName(retval, func.name);
 		return retval;
 	};
+
+	function assignParametrized(obj, iterable, func) {
+		if (!func.name) {
+			throw new Error("Function has no name");
+		}
+		return Object.assign(obj, { [func.name]: lr_test.parametrize(iterable, func) });
+	}
 
 	this.assertEqSet = function(a, b) {
 		if (!(a instanceof Set) && !(b instanceof Set)) {
@@ -230,6 +240,7 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 
 	Object.assign(this, {
 		withExecutor,
+		assignParametrized,
 	});
 	return this;
 });

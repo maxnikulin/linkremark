@@ -295,6 +295,11 @@
 			['application-name', 'other'],
 			['generator', 'other'],
 		]);
+		const nameParams = new Map([
+			["url", { url: true }],
+			["image", { url: true }],
+			["doi", { name: "url", url: false }],
+		]);
 		const sizeLimitMap = new Map([
 			['description', TEXT_SIZE_LIMIT],
 		]);
@@ -338,7 +343,12 @@
 				return;
 			}
 
-			if (property === 'url' || property === 'image') {
+			const params = nameParams.get(property);
+			if (params && params.name) {
+				property = params.name;
+			}
+
+			if (params && params.url) {
 				if (value === '#' || value.startsWith('data:') || value.startsWith('javascript:')) {
 					console.debug('Ignoring %s %s "%s"', property, key, value);
 					return;

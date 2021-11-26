@@ -25,6 +25,23 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	// selection, 10x10 table
 	const FRAGMENT_COUNT_LIMIT = 128;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
+	this.DOI_Prefixes = {
+		// canonical resolvers
+		"dx.doi.org": { prefix: "", url: false },
+		"doi.org": { prefix: "", url: false },
+		"www.doi.org": { prefix: "", url: false },
+		"doi.pangaea.de": { prefix: "", url: false },
+		"hdl.handle.net": { prefix: "", url: false },
+		// URL of paywall alternatives may have value in addition to doi.
+		"oadoi.org": { prefix: "", url: true },
+		"doai.io": { prefix: "", url: true },
+		"dissem.in": { prefix: "/api", url: true },
+		// Some publishers
+		"science.org": { prefix: "/doi", url: true },
+		"www.science.org": { prefix: "/doi", url: true },
+		"pubs.acs.org": { prefix: "/doi", url: true },
+	};
+	this.reDOI_Key = /\.(?:citation_)?doi$/i;
 
 	function *errorsLast(descriptorIterable) {
 		yield* lr_iter.stableSort(
@@ -87,6 +104,26 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		}
 	}
 
+	function testKey(descriptor, regexp) {
+		try {
+			const { key, keys } = descriptor;
+			if (typeof key === "string") {
+				if (regexp.test(key)) {
+					return true;
+				}
+			}
+			if (!keys) {
+				return false;
+			}
+			return keys.some(k => regexp.test(k));
+		} catch (ex) {
+			console.error(
+				"lr_meta.testKey: internal error: %o, arguments: %o, %o",
+				ex, descriptor, regexp);
+		}
+		return false;
+	}
+
 	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
 		let { value, ...error } = valueError;
 		const t = typeof value;
@@ -126,43 +163,83 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return sanitizeLength(valueError, limit);
 	}
 
-	/// returns { doi, url }
-	function isDoiUrl(href) {
-		try {
-			const url = new URL(href);
-			if (url.protocol === "https:" || url.protocol === "http:") {
-				// Default port is stripped by the parser.
-				if (
-					url.hostname === "dx.doi.org"
-					|| url.hostname === "doi.pangea.de"
-					|| url.hostname === "hdl.handle.net"
-				) {
-					// canonical resolvers
-					return url.pathname.startsWith("/10.") ? { doi: true, url: false } : { doi: false, url: true };
-				}
-				if (
-					url.hostname === "oadoi.org"
-					|| url.hostname === "doai.io"
-				) {
-					// URL of paywall alternatives may have value in addition to doi.
-					return { doi: url.pathname.startsWith("/10."), url: true };
-				}
-			}
-			if (url.protocol === "doi:" || url.protocol === "hdl:") {
-				return { doi: true, url: false }
-			}
-			if (url.protocol === "info:") {
-				const p = url.pathname.toLowerCase();
-				if (url.hostname === "" && (p.startsWith("doi/") || p.startsWith("hdl/"))) {
-					return { doi: true, url: false };
-				} else {
-					return { doi: false, url: true };
-				}
-			}
-		} catch (ex) {
-			console.warn("lr_meta.isDoiUrl: %o", ex);
+	/** Check if URL matches known DOI schemes or resolvers.
+	 *
+	 * Argument is a URL property descriptor.
+	 * Returns:
+	 * - `null` if no DOI is recognized,
+	 * - `[ DOI_PropertyDescriptor ]` if original URL should be ignored,
+	 * - `[ descriptor, DOI_PropertyDescriptor ]` if both original
+	 *   value and DOI may be useful.
+	 *
+	 * The intention is to allow other URL heuristics.
+	 */
+	function matchDOI(descriptor) {
+		let { value, error } = descriptor;
+		const notDOI = null;
+		const isURL = value instanceof URL;
+		if (error || !(isURL || typeof value === "string")) {
+			return notDOI;
 		}
-		return { doi: false, url: true };
+
+		function toDOI(id, keepURL) {
+			if (!id) {
+				return notDOI;
+			}
+			const doi = { ...descriptor, value: "doi:" + id };
+			Object.defineProperty(doi, "_urlSanitized", {
+				// Keep it within background scirpt only.
+				enumerable: false,
+				configurable: true,
+				value: true,
+			});
+			return keepURL ? [ descriptor, doi ] : [ doi ];
+		}
+
+		const isDOI_key = testKey(descriptor, lr_meta.reDOI_Key);
+		if (!isURL) {
+			if (isDOI_key && value.startsWith("10.")) {
+				return toDOI(value, false);
+			}
+			try {
+				value = new URL(value);
+			} catch (ex) {
+				console.debug("lr_meta.matchDOI: error: ignored: %o", ex);
+				return notDOI;
+			}
+		}
+
+		// https://en.wikipedia.org/wiki/Digital_object_identifier#Resolution
+		// strip search (query) and fragment
+		if (value.protocol === "doi:" || value.protocol === "hdl:") {
+			value = value.hostname + value.pathname;
+			return toDOI(value, false);
+		}
+		if (value.protocol === "info:") {
+			const reInfoSchema = /^(?:doi|hdl)\//i;
+			const cleaned = value.pathname.replace(reInfoSchema, "");
+			return value.pathname === cleaned ? notDOI : toDOI(cleaned, false);
+		}
+		if (value.protocol !== "https:" && value.protocol !== "http:") {
+			return notDOI;
+		}
+		const strip = lr_meta.DOI_Prefixes[value.hostname];
+		if (strip === undefined) {
+			if (!isDOI_key) {
+				return notDOI;
+			}
+			for (const prefix of ["/doi", ""]) {
+				if (value.pathname.startsWith(prefix + "/10.")) {
+					return toDOI(value.pathname.substring(prefix.length + 1), true);
+				}
+			}
+			return notDOI;
+		}
+		const prefix = strip.prefix + "/10.";
+		if (!value.pathname.startsWith(prefix)) {
+			return notDOI;
+		}
+		return toDOI(value.pathname.substring(strip.prefix.length + 1), strip.url);
 	}
 
 	function doSanitizeUrl(valueError) {
@@ -199,68 +276,37 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return retval;
 	}
 
-	function doSanitizeDOI(valueError) {
-		const { value, ...error } = valueError;
-		if (typeof value !== 'string') {
-			return { value: null, ...error, error: "TypeError" };
+	function* sanitizeUrl(valueAndError) {
+		delete valueAndError._urlSanitized;
+		valueAndError = doSanitizeLength(valueAndError);
+		let doiVariants;
+		try {
+			doiVariants = lr_meta.matchDOI(valueAndError);
+		} catch (ex) {
+			console.error("lr_meta.sanitizeUrl: matchDOI failed: %o", ex);
 		}
-		const retval = doSanitizeLength(valueError);
-		if (retval.error) {
-			return retval;
+		if (!doiVariants) {
+			doiVariants = [ valueAndError ];
 		}
-		// https://en.wikipedia.org/wiki/Digital_object_identifier#Resolution
-		let cleaned = value;
-		const reDoiSchema = /^(?:doi|hdl):/i;
-		const reInfoSchema = /^info:(?:doi|hdl)\//;
-		if (reDoiSchema.test(cleaned)) {
-			cleaned = cleaned.replace(reDoiSchema, '');
-		} else if (reInfoSchema.test(cleaned)) {
-			cleaned = cleaned.replace(reInfoSchema, '');
-		} else if (/^https?:\/[\/]/.test(cleaned)) {
+		for (let variant of doiVariants) {
 			try {
-				const url = new URL(cleaned);
-				// Strip leading slash.
-				// Should search and hash be discarded?
-				cleaned = (url.pathname + url.search + url.hash);
-				cleaned = cleaned.replace(/^\/*/, ""); // */
-			} catch (ex) {
-				console.debug("lr_meta.sanitizeDOI: failed to strip resolver: %o %o", cleaned, ex);
-			}
-		}
-		// Should it start from "10."?
-		if (cleaned) {
-			try {
-				cleaned = new URL("doi:" + cleaned).href;
-			} catch (ex) {
-				// Unsure if it could ever happen.
-				console.debug("lr_meta.sanitizeDOI: failed to construct URL: %o %o", cleaned, ex);
-				retval.error = "LrNotURL";
-			}
-		}
-		retval.value = cleaned;
-		return retval;
-	}
-
-	function* sanitizeDOI(valueError) {
-		yield doSanitizeDOI(valueError);
-	}
-
-	function* sanitizeUrl(valueError) {
-		const { value, heuristicsDone } = valueError;
-		if (!heuristicsDone && value && typeof value === 'string') {
-			const { doi, url } = isDoiUrl(value);
-			if (doi) {
-				const doiResult = doSanitizeDOI(valueError);
-				if (doiResult.value) {
-					doiResult.key = "doi";
-					yield doiResult;
+				if (!variant._urlSanitized) {
+					// It can not be done prior to DOI detection since
+					// `<meta name="doi" content="10.1.1.1">`
+					// gives a value that is not valid `URL`.
+					variant = doSanitizeUrl(variant);
+					Object.defineProperty(variant, "_urlSanitized", {
+						// Keep it within background scirpt only.
+						enumerable: false,
+						configurable: true,
+						value: true,
+					});
 				}
-			}
-			if (!url) {
-				return;
+				yield variant;
+			} catch (ex) {
+				console.error("lr_meta.sanitizeUrl: error: %o %o", ex, variant);
 			}
 		}
-		yield { ...doSanitizeUrl(valueError), heuristicsDone: true };
 	}
 
 	function* sanitizeTextOrArray(valueError) {
@@ -409,8 +455,9 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 
 	Object.assign(this, {
 		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
-		doSanitizeLength, isDoiUrl, doSanitizeUrl, doSanitizeDOI,
-		sanitizeLength, sanitizeText, sanitizeUrl, sanitizeDOI,
+		testKey,
+		doSanitizeLength, matchDOI, doSanitizeUrl,
+		sanitizeLength, sanitizeText, sanitizeUrl,
 		sanitizeObject,
 		sanitizeTextOrArray,
 		sanitizeSchemaOrg,
@@ -556,7 +603,6 @@ class LrMeta {
 		Object.defineProperty(this, "sanitizerMap", {
 			enumerable: false,
 			value: new Map(Object.entries({
-				doi: lr_meta.sanitizeDOI,
 				url: lr_meta.sanitizeUrl,
 				image: lr_meta.sanitizeUrl,
 				linkUrl: lr_meta.sanitizeUrl,
@@ -569,12 +615,6 @@ class LrMeta {
 				schema_org: lr_meta.sanitizeSchemaOrg,
 				error: lr_meta.sanitizeObject,
 				offer: lr_meta.sanitizeObject, // TODO consider a special map for Product
-			})),
-		});
-		Object.defineProperty(this, "propertyRemap", {
-			enumerable: false,
-			value: new Map(Object.entries({
-				doi: "url",
 			})),
 		});
 	};
@@ -613,7 +653,7 @@ class LrMeta {
 			}
 			throw new Error("Meta descriptor is null");
 		}
-		if (skipEmpty && (descriptor.value == null || descriptor.value == "")) {
+		if (skipEmpty && (descriptor.value == null || descriptor.value == "") && !descriptor.error) {
 			return false;
 		}
 
@@ -625,23 +665,15 @@ class LrMeta {
 			console.error("LrMeta.addDescriptor: descriptor is not an object: %o %o", property, descriptor);
 			return false;
 		}
-		let { key, keys, ...valueError } = descriptor;
-		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
+		let { key, keys } = descriptor;
 		if (!key && !keys) {
 			console.error("LrMeta.addDescriptor: missed key: %o %o", property, descriptor);
 			key = "unspecified." + property;
 		}
-		property = this.propertyRemap.get(property) || property;
 		const variants = this.ensureVariants(property);
-		for (const sanitizedResult of sanitizer(valueError)) {
-			const keyObject = {};
-			if (key) {
-				keyObject.key = sanitizedResult.key ? `${key}.${sanitizedResult.key}` : key;
-			} else if (keys) {
-				keyObject.keys = sanitizedResult.key ? keys.map(k => `${k}.${sanitizedResult.key}`) : keys;
-			}
-			// Value is added only if sanitizer set it
-			variants.addDescriptor({...sanitizedResult, ...keyObject});
+		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
+		for (const sanitizedResult of sanitizer(descriptor)) {
+			variants.addDescriptor(sanitizedResult);
 		}
 		return true;
 	}

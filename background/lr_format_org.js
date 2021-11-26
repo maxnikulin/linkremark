@@ -363,7 +363,7 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		}
 		const remaining = components.reduce((r, c) => r - c.length, 82);
 		if (remaining > 25) {
-			const descriptor = lr_iter.first(meta.get('linkUrl'));
+			const descriptor = lr_iter.first(lr_format_org.urlVariants(meta, 'linkUrl'));
 			if (descriptor) {
 				components.push(LrOrgWordSeparator, LrOrgLink({ descriptor, lengthLimit: remaining }));
 			}
@@ -380,29 +380,29 @@ var lr_format_org = lr_util.namespace(lr_format_org, function lr_format_org() {
 		['clickData.srcUrl', 10],
 	]);
 
-	function urlWeight(url_src) {
-		let weight = urlWeightMap.get(url_src);
+	function urlWeight(value, key) {
+		let weight = urlWeightMap.get(key);
 		if (weight == null) {
 			weight = 1;
 		}
-		if (url_src.startsWith("doi:")) {
+		if (value.startsWith("doi:")) {
 			weight *= 8;
-		} else if (/\.doi$/i.test(url_src)) {
+		} else if (lr_meta.reDOI_Key.test(key)) {
 			weight *= 7;
 		}
 		return weight;
 	}
 
-	function* urlVariants(meta) {
+	function* urlVariants(meta, property = "url") {
 		if (!meta) {
 			return;
 		}
-		const urlVariants = meta.get('url') || [];
-		const weightedVariants = urlVariants
+		const weightedVariants = Array.from(meta.descriptors(property))
 			.filter(x => x.value)
 			.map(entry => ({
 				value: entry.value,
-				weight: entry.keys.map(urlWeight).reduce((a, b) => a + b, 0),
+				weight: entry.keys.map(key => urlWeight(entry.value, key))
+					.reduce((a, b) => a + b, 0),
 				error: entry.error,
 			}));
 		weightedVariants.sort((a, b) => {
@@ -719,9 +719,8 @@ function* lr_format_org_link_text_properties(meta) {
 
 function lr_format_org_link (frameChain, target, baseProperties) {
 	const meta = frameChain[0];
-	const linkUrlVariants = meta.get("linkUrl");
-	if (target !== 'link' || linkUrlVariants == null) {
-		console.error("No link captured"); // TODO report to error collector
+	if (target !== 'link') {
+		console.error("Not a link"); // TODO report to error collector
 		return
 	}
 
@@ -729,7 +728,7 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 
 	const description = [];
 	let url;
-	for (const variant of linkUrlVariants) {
+	for (const variant of lr_format_org.urlVariants(meta, "linkUrl")) {
 		if (!variant.value && !variant.error) {
 			continue;
 		}
@@ -737,6 +736,10 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 			url = variant.value;
 		}
 		description.push(LrOrgDefinitionItem({ term: "Link URL" }, LrOrgLink({ descriptor: variant })));
+	}
+	if (!(description.length > 0)) {
+		console.error("No link captured"); // TODO report to error collector
+		return;
 	}
 	description.push(...lr_format_org_link_text_properties(meta));
 	const title = lr_format_org.makeLinkTitle(meta);
