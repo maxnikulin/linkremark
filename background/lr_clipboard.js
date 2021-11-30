@@ -102,18 +102,9 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "/content_scripts/lrc_clipboard.js" }) };
 	}
 
-	/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
-	 * does not help.
-	 *     navigator.permissions.query({ name: 'clipboard-write' })
-	 * reports "granted".
-	 * chromium-browser: DOMException: Document is not focused.
-	 *
-	 * For Firefox it looks like the best method if clipboard permission
-	 * is requested. At least unless it is disabled through about:config.
-	 */
 	async function _lrClipboardWriteBackground(capture, options) {
 		const { skipBackground } = options || {}
-		if (skipBackground || !navigator.clipboard || !navigator.clipboard.writeText) {
+		if (skipBackground) {
 			return;
 		}
 		const { captureId, method } = capture && capture.transport;
@@ -125,10 +116,30 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			throw new Error("Internal error: no capture content");
 		}
 		const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
+		const success = { preview: false };
+		try {
+			if (lr_common.copyUsingEvent(text)) {
+				return success;
+			}
+		} catch (ex) {
+			console.log("LR: failed to copy using event: %o", ex);
+		}
+		if (!navigator.clipboard || !navigator.clipboard.writeText) {
+			return;
+		}
 		// It seems that result value is unspecified.
 		// On failure the promise is rejected.
+		/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
+		 * does not help.
+		 *     navigator.permissions.query({ name: 'clipboard-write' })
+		 * reports "granted".
+		 * chromium-browser: DOMException: Document is not focused.
+		 *
+		 * For Firefox it looks like the best method if clipboard permission
+		 * is requested. At least unless it is disabled through about:config.
+		 */
 		await navigator.clipboard.writeText(text);
-		return { preview: false };
+		return success;
 	}
 
 	async function _lrClipboardUsePreview(capture, options) {
@@ -207,6 +218,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			description: [
 				"In Firefox clipboard permission is required to copy capture result",
 				"bypassing preview page.",
+				"Chrome better tracks user action context making this permission unnecessary.",
 				"You can use native-messaging or org-protocol method",
 				"if you are afraid",
 				"that add-on can silently overwrite data in clipboard.",

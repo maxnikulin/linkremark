@@ -63,22 +63,25 @@
 		let status = null;
 		// Document may install copy event interceptor earlier.
 		let listenerInvoked = false;
-		function oncopy(event) {
-			document.removeEventListener("copy", oncopy, true);
+		function lrc_oncopy(event) {
+			document.removeEventListener("copy", lrc_oncopy, true);
 			event.stopImmediatePropagation();
 			event.preventDefault();
 			event.clipboardData.clearData();
 			event.clipboardData.setData("text/plain", text);
 			listenerInvoked = false;
 		}
-		document.addEventListener("copy", oncopy, true);
+		document.addEventListener("copy", lrc_oncopy, true);
 
-		const result = document.execCommand("copy");
+		let result;
+		try {
+			result = document.execCommand("copy");
+		} finally {
+			document.removeEventListener("copy", lrc_oncopy, true);
+		}
 		if (!result) {
-			document.removeEventListener("copy", oncopy, true);
 			throw new Error("Copy using command and event listener failed");
 		} else if (!listenerInvoked) {
-			document.removeEventListener("copy", oncopy, true);
 			throw new Error("Document overrides copy action");
 		}
 		return result;

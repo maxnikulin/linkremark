@@ -358,8 +358,9 @@ Requested on demand when not granted.
 
 *** Input data to the clipboard (=clipboardWrite=)
 
-Chrome: "Modify data you copy and paste", but it is currently
-requested for Firefox only.
+In Chrome it is called "Modify data you copy and paste",
+but due to better tracking of user action context
+it is not required.
 
 In Firefox, without such permission, an extension can not copy data
 to clipboard except if it is immediate action in response to e.g.

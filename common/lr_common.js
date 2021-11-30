@@ -83,6 +83,27 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	isWarning(obj) {
 		return obj != null && String(obj.name).endsWith("Warning");
 	},
+	copyUsingEvent(text) {
+		// Copy event interceptors are not expected on the add-on page,
+		// so `status` is just additional check that the listener has
+		// no errors in its code or user does do something like
+		// disabling `dom.allow_cut_copy` on `about:config` page.
+		let status = false;
+		function lr_oncopy(event) {
+			document.removeEventListener("copy", lr_oncopy, true);
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			event.clipboardData.clearData();
+			event.clipboardData.setData("text/plain", text || "");
+			status = true;
+		}
+		document.addEventListener("copy", lr_oncopy, true);
+		try {
+			return document.execCommand("copy") && status;
+		} finally {
+			document.removeEventListener("copy", lr_oncopy, true);
+		}
+	},
 });
 
 let LrError = Error;

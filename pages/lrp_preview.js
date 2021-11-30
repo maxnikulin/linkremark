@@ -35,28 +35,9 @@ function lrWithTimeout(timeout, func) {
 	};
 }
 
-function lrCopyUsingEvent(text) {
-	// Copy event interceptors are not expected on the add-on page,
-	// so `status` is just additional check that the listener has
-	// no errors in its code or user does do something like
-	// disabling `dom.allow_cut_copy` on `about:config` page.
-	let status = false;
-	function oncopy(event) {
-		document.removeEventListener("copy", oncopy, true);
-		event.stopImmediatePropagation();
-		event.preventDefault();
-		event.clipboardData.clearData();
-		event.clipboardData.setData("text/plain", text || "");
-		status = true;
-	}
-	document.addEventListener("copy", oncopy, true);
-
-	return document.execCommand("copy") && status;
-}
-
 async function lrCopyToClipboard(text) {
 	// TODO progress notification
-	let result = lrCopyUsingEvent(text);
+	let result = lr_common.copyUsingEvent(text);
 	if (result) {
 		return result;
 	} else {
