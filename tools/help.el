@@ -19,6 +19,7 @@
       (subtree t)
       (visible-only nil)
       (body-only nil)
+      (org-html-prefer-user-labels t) ; avoid unstable ids
       (ext-plist
        '(:author nil
 		 ;; :with-broken-links t

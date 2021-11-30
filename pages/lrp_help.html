@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2021-11-18 Thu 11:57 -->
+<!-- 2021-11-30 Tue 03:25 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark Help</title>
@@ -81,7 +81,7 @@ or C-c C-j, org-goto (maybe with prefix argument as well).
 or <code>M-: (info "(org) Capture")</code> is the next step for Org mode users.
 You could start with a very simple template having "plain" type
 </p>
-<pre class="example" id="orge453e34">
+<pre class="example" id="capture-plain">
 (custom-set-variables
  '(org-capture-templates
    (quote (
@@ -129,7 +129,7 @@ LinkRemark repository contains a simple variant in
 Run it with <code>-h</code> option for a brief guide. To enable it,
 you should do something like (Linux, Firefox)
 </p>
-<pre class="example" id="org49c4dad">
+<pre class="example" id="firefox-native-messaging-host">
 mkdir ~/.mozilla/native-messaging-hosts
 python3 examples/backend-python/lr_emacsclient.py --manifest-firefox \
    &gt;~/.mozilla/native-messaging-hosts/lr_emacsclient.json
@@ -141,7 +141,7 @@ and "<code>lr_emacsclient</code>" for "Browser native messaging communication ch
 "Name of native messaging backend application" add-on settings.
 Emacs init file should have something like the following:
 </p>
-<pre class="example" id="orgdd76668">
+<pre class="example" id="capture-entry">
 (custom-set-variables
  '(org-capture-templates
    (quote (
@@ -187,7 +187,7 @@ or from "Tools" in menu bar, <code>[Ctrl+Shift+A]</code>.
 
 <div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 There is some bug and subtree is not recognized
-first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-y</code> <code>C-/</code>
+first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-/</code>
 (required once per Emacs session), and <code>C-c C-x C-y</code> to paste subtree.
 </p></div></div>
 
@@ -211,7 +211,7 @@ Related Firefox bugs:
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2021-11-18 Thu 11:57</p>
+<p class="date">Created: 2021-11-30 Tue 03:25</p>
 </div>
 </body>
 </html>

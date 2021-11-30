@@ -78,6 +78,7 @@ clipboard to pass captures to your notes.
 * Usage
   :PROPERTIES:
   :EXPORT_TITLE: LinkRemark Help
+  :CUSTOM_ID: usage
   :END:
 
 Optionally select some text and choose an option from context menu (right click,
@@ -98,6 +99,7 @@ or [[help:org-goto][C-c C-j, org-goto]] (maybe with prefix argument as well).
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
 or [[info:org#Capture][info "(org) Capture"]] is the next step for Org mode users.
 You could start with a very simple template having "plain" type
+#+name: capture-plain
 #+begin_example emacs-lisp
   (custom-set-variables
    '(org-capture-templates
@@ -135,6 +137,7 @@ LinkRemark repository contains a simple variant in
 [[file:examples/backend-python/lr_emacsclient.py]]
 Run it with =-h= option for a brief guide. To enable it,
 you should do something like (Linux, Firefox)
+#+name: firefox-native-messaging-host
 #+begin_example
   mkdir ~/.mozilla/native-messaging-hosts
   python3 examples/backend-python/lr_emacsclient.py --manifest-firefox \
@@ -145,6 +148,7 @@ for "Communication Channel" / "Method how to pass capture to desktop environment
 and "=lr_emacsclient=" for "Browser native messaging communication channel" /
 "Name of native messaging backend application" add-on settings.
 Emacs init file should have something like the following:
+#+name: capture-entry
 #+begin_example emacs-lisp
   (custom-set-variables
    '(org-capture-templates
