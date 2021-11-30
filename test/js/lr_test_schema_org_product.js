@@ -73,7 +73,8 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 - title :: Vunder SpecialProduct 5X useful thing
 - image :: [[file:///home/nikulin/github/linkremark/test/html/meta/useful-fing.jpg]]
 - offer :: [[https://save-a-lot-things.com/useful-1.html]]
-- offer :: [[https://thing-gadgets.com/useful-2.html]]`
+- offer :: [[https://thing-gadgets.com/useful-2.html]]
+`
 		);
 		lr_test.assertEq(projection.url, null, "result.url");
 		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");
@@ -172,7 +173,8 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
   Features:
   · Very large.
   · Water-proof.
-- image :: [[https://cdn1.kilathlone.buy/s3/multimedia-q/987654321.jpg]]`
+- image :: [[https://cdn1.kilathlone.buy/s3/multimedia-q/987654321.jpg]]
+`
 		);
 		lr_test.assertEq(projection.url, url, "result.url");
 		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");
@@ -219,7 +221,8 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 
 - aggregateRating :: 87/100(0; 24)
 - title :: Vunder SpecialProduct 5X title test
-- description :: Description is not title`
+- description :: Description is not title
+`
 		);
 		lr_test.assertEq(projection.url, null, "result.url");
 		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");
@@ -268,7 +271,8 @@ var lr_test_schema_org_product = lr_util.namespace(lr_test_schema_org_product,
 - availability :: OutOfStock
 - title :: Just Hole
 - description :: Some obsolete product.
-- image :: [[https://sold.out/pic/2222322.jpg]]`
+- image :: [[https://sold.out/pic/2222322.jpg]]
+`
 		);
 		lr_test.assertEq(projection.url, "https://trash.buy/product/just-hole-234/", "result.url");
 		lr_test.assertEq(execInfo.exception, undefined, "execInfo.exception");

@@ -899,7 +899,10 @@ Object.assign(lr_format_org, {
 			{ step: "serialize Org tree", },
 			function orgBodyToText(tree, _executor) {
 				// Avoid passing executor to `toText`
-				return lr_org_tree.toText(tree);
+				// In Emacs if trailing newline is missed and soft indent mode enabled
+				// then indent of next heading may become incorrect after
+				// `C-c C-x C-y` (`org-paste-subtree`)
+				return lr_org_tree.toText(tree) + '\n';
 			}, tree);
 		const templateType = options && options.templateType;
 		if (templateType === 'entry') {
