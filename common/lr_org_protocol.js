@@ -80,4 +80,77 @@ var lr_org_protocol = Object.assign(lr_org_protocol || new function lr_org_proto
 		url.search = query.toString().replace(/\+/g, '%20');
 		return url.toString();
 	},
+	/** Launch external protocol handler by creating an `<iframe>`
+	 *
+	 * The only method that allows to detect unconfigured handler.
+	 * It mostly works even from background add-on page but beware of
+	 * popup blocker in Firefox. It can silently suppress handlers
+	 * for ~10 seconds.
+	 *
+	 * As usual, do not call the method from transient windows
+	 * as browser action popup that may disappear before user
+	 * have chance to confirm execution of an external application.
+	 */
+	async launchThroughIframe(url, id) {
+		try {
+			return await lr_org_protocol._launchThroughIframe(url, id);
+		} catch (ex) {
+			throw new LrError("Failed to launch external scheme handler", { cause: ex });
+		}
+	},
+	async _launchThroughIframe(url, id) {
+		if (!url) {
+			throw new TypeError("No url specified to launch scheme handler");
+		}
+		if (id === undefined) {
+			id = "lr_org_protocol_iframe";
+		}
+		const doc = window.top.document;
+		// It may take arbitrary time to confirm launching of a handler
+		// when popup is shown. There is no way to arrange e.g. callback
+		// for such event. That is why it is impossible to remove
+		// created `iframe` before returning from this function.
+		// Thus it is necessary to remove earlier created `iframe`.
+		if (id) {
+			const existing = doc.getElementById(id);
+			if (existing) {
+				existing.remove();
+			}
+		}
+		const iframe = doc.createElement('iframe');
+		iframe.src = url;
+		iframe.style.display = "none";
+		if (id) {
+			iframe.setAttribute("id", id);
+		}
+		try {
+			doc.body.append(iframe);
+			await new Promise(r => setTimeout(r, 500));
+			const innerDoc = iframe.contentDocument;
+			if (!innerDoc) {
+				throw new Error("External scheme handler is not configured");
+			}
+			// Content does not matter, it should not be shown to the user.
+			// `innerDoc.write()` is avoided due to warnings in Chromium.
+			const title = innerDoc.createElement("title");
+			title.append("LR: External handler launched");
+			innerDoc.head.append(title);
+			const h1 = innerDoc.createElement("h1");
+			h1.append("LinkRemark: External handler launched");
+			innerDoc.body.append(h1);
+			const link = innerDoc.createElement("a");
+			link.setAttribute("href", url);
+			link.append(url);
+			const p = innerDoc.createElement("p");
+			p.setAttribute("style", "overflow-wrap: anywhere;");
+			p.append(link);
+			innerDoc.body.append(p);
+		} catch (ex) {
+			// Failure to write to the `iframe` document means that it shows
+			// an error page that handler is not configured.
+			iframe.remove();
+			throw ex;
+		}
+		return iframe;
+	},
 });
