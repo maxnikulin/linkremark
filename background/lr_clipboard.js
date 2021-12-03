@@ -81,7 +81,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (usePreview || error) {
 			return { previewTab: tab, preview: true, previewParams: null };
 		}
-		const strategyOptions = { tab, skipBackground: true };
+		const strategyOptions = { tab };
 		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
@@ -102,44 +102,70 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "/content_scripts/lrc_clipboard.js" }) };
 	}
 
-	async function _lrClipboardWriteBackground(capture, options) {
-		const { skipBackground } = options || {}
-		if (skipBackground) {
-			return;
-		}
-		const { captureId, method } = capture && capture.transport;
-		let content = captureId && capture.formats && capture.formats[captureId];
-		content = method === "org-protocol" || content.format !== "org-protocol" ?
-			content.body : content.url;
-		if (content == null) {
-			console.warn("_lrClipboardWriteBackground: unsupported capture: %o", capture);
-			throw new Error("Internal error: no capture content");
-		}
-		const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
-		const success = { preview: false };
+	async function _lrClipboardCopyFromBackground(text) {
+		const errors = [];
 		try {
 			if (lr_common.copyUsingEvent(text)) {
-				return success;
+				return true;
 			}
 		} catch (ex) {
-			console.log("LR: failed to copy using event: %o", ex);
+			console.log(
+				"lr_clipboard._lrClipboardCopyFromBackground: failed to copy using command and event: %o", ex);
+			errors.push(ex);
 		}
-		if (!navigator.clipboard || !navigator.clipboard.writeText) {
-			return;
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			// It seems that result value is unspecified.
+			// On failure the promise is rejected.
+			/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
+			 * do not help.
+			 *     navigator.permissions.query({ name: 'clipboard-write' })
+			 * reports "granted".
+			 * chromium-browser: DOMException: Document is not focused.
+			 *
+			 * For Firefox it looks like the best method if clipboard permission
+			 * is requested. At least unless it is disabled through about:config.
+			 */
+			try {
+				await navigator.clipboard.writeText(text);
+				return true;
+			} catch (ex) {
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
+				// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
+				// Fixed in Firefox-85
+				ex = ex || new Error("Not allowd: navigator.clipboard");
+				console.log(
+					"lr_clipboard._lrClipboardCopyFromBackground: failed to copy using navigator.clipboard: %o", ex);
+				errors.push(ex);
+			}
 		}
-		// It seems that result value is unspecified.
-		// On failure the promise is rejected.
-		/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
-		 * does not help.
-		 *     navigator.permissions.query({ name: 'clipboard-write' })
-		 * reports "granted".
-		 * chromium-browser: DOMException: Document is not focused.
-		 *
-		 * For Firefox it looks like the best method if clipboard permission
-		 * is requested. At least unless it is disabled through about:config.
-		 */
-		await navigator.clipboard.writeText(text);
-		return success;
+		const message = "Background clipboard operation failed";
+		if (errors.length > 1) {
+			throw new LrAggregateError(errors, message);
+		}
+		throw new LrError(message, { cause: errors[0] });
+	}
+
+	async function _lrClipboardBackground(capture, options) {
+		const { captureId, method } = capture && capture.transport;
+		const projection = captureId && capture.formats && capture.formats[captureId];
+		const content = method === "org-protocol" || projection.format !== "org-protocol" ?
+			projection.body : projection.url;
+		let result = true;
+		if (content) {
+			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
+			result = await _lrClipboardCopyFromBackground(text);
+		} else if (method === "clipboard") {
+			console.warn("_lrClipboardBackground: unsupported capture for clipboard: %o", capture);
+			throw new Error("Internal error: no capture content to copy");
+		}
+		if (result && method === "org-protocol" && projection.url) {
+			await lr_org_protocol.launchThroughIframe(projection.url);
+		}
+		if (!result) {
+			console.warn("_lrClipboardBackground: unsupported capture: %o", capture);
+			throw new Error("Invalid capture to export from background");
+		}
+		return { preview: false };
 	}
 
 	async function _lrClipboardUsePreview(capture, options) {
@@ -148,8 +174,9 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 
 	async function lrClipboardAny(capture, options, executor) {
 		const retvalDefault = { preview: true, previewParams: null, previewTab: options.tab };
+		const errors = [];
 		for (let method of [
-			_lrClipboardWriteBackground, _lrClipboardContentScript, _lrClipboardUsePreview
+			_lrClipboardBackground, _lrClipboardContentScript, _lrClipboardUsePreview
 		]) {
 			try {
 				const result = await executor.step(
@@ -159,13 +186,17 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				if (result) {
 					return { ...retvalDefault, ...result };
 				} else {
-					console.error(`lr_clipboard: ${method.name} has not succeeded`);
+					console.log(`lr_clipboard: ${method.name} has not succeeded`);
 				}
 			} catch (ex) {
 				console.error(method && method.name, ex);
+				errors.push(ex);
 			}
 		}
-		return retvalDefault;
+		if (errors.length > 0) {
+			throw new LrAggregateError(errors, "Clipboard and org-protocol export failed");
+		}
+		throw new LrError("Clipboard and org-protocol export failed", { cause: errors[0] });
 	}
 
 	function initSync() {
@@ -390,7 +421,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 
 	Object.assign(this, {
 		initSync,
-		_lrClipboardWriteBackground,
+		_lrClipboardBackground,
 		_lrClipboardContentScript,
 		_lrClipboardUsePreview,
 		_internal: {
