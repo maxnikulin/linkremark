@@ -89,17 +89,27 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		// no errors in its code or user does do something like
 		// disabling `dom.allow_cut_copy` on `about:config` page.
 		let status = false;
+		let cause;
 		function lr_oncopy(event) {
-			document.removeEventListener("copy", lr_oncopy, true);
-			event.stopImmediatePropagation();
-			event.preventDefault();
-			event.clipboardData.clearData();
-			event.clipboardData.setData("text/plain", text || "");
-			status = true;
+			try {
+				document.removeEventListener("copy", lr_oncopy, true);
+				event.stopImmediatePropagation();
+				event.preventDefault();
+				event.clipboardData.clearData();
+				event.clipboardData.setData("text/plain", text || "");
+				status = true;
+			} catch (ex) {
+				cause = ex;
+				// Not `console.error` since "Document is not focusing" might happen.
+				console.log("lr_common.copyUsingEvent: error: %o", ex);
+			}
 		}
 		document.addEventListener("copy", lr_oncopy, true);
 		try {
-			return document.execCommand("copy") && status;
+			if (!document.execCommand("copy") || !status) {
+				throw new LrError("Copy using command and event failed", { cause });
+			}
+			return true;
 		} finally {
 			document.removeEventListener("copy", lr_oncopy, true);
 		}
