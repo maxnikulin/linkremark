@@ -252,6 +252,10 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor) {
 			},
 			lrExecutePermissionForbiddenCheckScript, tab, frameId
 		);
+		if (summary.scripts_forbidden == null) {
+			// timeout
+			summary.scripts_forbidden = true;
+		}
 	}
 	return summary.scripts_forbidden;
 }
