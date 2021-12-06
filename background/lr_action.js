@@ -192,12 +192,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			{
 				contexts: [ "browser_action" ],
 				enabled: true,
-				id: "LR_SETTINGS",
-				title: "Settings",
-			},
-			{
-				contexts: [ "browser_action" ],
-				enabled: true,
 				id: "LR_PREVIEW",
 				title: "Debug info",
 			},

@@ -176,7 +176,7 @@ you could find description of workflow in blogs, e.g.
 [[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
 by Sacha Chua.
 
-[fn:addons] "Settings" or "Manage extension" in context menu (right click)
+[fn:addons] "Manage extension" or "Preferences" in context menu (right click)
 for the add-on's browser action
 button or through generic browser menu,
 e.g. Firefox: "Add-ons and Themes" from hamburger menu
