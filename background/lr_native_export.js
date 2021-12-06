@@ -38,7 +38,24 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	async function lrSendToNative(capture, params, executor) {
 		const { error, tab, ...connectionParams } = params || {};
 		const { backend, connection, hello } = await executor.step(
-			connectionWithHello, connectionParams);
+			async function getFormatNative(connectionParams, capture, executor) {
+				try {
+					return await connectionWithHello(connectionParams, executor);
+				} catch (ex) {
+					// Format to org if it is something wrong with the backend.
+					executor.step(
+						{ errorAction: lr_executor.IGNORE_ERROR },
+						function formatFallback(capture, executor) {
+							return lr_export.format(
+								capture,
+								{ format: "org", version: lr_export.ORG_PROTOCOL_VERION, recursionLimit: 4 },
+								executor);
+						},
+						capture /*, executor implicit argument */);
+					throw ex;
+				}
+			},
+			connectionParams, capture /*, executor implicit argument */);
 		try {
 			if (!hello.format || !hello.version) {
 				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
