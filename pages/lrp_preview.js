@@ -201,6 +201,8 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		throw new Error("Internal error: unable to get capture result");
 	}
 
+	const method = capture && capture.transport && capture.transport.method;
+
 	try {
 		if (capture != null) {
 			dispatch(gLrPreviewActions.captureResult(capture));
@@ -208,13 +210,21 @@ async function lrPreviewGetCapture(dispatch, getState) {
 			const current = state && state.capture && state.capture.current;
 			let format;
 			const formatVariants = ["org", "object"];
-			// TODO Fallback to org may be reasonable mostly in the case of export errors
-			// but not others such as privileged frames or known URL.
 			const projectionId = capture && capture.transport && capture.transport.captureId;
 			const projection = projectionId == null ? null : state && state.capture &&
 				state.capture.formats && state.capture.formats[projectionId];
 			if (projection && projection.format) {
-				formatVariants.unshift(projection.format);
+				if (method !== "clipboard" && projection.format === "org-protocol") {
+					// It is rather confusing when for org-protocol export method
+					// org-protocol format is selected. Lauch leads another pass
+					// of wrapping org-protocol URI and broken captures in Emacs.
+					const src = state.capture.formats[projection.src];
+					if (src && src.format) {
+						formatVariants.unshift(src.format);
+					}
+				} else {
+					formatVariants.unshift(projection.format);
+				}
 			}
 			for (const f of formatVariants) {
 				if (current && current[f]) {
@@ -255,7 +265,6 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set known URLs", error: ex });
 	}
 
-	const method = capture && capture.transport && capture.transport.method;
 	try {
 		if (method) {
 			/* TODO At least privileged tab or frame warning should not cause
