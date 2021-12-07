@@ -155,7 +155,7 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 	const state = getState();
 	const projection = lrPmGetCurrentProjectionFromState(state);
 	const { body, url, title } = projection;
-	const { clipboardForBody, template } = state.transport["org-protocol"] || {};
+	const { clipboardForBody, template, baseURL } = state.transport["org-protocol"] || {};
 	const arg = { url, title, template }
 	if (clipboardForBody) {
 		// If there is no body than clipboard content should be cleared anyway.
@@ -163,7 +163,8 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 	} else if (body != null && body != "") {
 		arg.body = body;
 	}
-	window.location.href = lr_org_protocol.makeUrl(arg);
+	const protocolURL = baseURL ? lr_org_protocol.makeUrl(arg, baseURL) : lr_org_protocol.makeUrl(arg);
+	window.location.href = protocolURL;
 }
 
 async function lrPreviewGetCapture(dispatch, getState) {
@@ -700,14 +701,20 @@ class LrOrgProtocolTab extends LrMethodTabBase {
 	constructor(props) {
 		super(props, { execName: "Launch", execCloseName: "Launch & Close" });
 		this.template = E('input', { name: "template", size: 3, className: "flexFixed" });
+		this.baseURL = E('input', { name: "baseURL", className: "flexFixed" });
 		this.clipboardForBody = E('input', { type: "checkbox", name: "clipboardForBody" });
 		this.handlerPopupSuppressed = E('input', { type: "checkbox", name: "handlerPopupSuppressed" });
 		const fragment = new DocumentFragment();
 		fragment.append(
-			E('label', { className: "flexLineContainer" },
-				E('div', { className: "flexFixed" }, "Key "),
-				this.template,
-				E('div', { className: "flexFixed" }, " (name of template in Emacs)"),
+			E('div', { className: "flexLineContainer" },
+				E('label', null,
+					"Key (name of template) ",
+					this.template,
+				),
+				E('label', null,
+					"baseURL ",
+					this.baseURL,
+				),
 			),
 			E('div', { className: "flexLineContainer" },
 				E('label', null, this.clipboardForBody, " copy body to clipboard"),
@@ -722,6 +729,7 @@ class LrOrgProtocolTab extends LrMethodTabBase {
 			const allowClose = "handlerPopupSuppressed" in props && props.handlerPopupSuppressed;
 			this.execClose.disabled = !allowClose;
 			this.dom.elements.template.value = props.template || "";
+			this.dom.elements.baseURL.value = props.baseURL || "";
 			this.dom.elements.handlerPopupSuppressed.checked = allowClose;
 			this.dom.elements.clipboardForBody.checked = props.clipboardForBody;
 		}
@@ -878,6 +886,7 @@ function lrExportReducer(state = {}, { type, data }) {
 				[ "export.methods.orgProtocol.template", "org-protocol", "template" ],
 				[ "export.methods.orgProtocol.handlerPopupSuppressed", "org-protocol", "handlerPopupSuppressed" ],
 				[ "export.methods.orgProtocol.clipboardForBody", "org-protocol", "clipboardForBody" ],
+				[ "export.methods.orgProtocol.captureBaseURL", "org-protocol", "baseURL" ],
 			];
 			for (const [option, method, parameter] of mapping) {
 				const value = data[option];

@@ -387,6 +387,23 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			parent: "export.methods.orgProtocol",
 		});
 		lr_settings.registerOption({
+			name: "export.methods.orgProtocol.captureBaseURL",
+			defaultValue: (lr_org_protocol && lr_org_protocol.URL_CAPTURE) || "org-protocol:/capture",
+			version: "0.3",
+			title: "Base URL for capture subprotocol of org-protocol",
+			description: [
+				"Main purpose of the options is development and debugging.",
+				"It allows to not interfere with main Emacs session",
+				"and to test errors detection for unconfigured desktop level handlers",
+				"",
+				"Users may experiment with number of slashes before and after subprotocol",
+				"(please, report to issues tracker of this project",
+				"or to emacs-orgmode list if single slash does work for your OS and desktop environment).",
+				"Certainly custom subprotocol can be created as well.",
+			],
+			parent: "export.methods.orgProtocol",
+		});
+		lr_settings.registerOption({
 			name: "export.methods.orgProtocol.formatterType",
 			defaultValue: "org",
 			version: "0.1",

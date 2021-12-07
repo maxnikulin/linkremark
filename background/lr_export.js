@@ -85,9 +85,10 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 				version: "export.methods.orgProtocol.formatterVersion",
 				template: "export.methods.orgProtocol.template",
 				clipboardForBody: "export.methods.orgProtocol.clipboardForBody",
+				baseURL: "export.methods.orgProtocol.captureBaseURL",
 			},
 			formatter: function lrFormatOrgProtocol(result, options, executor) {
-				const { template, clipboardForBody, ...formatOptions } = options;
+				const { template, clipboardForBody, baseURL, ...formatOptions } = options;
 				const src = lr_export.format(result, formatOptions, executor);
 				const { url, body, title } = src;
 				const arg = {
@@ -101,7 +102,11 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 				} else {
 					arg.body = text;
 				}
-				retval.url = lr_org_protocol.makeUrl(arg);
+				if (baseURL) {
+					retval.url = lr_org_protocol.makeUrl(arg, baseURL);
+				} else {
+					retval.url = lr_org_protocol.makeUrl(arg);
+				}
 				return retval;
 			},
 		});
