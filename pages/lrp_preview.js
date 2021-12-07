@@ -164,7 +164,7 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 		arg.body = body;
 	}
 	const protocolURL = baseURL ? lr_org_protocol.makeUrl(arg, baseURL) : lr_org_protocol.makeUrl(arg);
-	window.location.href = protocolURL;
+	await lr_org_protocol.launchThroughIframe(protocolURL);
 }
 
 async function lrPreviewGetCapture(dispatch, getState) {
