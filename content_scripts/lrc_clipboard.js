@@ -144,8 +144,47 @@
 		}
 
 		async function lrLaunchProtocolHandlerFromContentScript(url) {
-			if (url) {
+			if (!url) {
+				throw new Error("No URL to launch external protocol handler");
+			}
+
+			// Almost certainly has no effect
+			window.focus();
+
+			if (!document.hasFocus()) {
+				console.log("LR: document is not focused, no way to detect failure");
 				window.location.href = url;
+				warnings.push({
+					name: "LrWarning",
+					message: "Document is not focused, external handler error may be silent",
+					fileName: "lrc_clipboard.js",
+				});
+				return true;
+			}
+
+			// Warning: page may has its own "blur" listener causing false error.
+			let resolve, timeout;
+			function lrProtocolHandlerResolve(_evt) {
+				if (!resolve) {
+					return;
+				}
+				// Do not resolve with event
+				resolve(true);
+				resolve = null;
+				clearTimeout(timeout);
+			}
+			try {
+				document.addEventListener("blur", lrProtocolHandlerResolve);
+				window.addEventListener("blur", lrProtocolHandlerResolve);
+				const promise = new Promise((res, rej) => {
+					resolve = res;
+					timeout = setTimeout(rej, 500, new Error("org-protocol: handler is not configured"));
+				});
+				window.location.href = url;
+				return await promise;
+			} finally {
+				window.removeEventListener("blur", lrProtocolHandlerResolve);
+				document.removeEventListener("blur", lrProtocolHandlerResolve);
 			}
 		}
 
