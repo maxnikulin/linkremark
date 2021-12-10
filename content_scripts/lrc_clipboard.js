@@ -143,7 +143,7 @@
 			lrSendMessage("asyncScript.resolve", [ promiseId, result, warnings ]);
 		}
 
-		async function lrLaunchProtocolHandlerFromContentScript(url) {
+		async function lrLaunchProtocolHandlerFromContentScript(url, detectUnconfigured) {
 			if (!url) {
 				throw new Error("No URL to launch external protocol handler");
 			}
@@ -151,18 +151,26 @@
 			// Almost certainly has no effect
 			window.focus();
 
-			if (!document.hasFocus()) {
-				console.log("LR: document is not focused, no way to detect failure");
+			if (!detectUnconfigured || !document.hasFocus()) {
 				window.location.href = url;
-				warnings.push({
-					name: "LrWarning",
-					message: "Document is not focused, external handler error may be silent",
-					fileName: "lrc_clipboard.js",
-				});
+				if (detectUnconfigured) {
+					console.log("LR: document is not focused, no way to detect failure");
+					warnings.push({
+						name: "LrWarning",
+						message: "Document is not focused, external handler error may be silent",
+						fileName: "lrc_clipboard.js",
+					});
+				}
 				return true;
 			}
 
 			// Warning: page may has its own "blur" listener causing false error.
+			// Warning: does not when location bar is focused, not page content (see code above).
+			// Warning: false positives when Gnome shows application chooser
+			// for Firefox snap package. (Firefox has another application chooser).
+			// Warning: timeout may be not enough for Firefox as snap package.
+			// Warning: false positive when handler does not have a window
+			// (likely the case of `:immediate t` templates).
 			let resolve, timeout;
 			function lrProtocolHandlerResolve(_evt) {
 				if (!resolve) {
@@ -225,7 +233,8 @@
 				return await lrClipboardCopyFromContentScript(text);
 			} else if (transport.method === "org-protocol") {
 				await lrClipboardCopyFromContentScript(content.body);
-				await lrLaunchProtocolHandlerFromContentScript(content.url);
+				await lrLaunchProtocolHandlerFromContentScript(
+					content.url, content.options && content.options.detectUnconfigured);
 				return true;
 			}
 			throw new Error(`Unsupported method ${method}`);

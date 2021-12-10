@@ -85,6 +85,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 				version: "export.methods.orgProtocol.formatterVersion",
 				template: "export.methods.orgProtocol.template",
 				clipboardForBody: "export.methods.orgProtocol.clipboardForBody",
+				detectUnconfigured: "export.methods.orgProtocol.detectUnconfigured",
 				baseURL: "export.methods.orgProtocol.captureBaseURL",
 			},
 			formatter: function lrFormatOrgProtocol(result, options, executor) {

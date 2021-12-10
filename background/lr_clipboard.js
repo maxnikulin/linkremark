@@ -159,7 +159,25 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			throw new Error("Internal error: no capture content to copy");
 		}
 		if (result && method === "org-protocol" && projection.url) {
-			await lr_org_protocol.launchThroughIframe(projection.url);
+			if (projection.options && projection.options.detectUnconfigured) {
+				// Works perfectly in Chromium, but Firefox silently ignores
+				// attempt if previous launch was recent enough;
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1744018
+				// External scheme handler launched by an add-on can be blocked despite user action
+				await lr_org_protocol.launchThroughIframe(projection.url);
+			} else {
+				// `tabs.update` method does not allow error detection, moreover:
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1745008
+				// tabs.update with custom scheme URL may replace privileged page with error
+				//     if (!options || !options.tab || !(options.tab.id >= 0)) {
+				//         throw new Error("_lrClipboardBackground: invalid tab.id");
+				//     }
+				//     await bapi.tabs.update(options.tab.id, { url: projection.url });
+				//
+				// Background page is never focused, so error detection
+				// using `blur` event does not work.
+				window.location = projection.url;
+			}
 		}
 		if (!result) {
 			console.warn("_lrClipboardBackground: unsupported capture: %o", capture);
@@ -400,6 +418,24 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				"(please, report to issues tracker of this project",
 				"or to emacs-orgmode list if single slash does work for your OS and desktop environment).",
 				"Certainly custom subprotocol can be created as well.",
+			],
+			parent: "export.methods.orgProtocol",
+		});
+		lr_settings.registerOption({
+			name: "export.methods.orgProtocol.detectUnconfigured",
+			defaultValue: false,
+			version: "0.3",
+			title: "Try to detect invalid configuration of org-protocol handler",
+			description: [
+				"Do not enable this option permanently.",
+				"It might help slightly while you are experimenting with handler configuration.",
+				"The purpose to show error if desktop environment has no valid handler.",
+				"It does not help in the case of Chrome running in Linux.",
+				"Firefox may still silenly swallow attempts to call external handler",
+				"when you are trying to quickly capture several pages.",
+				"External scheme handler in browser is a shoot-and-forget method",
+				"with uncertain chance to see flash or to hear sound.",
+				"Native messaging app may be more reliable option.",
 			],
 			parent: "export.methods.orgProtocol",
 		});
