@@ -27,10 +27,12 @@ class LrRpcStore {
 		this.handleCapture = this.getCapture.bind(this);
 		this.handleTargetElement = this.getTargetElement.bind(this);
 		this.handleResult = this.getResult.bind(this);
+		this.handlePutPreviewError = this.putPreviewError.bind(this);
 		this.clear();
 	}
 	putExecInfo(execInfo) {
 		this.execInfo = execInfo;
+		delete this._previewError;
 	};
 	getCapture() {
 		if (this.execInfo === LrRpcStore.NO_CAPTURE) {
@@ -72,6 +74,8 @@ class LrRpcStore {
 		}
 		return this.targetElement.targetElementId;
 	};
+	getPreviewError() { return this._previewError };
+	putPreviewError(error) { this._previewError = error; return true };
 }
 
 Object.defineProperty(LrRpcStore, "NO_CAPTURE", {

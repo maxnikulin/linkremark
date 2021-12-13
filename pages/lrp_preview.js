@@ -62,8 +62,8 @@ async function lrCopyToClipboard(text) {
 }
 
 // TODO progress log
-async function lrCloseWindow() {
-	await lrPromiseTimeout(1000);
+async function lrCloseWindow(timeout) {
+	await lrPromiseTimeout(timeout >= 0 ? timeout : 1000);
 	try {
 		window.close();
 	} catch (ex) {
@@ -280,22 +280,38 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		lrPreviewLogException({ dispatch, getState }, { message: "Failed to set export method", error: ex });
 	}
 
+	let launchResult = false;
+	const params = new URLSearchParams(window.location.search);
+	const action = params.get("action");
 	// No point for try-catch for last action since error will be reported by the caller.
 	if (error) {
 		lrPreviewLogException({ dispatch, getState }, { message: "A problem with capture", error });
+		await lrSendMessage("store.putPreviewError", lr_common.errorToObject(
+			new LrWarning("User action required due to error or warning")));
+		await lrPromiseTimeout(1000);
 	} else if (method) {
-		const params = new URLSearchParams(window.location.search);
-		const action = params.get("action");
-		if (action == "launch") {
-			dispatch(lrMakeTransportAction({
-				close: true,
+		if (action === "launch") {
+			const state = getState();
+			const protocolSettings = state && state.transport && state.transport['org-protocol'];
+			const handlerPopupSuppressed = method !== "org-protocol" || (
+				protocolSettings && protocolSettings.handlerPopupSuppressed);
+			launchResult = await dispatch(lrMakeTransportAction({
+				close: handlerPopupSuppressed,
 				method: method,
+				launch: true,
 			}));
 		}
 	}
+	// Reload to get all export errors
+	if (!launchResult && action === "launch") {
+		params.delete("action");
+		window.location.search = params.toString();
+	}
 }
 
-function lrMakeTransportAction({ method, close }) {
+function lrMakeTransportAction({ method, close, launch }) {
+	/* `launch` argument is necessary because exception is not propagated
+	 * to the caller to avoid double error reporting. */
 	const actions = {
 		"clipboard": lrCopyAction,
 		"org-protocol": lrLaunchOrgProtocolHandlerAction,
@@ -304,6 +320,7 @@ function lrMakeTransportAction({ method, close }) {
 	const handler = actions[method];
 	return async function lrTransportAction(dispatch, getState) {
 		const id = bapiGetId();
+		let delayTime = Date.now() + 1000;
 		try {
 			if (!handler) {
 				throw new Error("Unknown method");
@@ -311,11 +328,15 @@ function lrMakeTransportAction({ method, close }) {
 			dispatch(gLrPreviewLog.started({
 				id, message: `Exporting using ${method}...` }));
 			await handler(dispatch, getState);
-			if (close) {
-				await lrCloseWindow();
+			if (launch) {
+				await lrSendMessage("store.putPreviewError", false);
 			}
 			dispatch(gLrPreviewLog.finished({
 				id, message: `Exported using ${method}` }));
+			if (close) {
+				await lrCloseWindow(Math.min(0, delayTime - Date.now()));
+			}
+			return true;
 		} catch (ex) {
 			console.error("lrTransportAction: %o", ex);
 			// There was a bug FF:1670252 with `undefined` exception.
@@ -323,7 +344,15 @@ function lrMakeTransportAction({ method, close }) {
 				id, message: `Export failed: ${method}: ${String(ex && ex.message || ex || "Unknown error")}`,
 				name: "Error",
 			}));
+			if (launch) {
+				await lrSendMessage(
+					"store.putPreviewError",
+					lr_common.errorToObject(ex || new Error("Unknown error")));
+				// Delay before reload
+				await lrPromiseTimeout(delayTime - Date.now());
+			}
 		}
+		return false;
 	}
 }
 
@@ -1333,7 +1362,7 @@ async function lrPreviewMain(eventSources) {
 	}
 
 	try {
-		await dispatch(lrWithTimeout(1000, lrPreviewGetCapture));
+		await dispatch(lrWithTimeout(1500, lrPreviewGetCapture));
 	} catch (error) {
 		lrPreviewLogException(store, { message: "A problem with the capture", error });
 	}

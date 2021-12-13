@@ -22,9 +22,6 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 
 	async function lrCopyToClipboard(capture, options = null, executor) {
 		let { tab, format, version, usePreview, error, ...formatterOptions } = options || {};
-		if (tab == null) {
-			throw new Error('"tab" option object is required for clipboard export');
-		}
 		if (!format) {
 			format = lr_settings.getOption("export.methods.clipboard.formatterType");
 		}
@@ -46,18 +43,12 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
 		}
 		capture.transport.method = "clipboard";
-		if (error || usePreview) {
-			return { previewTab: tab, preview: true, previewParams: null };
-		}
-		const strategyOptions = { tab };
+		const strategyOptions = { tab, usePreview, error };
 		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
 	async function lrLaunchOrgProtocolHandler(capture, options = {}, executor) {
 		let { tab, usePreview, error, ...formatterOptions } = options || {};
-		if (tab == null) {
-			throw new Error('"tab" option object is required for org-protocol export');
-		}
 
 		const note = executor.step(
 			function formatForOrgProtocol(capture, options, executor) {
@@ -78,10 +69,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
 		}
 		capture.transport.method = "org-protocol";
-		if (usePreview || error) {
-			return { previewTab: tab, preview: true, previewParams: null };
-		}
-		const strategyOptions = { tab };
+		const strategyOptions = { tab, usePreview, error };
 		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
@@ -186,12 +174,34 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		return { preview: false };
 	}
 
-	async function _lrClipboardUsePreview(capture, options) {
-		return { previewParams: { action: "launch" } };
+	async function _lrClipboardUsePreview(capture, options, executor) {
+		await lr_action.openPreview(options.tab, { action: "launch" });
+		try {
+			// 500 ms is delay iframe before checking access to `<iframe>`.
+			// 750 ms is not enough due to loading of preview page.
+			await new Promise(resolve => setTimeout(resolve, 1000));
+			const launchResult = gLrRpcStore.getPreviewError();
+			switch (launchResult) {
+				case false:
+					break;
+				case undefined:
+				case null:
+					throw new Error("Unknown result of preview action");
+				default:
+					executor.addError(launchResult);
+			}
+		} catch (ex) {
+			executor.addError(ex);
+		}
+		return { preview: false };
 	}
 
 	async function lrClipboardAny(capture, options, executor) {
 		const retvalDefault = { preview: true, previewParams: null, previewTab: options.tab };
+		if (options.usePreview || options.error) {
+			return retvalDefault;
+		}
+
 		const errors = [];
 		for (let method of [
 			_lrClipboardBackground, _lrClipboardContentScript, _lrClipboardUsePreview
@@ -207,6 +217,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 					console.log(`lr_clipboard: ${method.name} has not succeeded`);
 				}
 			} catch (ex) {
+				executor.addError(ex);
 				console.error(method && method.name, ex);
 				errors.push(ex);
 			}
