@@ -9,7 +9,7 @@ HELP = """Usage: {0} org-protocol:/SUBPROTOCOL/?DATA
   or:  {0} {{ -h | --help }}
   or:  {0} {{ -d | --desktop }}
 Decode org-protocol and display in a dialog to debug desktop integration.
-One of the following dialog tool is required: zenity, kdialog, yad.
+One of the following dialog tool is required: zenity, kdialog, gxmessage, yad.
 
 Alternatively
   -h, --help     display this message.
@@ -143,19 +143,39 @@ def dialog_yad(title, text):
     return True
 
 
+def dialog_gxmessage(title, text):
+    """Lightweight gxmessage dialogue tool"""
+    executable = find_in_path("gxmessage")
+    if not executable:
+        return
+    # Without --selectable-labels text could not be selected,
+    # with it all text is selected that is even worse.
+    command = [executable, "-center", "-wrap", "-title", title, text]
+    res = run(command, check=False)
+    # Cancel is 1, escape is 252, invalid options are shown literary
+    if res.returncode not in (0, 1):
+        print("{0}: command returned {1}: {2}".format(
+            sys.argv[0], res.returncode,
+            " ".join(["{!r}".format(a) for a in command])))
+        return
+    return True
+
+
 def show_dialog(title, text):
     backends = [dialog_zenity]
     if os.getenv("KDE_FULL_SESSION"):
         backends.insert(0, dialog_kdialog)
     else:
         backends.append(dialog_kdialog)
+    backends.append(dialog_gxmessage)
     backends.append(dialog_yad)
 
     for b in backends:
         if b(title, text):
             return
 
-    raise RuntimeError("Neither zenity nor kdialog nor yad is installed")
+    raise RuntimeError(
+            "Neither zenity nor kdialog. gxmessage, yad are installed")
 
 
 def wrap(text, size):
