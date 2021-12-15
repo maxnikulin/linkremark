@@ -254,7 +254,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		if (value.startsWith("javascript:")) {
 			return { value: "javascript:", ...error, error: "LrForbiddenUrlSchema" };
 		} else if (value.startsWith("data:")) {
-			return { value: "data:", error: "LrForbiddenUrlSchema" };
+			return { value: "data:", ...error, error: "LrForbiddenUrlSchema" };
 		}
 		const retval = doSanitizeLength({value, ...error});
 		if (retval.error) {
@@ -668,7 +668,7 @@ class LrMeta {
 		let { key, keys } = descriptor;
 		if (!key && !keys) {
 			console.error("LrMeta.addDescriptor: missed key: %o %o", property, descriptor);
-			key = "unspecified." + property;
+			descriptor.key = "unspecified." + property;
 		}
 		const variants = this.ensureVariants(property);
 		const sanitizer = this.sanitizerMap.get(property) || lr_meta.sanitizeLength;
