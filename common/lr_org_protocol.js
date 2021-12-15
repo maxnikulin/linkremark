@@ -91,38 +91,21 @@ var lr_org_protocol = Object.assign(lr_org_protocol || new function lr_org_proto
 	 * as browser action popup that may disappear before user
 	 * have chance to confirm execution of an external application.
 	 */
-	async launchThroughIframe(url, id) {
+	async launchThroughIframe(url) {
+		if (!url) {
+			throw new TypeError("No url specified to launch scheme handler");
+		}
 		try {
-			return await lr_org_protocol._launchThroughIframe(url, id);
+			return await lr_org_protocol._launchThroughIframe(url);
 		} catch (ex) {
 			throw new LrError("Failed to launch external scheme handler", { cause: ex });
 		}
 	},
-	async _launchThroughIframe(url, id) {
-		if (!url) {
-			throw new TypeError("No url specified to launch scheme handler");
-		}
-		if (id === undefined) {
-			id = "lr_org_protocol_iframe";
-		}
+	async _launchThroughIframe(url) {
 		const doc = window.top.document;
-		// It may take arbitrary time to confirm launching of a handler
-		// when popup is shown. There is no way to arrange e.g. callback
-		// for such event. That is why it is impossible to remove
-		// created `iframe` before returning from this function.
-		// Thus it is necessary to remove earlier created `iframe`.
-		if (id) {
-			const existing = doc.getElementById(id);
-			if (existing) {
-				existing.remove();
-			}
-		}
 		const iframe = doc.createElement('iframe');
 		iframe.src = url;
 		iframe.style.display = "none";
-		if (id) {
-			iframe.setAttribute("id", id);
-		}
 		try {
 			doc.body.append(iframe);
 			await new Promise(r => setTimeout(r, 500));
@@ -145,12 +128,9 @@ var lr_org_protocol = Object.assign(lr_org_protocol || new function lr_org_proto
 			p.setAttribute("style", "overflow-wrap: anywhere;");
 			p.append(link);
 			innerDoc.body.append(p);
-		} catch (ex) {
-			// Failure to write to the `iframe` document means that it shows
-			// an error page that handler is not configured.
+		} finally {
 			iframe.remove();
-			throw ex;
 		}
-		return iframe;
+		return true;
 	},
 });
