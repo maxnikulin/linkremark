@@ -105,6 +105,17 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	async function connectionWithHello(params, executor) {
 		const timeout = (params && params.timeout) || TIMEOUT;
 		const backend = _getBackend(params);
+		if (!bapi.runtime.connectNative) {
+			/* Due to https://crbug.com/936415 and https://crbug.com/935904
+			 * extension in Chromium must be reloaded after `permissions.request()`
+			 * to get access to `runtime.connectNative()`.
+			 * `runtime.reload()` breaks options page in Chromium-95.
+			 * Add workarounds to force reloading of the options page.
+			 */
+			lrSendMessage("extension.reload");
+			await new Promise(resolve => setTimeout(resolve, 100));
+			bapi.runtime.reload();
+		}
 		const connection = new LrAbortableNativeConnection(backend, executor && executor.lock);
 		try {
 			const hello = await executor.step(

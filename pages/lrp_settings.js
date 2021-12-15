@@ -374,7 +374,22 @@ function lrInitEventSources() {
 	return { permissionEvents, stateStore };
 }
 
+function lrpListenForReload() {
+	/* `runtime.reload()` breaks options page in Chromium-95.
+	 * Due to https://crbug.com/936415 and https://crbug.com/935904
+	 * extension in Chromium must be reloaded after `permissions.request()`
+	 * to get access to `runtime.connectNative()`.
+	 * Add workarounds to force reloading of the options page.
+	 */
+	bapi.runtime.onMessage.addListener(msg => {
+		if (msg && msg.method === "extension.reload") {
+			window.location.reload();
+		}
+	});
+}
+
 var lrEventSources = lrInitEventSources();
 renderDescriptors();
 initLoadSave();
 lrpSetupHelpHandler();
+lrpListenForReload();

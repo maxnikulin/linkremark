@@ -166,6 +166,7 @@ function bapiChrome(chrome) {
 			onConnect: asis,
 			onInstalled: asis,
 			onStartup: asis,
+			reload: asis,
 			sendMessage: promisify,
 			getPlatformInfo: promisify,
 			openOptionsPage: promisify,
