@@ -18,6 +18,11 @@
 "use strict";
 
 var lr_org_protocol = Object.assign(lr_org_protocol || new function lr_org_protocol() {}, {
+	/* Firefox (78-95) ignores attempts to launch external scheme handler
+	 * from background page when "Always ask" is configured for the scheme.
+	 * Both `<iframe>` and `window.location` methods are affected.
+	 * https://bugzilla.mozilla.org/show_bug.cgi?id=1745931 */
+
 	/* It seems it is safer to avoid double slash "org-protocol://"
 	 * and it is better to choose either single or triple slash.
 	 * At least one slash is required by `org-protocol.el`.
