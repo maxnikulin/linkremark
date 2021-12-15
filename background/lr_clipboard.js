@@ -48,7 +48,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 	}
 
 	async function lrLaunchOrgProtocolHandler(capture, options = {}, executor) {
-		let { tab, usePreview, error, ...formatterOptions } = options || {};
+		let { tab, usePreview, allowBackground, error, ...formatterOptions } = options || {};
 
 		const note = executor.step(
 			function formatForOrgProtocol(capture, options, executor) {
@@ -68,8 +68,11 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (usePreview == null) {
 			usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
 		}
+		if (allowBackground == null) {
+			allowBackground = lr_settings.getOption("export.methods.orgProtocol.allowBackground");
+		}
 		capture.transport.method = "org-protocol";
-		const strategyOptions = { tab, usePreview, error };
+		const strategyOptions = { tab, usePreview, allowBackground, error };
 		return await executor.step(lrClipboardAny, capture, strategyOptions /*, executor */);
 	}
 
@@ -147,6 +150,10 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			throw new Error("Internal error: no capture content to copy");
 		}
 		if (result && method === "org-protocol" && projection.url) {
+			if (options && !options.allowBackground) {
+				console.debug("lr_clipboard._lrClipboardBackground: allowBackground is disabled for org-protocol");
+				return false;
+			}
 			if (projection.options && projection.options.detectUnconfigured) {
 				// Works perfectly in Chromium, but Firefox silently ignores
 				// attempt if previous launch was recent enough;
@@ -429,6 +436,19 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				"(please, report to issues tracker of this project",
 				"or to emacs-orgmode list if single slash does work for your OS and desktop environment).",
 				"Certainly custom subprotocol can be created as well.",
+			],
+			parent: "export.methods.orgProtocol",
+		});
+		lr_settings.registerOption({
+			name: "export.methods.orgProtocol.allowBackground",
+			defaultValue: false,
+			version: "0.3",
+			title: "Launch handler from add-on background page",
+			description: [
+				"Allows to launch org-protocol handler without running a script",
+				"in content of the current tab.",
+				"To make this work in Firefox, specific handler should be configured,",
+				"\"Always ask\" option leads to silent failures.",
 			],
 			parent: "export.methods.orgProtocol",
 		});
