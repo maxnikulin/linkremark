@@ -138,22 +138,21 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 
 	async function _lrClipboardBackground(capture, options) {
 		const { captureId, method } = capture && capture.transport;
+		if (method === "org-protocol" && !(options && options.allowBackground)) {
+			console.debug("lr_clipboard._lrClipboardBackground: allowBackground is disabled for org-protocol");
+			return false;
+		}
 		const projection = captureId && capture.formats && capture.formats[captureId];
 		const content = method === "org-protocol" || projection.format !== "org-protocol" ?
 			projection.body : projection.url;
-		let result = true;
-		if (content) {
+		let result = method !== "org-protocol" || !!projection.url;
+		if (result && content) {
 			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
 			result = await _lrClipboardCopyFromBackground(text);
 		} else if (method === "clipboard") {
-			console.warn("_lrClipboardBackground: unsupported capture for clipboard: %o", capture);
-			throw new Error("Internal error: no capture content to copy");
+			result = false;
 		}
-		if (result && method === "org-protocol" && projection.url) {
-			if (options && !options.allowBackground) {
-				console.debug("lr_clipboard._lrClipboardBackground: allowBackground is disabled for org-protocol");
-				return false;
-			}
+		if (result && method === "org-protocol") {
 			// Warning! Firefox silently ignores attempts to launch handler from background page
 			// if "Always ask" is configured for particular scheme:
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=1745931
@@ -181,7 +180,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			}
 		}
 		if (!result) {
-			console.warn("_lrClipboardBackground: unsupported capture: %o", capture);
+			console.warn("_lrClipboardBackground: %o: unsupported capture: %o", method, capture);
 			throw new Error("Invalid capture to export from background");
 		}
 		return { preview: false };
