@@ -154,23 +154,29 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				console.debug("lr_clipboard._lrClipboardBackground: allowBackground is disabled for org-protocol");
 				return false;
 			}
-			if (projection.options && projection.options.detectUnconfigured) {
-				// Works perfectly in Chromium, but Firefox silently ignores
-				// attempt if previous launch was recent enough;
+			// Warning! Firefox silently ignores attempts to launch handler from background page
+			// if "Always ask" is configured for particular scheme:
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=1745931
+			if (!lr_common.isGecko()) {
+				// Chromium-95 silently swallows assignment to background `window.location`
+				// and crashes on appending `<iframe>` with external handler `src`.
+
+				// `tabs.update` method does not allow error detection, moreover:
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=1745008
+				// tabs.update with custom scheme URL may replace privileged page with error.
+				if (!options || !options.tab || !(options.tab.id >= 0)) {
+				    throw new Error("_lrClipboardBackground: invalid tab.id");
+				}
+				await bapi.tabs.update(options.tab.id, { url: projection.url });
+			} else if (projection.options && projection.options.detectUnconfigured) {
+				// Firefox silently ignores attempt if previous launch was recent enough.
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1744018
 				// External scheme handler launched by an add-on can be blocked despite user action
 				await lr_org_protocol.launchThroughIframe(projection.url);
 			} else {
-				// `tabs.update` method does not allow error detection, moreover:
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=1745008
-				// tabs.update with custom scheme URL may replace privileged page with error
-				//     if (!options || !options.tab || !(options.tab.id >= 0)) {
-				//         throw new Error("_lrClipboardBackground: invalid tab.id");
-				//     }
-				//     await bapi.tabs.update(options.tab.id, { url: projection.url });
-				//
 				// Background page is never focused, so error detection
 				// using `blur` event does not work.
+				// It does not wake up popup blocker at least.
 				window.location = projection.url;
 			}
 		}

@@ -83,6 +83,12 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	isWarning(obj) {
 		return obj != null && String(obj.name).endsWith("Warning");
 	},
+	isGecko() {
+		// Unsure if the following is stable across whole family
+		// (IceCat, SeeMonkey, TorBrowser):
+		//     navigator.product === "Gecko"
+		return Boolean(window.InstallTrigger);
+	},
 	copyUsingEvent(text) {
 		// Copy event interceptors are not expected on the add-on page,
 		// so `status` is just additional check that the listener has
