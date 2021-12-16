@@ -239,13 +239,6 @@
 			}
 			throw new Error(`Unsupported method ${method}`);
 		}
-
-		if (!navigator.clipboard || !navigator.clipboard.writeText) {
-			// TODO Is where a way to disable `navigator.clipboard`?
-			// Have not managed to do it in Firefox-93 but it might cause fallback
-			// to preview page for org-protocol export.
-			return { error: lrToObject(new Error("Clipboard is disabled")) };
-		}
 		const promiseId = lrRandomId();
 		// async function does not block execution
 		lrSettleAsyncScriptPromise(promiseId, lrPostResultFromContentScript);
