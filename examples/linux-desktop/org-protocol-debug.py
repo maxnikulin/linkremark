@@ -94,7 +94,9 @@ def dialog_zenity(title, text):
         return
 
     # --textinfo requires --filename=FILE or --url=URL
-    command = [executable, "--info",  "--title", title, "--text", text]
+    command = [
+        executable, "--info", "--no-markup",
+        "--title", title, "--text", text]
     res = run(command, check=False)
     # Cancel is 1, invalid option is 255
     if res.returncode not in (0, 1):
@@ -106,7 +108,7 @@ def dialog_zenity(title, text):
 
 
 def dialog_kdialog(title, text):
-    executable = find_in_path("zenity")
+    executable = find_in_path("kdialog")
     if not executable:
         return
 
