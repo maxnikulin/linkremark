@@ -4,8 +4,10 @@ MANIFEST_FIREFOX_src = manifest-common.json manifest-part-firefox.json
 MANIFEST_TEST_src = manifest-part-test.yaml
 MANIFEST_FIREFOX_TEST_src = $(MANIFEST_FIREFOX_src) $(MANIFEST_TEST_src)
 
+MANIFEST_CHROME_DEV_src = manifest-part-chrome-dev.yaml
 MANIFEST_CHROME_src = manifest-common.json manifest-part-chrome.json
 MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
+MANIFEST_CHROME_TEST_src += $(MANIFEST_CHROME_DEV_src)
 
 HELP_PAGE = pages/lrp_help.html
 
@@ -57,13 +59,16 @@ chrome: manifest-chrome.json $(HELP_PAGE)
 chrome-test: manifest-chrome-test.json $(HELP_PAGE)
 	ln -sf manifest-chrome-test.json manifest.json
 
-manifest-chrome.json: $(MANIFEST_CHROME_src)
+manifest-chrome.json: $(MANIFEST_CHROME_src) $(MANIFEST_CHROME_DEV_src)
+	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_src) $(MANIFEST_CHROME_DEV_src)
+
+manifest-chrome-dist.json: $(MANIFEST_CHROME_src)
 	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_src)
 
 manifest-chrome-test.json: $(MANIFEST_CHROME_TEST_src)
 	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_TEST_src)
 
-manifest-chrome.json manifest-chrome-test.json: $(MAKE_MANIFEST)
+manifest-chrome.json manifest-chrome-test.json manifest-chrome-dist.json: $(MAKE_MANIFEST)
 
 $(HELP_PAGE): README.org tools/help.el
 	$(EMACS) $(EMACS_FLAGS) --load tools/help.el
@@ -86,4 +91,16 @@ firefox-dist: firefox
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
-.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test
+chrome-dist: manifest-chrome-dist.json $(HELP_PAGE)
+	ln -sf manifest-chrome-dist.json manifest.json
+	set -e ; \
+	version="`python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])' <manifest-chrome.json`" ; \
+	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
+	file="linkremark-$${version}.zip" ; \
+	$(RM) "$$file" ; \
+	zip --must-match "$$file" manifest.json $$background \
+		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
+		"_locales/en/messages.json" ; \
+	echo "Created $$file"
+
+.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test chrome-dist

@@ -8,7 +8,7 @@
 		"description": "Extension name (short variant)"
 	},
 	"extDescription": {
-		"message": "Prepare a note for a page or a link augmented with metadata of the current page and the selected text. Intended for usage with capture feature of GNU Emacs Org mode.",
+		"message": "Add page metadata such as author and date to notes created using capture and org-protocol features of Org Mode for GNU Emacs.",
 		"description": "Extension description"
 	},
 	"extAuthor": {

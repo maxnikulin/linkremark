@@ -1,7 +1,5 @@
 {
 	"minimum_chrome_version": "78.0",
-	"update_url": "http://localhost/update.xml",
-	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAppqCVaSILjGICFxDHisZnNm09KRN1jigkQ0DBvRYNjWbVCZR4MLI/USfKsghtRqdy64gVCTEicy01aDkv8z+h8hp3F66MDiXE8bw1y7GoUvYtbbBjPkFl6XH8ZLPpSYstExbzes1wPOR3muHSijVbwqt8tobTpqb2U7oJjJNagJq3tkRsI+DeGG4vsZXu53J57UTuo9Usr0b0pibjBVH+i5u3Tm1QTecif+WQRUAtuJRw0QP//H3Hd3ehgcykyDnMvtPo7BoYZiRXpdxarRpAB8IEdtzx2BMWDv3UuxZ4RgBrCE72g3JtExdGb7jve5YlzT5NFS7wrCeyeE219AGyQIDAQAB",
 	"optional_permissions": [
 		 "nativeMessaging"
 	],
