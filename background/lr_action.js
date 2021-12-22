@@ -319,6 +319,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		const exportPermissionPromise = fromBrowserActionPopup ?
 			Promise.resolve("skip, async call from popup") :
 			lr_export.requestPermissions();
+		// FIXME tab may be undefined here and `await` must not be added
+		// before permission request.
 		executor.notifier.startContext(tab, { default: true });
 		executor.acquireLock(type || "Tab", fromBrowserActionPopup);
 		await executor.step(

@@ -420,7 +420,9 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 }
 
 async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
-	if (!windowTab.url) {
+	// Firefox-95 may pass `undefined` as `TabData` on privileged pages
+	// with reasonable `ClickData` however.
+	if (!windowTab.url && !frameTab.url && !(target && target.pageUrl)) {
 		throw new Error("Permission for a tab denied");
 	}
 	executor.step({ result: true }, function setTargetElement() {
