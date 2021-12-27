@@ -35,22 +35,24 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			} catch (ex) {
 				console.error("lr_action_run_onError: put result to store %o", ex);
 			}
-			let activeTab = tab;
-			try {
-				activeTab = await tabPromise;
-			} catch (ex) {
-				console.error("lr_action_run_onError: getting tab %o", ex);
-			}
-			await lr_action_run_openPreview(tab);
+			await lr_action_run_openPreview();
 		}
 
 		let previewOpen;
 
-		async function lr_action_run_openPreview(tab, params) {
+		async function lr_action_run_openPreview(previewTab, params) {
 			if (previewOpen === PREVIEW) {
 				return;
 			}
-			previewOpen = await lr_action.openPreview(tab, params);
+			if (!previewTab || !(previewTab.id >= 0)) {
+				try {
+					previewTab = await tabPromise;
+				} catch (ex) {
+					console.error("lr_action_run_openPreview: getting tab %o", ex);
+				}
+			}
+			previewOpen = await lr_action.openPreview(
+				previewTab && previewTab.id >= 0 ? previewTab : tab, params);
 			// TODO implement feedback from preview tab that capture
 			// is received before unlock
 			await new Promise((resolve) => setTimeout(() => resolve(), 500));
@@ -561,6 +563,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				url: url.toString(),
 				openerTabId: tab && tab.id >= 0 ? tab.id : undefined,
 				windowId: tab && tab.windowId >= 0 ? tab.windowId : undefined,
+				// Not necessary in Firefox-95 but Chromium-95 adds the tab at the end otherwise.
+				index: tab && tab.index >= 0 ? tab.index + 1 : undefined,
 			})) && PREVIEW;
 		} catch(ex) {
 			console.warn("lr_action.openPreview: %o", ex);
