@@ -1,7 +1,7 @@
 {
 	"extName": {
-		"message": "LinkRemark - page or link notes with context",
-		"description": "Extension name (longer variant)"
+		"message": "LinkRemark",
+		"description": "Extension name (longer variant). Brief description as 'page or link notes with context' appended to the name looks good in extension list (browser management page, catalog), but it is used (not 'short_name') even in address bar and as a group name for context menu. Thus use the same value for 'name' and 'short_name'"
 	},
 	"extShortName": {
 		"message": "LinkRemark",
