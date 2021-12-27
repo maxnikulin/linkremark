@@ -3,7 +3,7 @@
 	"name": "__MSG_extName__",
 	"short_name": "__MSG_extShortName__",
 	"description": "__MSG_extDescription__",
-	"version": "0.3",
+	"version": "0.3.1",
 	"author": "__MSG_extAuthor__",
 	"homepage_url": "https://github.com/maxnikulin/linkremark",
 	"default_locale": "en",
