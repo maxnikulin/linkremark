@@ -159,6 +159,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			if (!lr_common.isGecko()) {
 				// Chromium-95 silently swallows assignment to background `window.location`
 				// and crashes on appending `<iframe>` with external handler `src`.
+				// https://crbug.com/1280940
 
 				// `tabs.update` method does not allow error detection, moreover:
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1745008
