@@ -84,7 +84,7 @@ firefox-dist: firefox
 	out="`cat manifest-common.json | \
 		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"`" ; \
 	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
-	file="linkremark-$${out}.unsigned.xpi" ; \
+	file="linkremark-$${out}-unsigned.xpi" ; \
 	$(RM) "$$file" ; \
 	zip --must-match "$$file" manifest.json $$background \
 		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
