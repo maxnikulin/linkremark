@@ -8,7 +8,7 @@
 		"description": "Extension name (short variant)"
 	},
 	"extDescription": {
-		"message": "Add page metadata such as author and date to notes created using capture and org-protocol features of Org Mode for GNU Emacs.",
+		"message": "Save notes with metadata: author, date, etc., in Org Mode file (GNU Emacs) using capture and org-protocol features.",
 		"description": "Extension description"
 	},
 	"extAuthor": {
