@@ -45,6 +45,10 @@
 		"menus",
 		"nativeMessaging"
 	],
+	"optional_permissions": [
+		"tabs",
+		"clipboardWrite"
+	],
 	"background": {
 		"scripts": [
 			"background/init_linkremark.js",
@@ -78,10 +82,6 @@
 			"background/main_linkremark.js"
 		]
 	},
-	"optional_permissions": [
-		"clipboardWrite",
-		"tabs"
-	],
 	"applications": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",

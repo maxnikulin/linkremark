@@ -3,8 +3,7 @@
 		"menus", "nativeMessaging"
 	],
 	"optional_permissions": [
-		"clipboardWrite",
-		"tabs"
+		"clipboardWrite"
 	],
 	"applications": {
 		"gecko": {

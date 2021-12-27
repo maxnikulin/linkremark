@@ -180,6 +180,11 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		// Chrome bugs do not allow to just follow recommendations,
 		// so log action to facilitate debugging.
 		console.log("lr_action._doCreateMenu...");
+
+		// Firefox-only extension. Click on not highlighted
+		// (selected with Ctrl) tab captures just it.
+		// Click on a highlighted tab initiates capture of all highlighted tabs.
+		const hasTabMenu = "TAB" in bapi.contextMenus.ContextType;
 		const itemArray = [
 			{
 				contexts: [ "all" ],
@@ -188,6 +193,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				// custom commands do not work here
 				// command: "page_remark",
 				title: "Remark for the page",
+			},
+			{
+				contexts: hasTabMenu ? [ "tab", "browser_action" ] : [ "browser_action" ],
+				enabled: true,
+				id: "LR_TAB",
+				title: "Remark for highlighted tabs",
 			},
 			{
 				contexts: [ "browser_action" ],
@@ -214,18 +225,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		];
 		for (const item of itemArray) {
 			lr_action._createMenuItem(item);
-		}
-
-		// Firefox-only extension. Click on not highlighted
-		// (selected with Ctrl) tab captures just it.
-		// Click on a highlighted tab initiates capture of all highlighted tabs.
-		if ("TAB" in bapi.contextMenus.ContextType) {
-			lr_action._createMenuItem({
-				contexts: [ "tab" ],
-				enabled: true,
-				id: "LR_TAB",
-				title: "Remark for this or highlighted tab(s)",
-			});
 		}
 	};
 

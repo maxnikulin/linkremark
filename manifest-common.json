@@ -42,6 +42,9 @@
 		"contextMenus",
 		"webNavigation", "<all_urls>"
 	],
+	"optional_permissions": [
+		"tabs"
+	],
 	"background": {
 		"scripts": [
 			"background/init_linkremark.js",
