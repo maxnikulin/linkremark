@@ -183,7 +183,8 @@ function bapiChrome(chrome) {
 			create: promisify,
 			// compatibility: Chrome >= 39, Firefox >= 43
 			executeScript: promisify,
-			// Used only for tab group capture that is unsupported in Chrome.
+			// Feature detection in Chrome. `tabGroups` to get name of group available for manifest v3 only.
+			group: promisify,
 			get: promisify,
 			query: promisify,
 			remove: promisify,

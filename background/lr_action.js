@@ -202,6 +202,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				id: "LR_TAB",
 				title: "Remark for highlighted tabs",
 			},
+			bapi.tabs.group && {
+				contexts: [ "browser_action" ],
+				enabled: true,
+				id: "LR_TAB_GROUP",
+				title: "Remark for tab group",
+			},
 			{
 				contexts: [ "browser_action" ],
 				enabled: true,
@@ -226,7 +232,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			},
 		];
 		for (const item of itemArray) {
-			lr_action._createMenuItem(item);
+			if (item) {
+				lr_action._createMenuItem(item);
+			}
 		}
 	};
 
@@ -271,6 +279,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 						lr_action._singleTabAction, clickData, tab, { type: "link" });
 					break;
 				case "LR_TAB":
+					await lr_action._run(highlightedTabsAction, clickData, tab, null);
+					break;
+				case "LR_TAB_GROUP":
 					await lr_action._run(tabGroupAction, clickData, tab, null);
 					break;
 				default:
@@ -336,7 +347,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			lr_action._singleTabActionDo, clickData, tab, type, executor);
 	}
 
-	/// Skips permission request. Necessary due to branches of tabGroupAction.
+	/// Skips permission request. Necessary due to branches of highlightedTabsAction.
 	async function _singleTabActionDo(clickData, tab, type, executor) {
 		// A hack to ensure that tab is known before opening preview window
 		// for previous capture.
@@ -354,7 +365,43 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			captureAndExportResult, activeTab, lrCaptureSingleTab, params, executor);
 	};
 
+	class _HighlightedTabBunch {
+		constructor(tab) {
+			this.tab = tab;
+		}
+		get isBunch() {
+			return this.tab.highlighted;
+		}
+		async getArray() {
+			return bapi.tabs.query({highlighted: true});
+		}
+	}
+
+	class _GroupedTabBunch {
+		constructor(tab) {
+			this.tab = tab;
+		}
+		get isBunch() {
+			return this.tab.groupId >= 0;
+		}
+		async getArray() {
+			return bapi.tabs.query({groupId: this.tab.groupId});
+		}
+	}
+
+	async function highlightedTabsAction(clickData, tab, _props, executor) {
+		// Hope, no `await` or `executor.step` is necessary
+		return lr_action._tabBunchAction(
+			clickData, tab, new _HighlightedTabBunch(tab), executor);
+	}
+
 	async function tabGroupAction(clickData, tab, _props, executor) {
+		// Hope, no `await` or `executor.step` is necessary
+		return lr_action._tabBunchAction(
+			clickData, tab, new _GroupedTabBunch(tab), executor);
+	}
+
+	async function _tabBunchAction(clickData, tab, bunch, executor) {
 		// Firefox-87:
 		// Do not `await` anything before `permissions.request`, otherwise
 		// user action context is lost, see
@@ -374,11 +421,15 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 		const exportPermissionPromise = lr_export.requestPermissions();
 
-		executor.acquireLock(!tab.highlighted ? "Tab" : "Tab Group");
-		if (!tab.highlighted) {
+		const isBunch = bunch.isBunch;
+		executor.acquireLock(!isBunch ? "Tab" : "Tabs");
+		if (!isBunch) {
 			executor.notifier.startContext(tab, { default: true });
-			// Tab is neither active nor selected (highlighted). Capture just that tab.
-			await bapi.tabs.update(tab.id, { active: true });
+			if (!tab.active) {
+				// In Firefox context menu may be invoked for a non-highlighted tab.
+				// Capture just that tab.
+				await bapi.tabs.update(tab.id, { active: true });
+			}
 			// TODO consider executor.waitPromise method
 			await executor.step(
 				{ result: true, errorAction: lr_executor.IGNORE_ERROR },
@@ -396,7 +447,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 		// User actions in response to permissions request or switching tab
 		// may affect selection, so store current list of tabs to be captured.
-		const selectedArray = await bapi.tabs.query({highlighted: true});
+		const selectedArray = await bunch.getArray();
 
 		if (!tab.active) {
 			// Firefox-87: Prompt is hidden till user switches to the tab
@@ -410,6 +461,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 		if (selectedArray.length === 1) {
 			executor.notifier.startContext(tab, { default: true });
+			if (tab.id !== selectedArray[0].id) {
+				console.error("_tabBunchAction: action tab != single tab in bunch", tab, selectedArray[0]);
+			}
 			// Directly capture the only selected tab, it is allowed due to "activeTab" permission.
 			return await executor.step(
 				lr_action._singleTabActionDo, clickData, tab, null, executor);
@@ -656,6 +710,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		captureCurrentTabEndpoint,
 		openHelp,
 		openHelpEndpoint,
+		_GroupedTabBunch,
+		_HighlightedTabBunch,
 		_doCreateMenu,
 		_createMenuItem,
 		_openUniqueAddonPage,
@@ -663,6 +719,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		_waitLock,
 		_singleTabAction,
 		_singleTabActionDo,
+		_tabBunchAction,
 		internal: { PREVIEW,
 			getActiveTab,
 		},
