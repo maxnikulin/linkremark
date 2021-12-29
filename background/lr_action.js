@@ -373,7 +373,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return this.tab.highlighted;
 		}
 		async getArray() {
-			return bapi.tabs.query({highlighted: true});
+			return bapi.tabs.query({ highlighted: true, currentWindow: true });
 		}
 	}
 
