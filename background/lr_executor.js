@@ -337,11 +337,14 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
 			try {
 				if (lr_util.isAsyncFunction(func)) {
 					++finalize;
-					return this._asyncStep({ children: child.debugInfo, ...descr }, func, ...args)
-						.then(child_copyError, ex => {
-							child_copyError(undefined, ex);
-							throw ex;
-						});
+					const promise = this._asyncStep(
+						{ children: child.debugInfo, ...descr }, func, ...args
+					).then(child_copyError, ex => {
+						child_copyError(undefined, ex);
+						throw ex;
+					});
+					--finalize;
+					return promise;
 				}
 				return child_copyError(this.step({ children: child.debugInfo, ...descr }, func, ...args));
 			} catch (ex) {
