@@ -53,7 +53,7 @@ and to remove some redundant entries.
   ,** Adam Porter — org-almanac
   :PROPERTIES:
   :DATE_ADDED: [2021-09-28 Tue 12:15]
-  :LAST_MODIFIED: [2021-09-18 Tue 01:23]​ 09/18/2021 01:23:46
+  :LAST_MODIFIED: [2021-09-18 Tue 01:23] 09/18/2021 01:23:46
   :END:
 
   - URL :: [[https://alphapapa.github.io/org-almanac/]]

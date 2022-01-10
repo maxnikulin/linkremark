@@ -399,14 +399,12 @@ var lr_org_buffer = lr_util.namespace(lr_org_buffer, function lr_org_buffer() {
 			console.assert(this.unsafeText.length > 0);
 			let line = this.unsafeText.join("");
 			if (!next) {
-				line = line.replace(/\s*$/, "");
+				line = line.replace(/\s+$/, "");
 			}
 			if (this.line.length === 0) {
 				if (/^\s*(?:#\+|:\w)/.test(line) || (this.formatterState.textIndent === 0 && /^\*+\s/.test(line))) {
 					line = ',' + line
 				}
-			} else if (/\]$/.test(this.line[this.line.length - 1])) {
-				line = "\u200B" + line;
 			}
 			if (next && next[0] === '[' && /\[$/.test(line)) {
 				line += "\u200B";

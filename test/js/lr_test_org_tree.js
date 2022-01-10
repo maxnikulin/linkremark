@@ -32,6 +32,28 @@ var lr_test_org_tree = lr_util.namespace(lr_test_org_tree, function lr_test_org_
 			() => "[[a]]",
 			"[\u200B[a]\u200B]",
 		], [
+			() => [ "[test]", " after bracket" ],
+			"[test] after bracket",
+			"No stray zero-width space to suppress links-like markup",
+		], [
+			() => [ "before bracket ", "[test]" ],
+			"before bracket [test]",
+			"No stray zero-width space to suppress links-like markup",
+		], [
+			() => [ "[[test]", "] not a link" ],
+			"[\u200B[test]\u200B] not a link",
+		], [
+			() => [ "Not a link [", "[test]]" ],
+			"Not a link [\u200B[test]\u200B]",
+		], [
+			() => [ LrOrgMarkup("[markup]"), " after markup" ],
+			"[markup] after markup",
+			"No stray zero-width space to suppress links-like markup",
+		], [
+			() => [ "Before markup", LrOrgMarkup("[markup]") ],
+			"Before markup[markup]",
+			"No stray zero-width space to suppress links-like markup",
+		], [
 			() => LrOrgLink({ href: "https://h-o.st/pa-th.html"}),
 			"[[https://h-o.st/pa-th.html]]",
 		], [
