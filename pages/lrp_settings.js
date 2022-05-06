@@ -283,7 +283,7 @@ async function lrOnFileLoad() {
 			const update = await lrSendMessage("settings.update", [settings, true ]);
 			divReport.append(E(
 				"p", null,
-				`Backup resored from ${f.name}`
+				`Backup restored from ${f.name}`
 			));
 			window.location.reload();
 		} catch (ex) {
