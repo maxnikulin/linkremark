@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>LR Test: Multiple JSON-LD</title>
+  </head>
+  <body>
+    <nav>
+      <a href="../index.html">Up</a>
+      <a href="index.html">Metadata</a>
+      <a href="json-ld.html">ld+json</a>
+      <a href="meta-head.html">&lt;head&gt; meta</a>
+    </nav>
+    <h1>LinkRemark Test: JSON-LD metadata in multiple scripts</h1>
+    <p>This page contains several ld+json <code>&lt;script&gt;</code> elements:
+    Organization, WebPage, and Article.</p>
+
+    <p>Author, datePublished, url, publisher, image may be extracted if article
+    is considered as the primary entry. Title have to be taken from the head element.<p>
+
+    <p>Peculiarities:</p>
+    <ul>
+      <li><code>@id</code> attributes are anchors on the top of the site (empty paths).</li>
+      <li>Article <code>name</code> is an empty string.</li>
+      <li>WebPage name is site name, not article and page title.</li>
+      <li>Article and WebPage uses the same url, so WebPage name is really confusing.</li>
+      <li>There is no cross-references between records, so primary one
+        have to be guessed.</li>
+    </ul>
+    <script type="application/ld+json">
+      {
+        "@context": "http://schema.org/",
+        "@id": "https://multi-json.ld/#organization",
+        "@type": "Organization",
+        "name": "MutiJSON LTD",
+        "logo": "https://assets.multi-json.ld/org-logo.png",
+        "url": "https://multi-json.ld",
+        "sameAs": [
+          "https://github.com/ld/multi-json",
+          "https://en.wikipedia.org/wiki/JSON-LD",
+          "https://twitter.com/multi-json-ld",
+          "https://www.facebook.com/multijsonld/",
+          "https://www.youtube.com/multijsonld"
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "http://schema.org",
+        "@id": "https://multi-json.ld/#website",
+        "@type": "WebPage",
+        "name": "Multi JSON LD",
+        "url": "https://multi-json.ld/blog/strange-set-of-json-ld-scripts",
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+      "@context": "http://schema.org",
+      "@id": "https://multi-json.ld/#article",
+      "@type": "Article",
+      "name": "",
+      "author": {
+         "@type": "Person",
+         "name": "Dumb Autho"
+      },
+      "datePublished": "2021-08-11T11:03:01",
+
+        "image": "https://multi-json.ld/wp-content/uploads/article-image.jpg",
+
+      "url": "https://multi-json.ld/blog/strange-set-of-json-ld-scripts",
+      "publisher": {
+        "@type": "Organization",
+        "name": "MultiJSON LTD"
+      }
+    }
+    </script>
+  </body>
+</html>

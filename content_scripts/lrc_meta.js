@@ -254,7 +254,7 @@
 				result.push({ ...template, error: new LrOverflowError(scriptList.length) });
 				break;
 			}
-			const value = scriptList[0].innerText;
+			const value = scriptList[i].innerText;
 			if (value.length < 8*TEXT_SIZE_LIMIT) {
 				result.push({ ...template, value });
 			} else {
