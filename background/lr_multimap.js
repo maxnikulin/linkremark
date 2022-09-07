@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2021 Max Nikulin
+   Copyright (C) 2021-2022 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ var lr_multimap = lr_util.namespace(lr_multimap, function lr_multimap() {
 				return;
 			}
 			for (const [ key, value ] of items) {
-				this.add(key, value);
+				this.set(key, value);
 			}
 		}
 		set(key, value) {
