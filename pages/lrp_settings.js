@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2022 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -67,6 +67,7 @@ function getDescriptionParagraphs(property) {
 	const paragraphs = text.split("\n");
 	return paragraphs.map(p => E("p", null, p));
 }
+
 function formatDetails(property) {
 	const pars = getDescriptionParagraphs(property);
 
@@ -128,7 +129,14 @@ function formatInput(property, options) {
 			const textarea = E("textarea", {
 				name: inputName, className: "limitedWidth", cols: 132
 			});
-			textarea.readOnly = isDefault;
+			const content = (isDefault ? property.defaultValue : property.value?.value) ?? "";
+			if (isDefault) {
+				textarea.readOnly = true;
+				textarea.textContent = content;
+			}
+			textarea.rows = Math.max(
+				isDefault? 1 : 3,
+				Math.min(10, content.split?.("\n")?.length));
 			return isDefault ? E('div', { className: "scroll" }, textarea) : textarea;
 			break;
 		default:
