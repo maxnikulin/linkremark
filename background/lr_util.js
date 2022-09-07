@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2022 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 "use strict";
 
 var lr_util = function() {
+	const lr_util = this;
+
 	function toString(obj) {
 		return Object.prototype.toString.call(obj);
 	}
@@ -26,12 +28,12 @@ var lr_util = function() {
 		return toString(obj) === '[object Date]';
 	}
 
-	// In both cases typeof func === "function"
-	this.isFunction = function(func) {
-		return Object.prototype.toString.call(func) === '[object Function]';
+	// In both cases `typeof func === "function"`
+	lr_util.isFunction = function isFunction(func) {
+		return toString(func) === '[object Function]';
 	};
-	this.isAsyncFunction = function(func) {
-		return Object.prototype.toString.call(func) === '[object AsyncFunction]';
+	lr_util.isAsyncFunction = function isAsyncFunction(func) {
+		return toString(func) === '[object AsyncFunction]';
 	};
 
 	this.assertFunction = function(func, message = null) {

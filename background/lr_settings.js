@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2022 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -340,7 +340,7 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		return true;
 	};
 
-	// TODO Separate into model part and async part actuall updating the storage.
+	// TODO Separate into model part and async part actual updating the storage.
 	this.update = async function(params) {
 		const [obj, replace] = params;
 		let needCommit = false;
