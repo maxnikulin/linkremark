@@ -112,70 +112,85 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		// during extension update.
 
 		const manifest = bapi.runtime.getManifest();
-		// `true` is default value when omitted, so identity test
-		if (manifest.background.persistent !== false) {
-			// Firefox
+		const { persistent } = manifest.background;
+		const isServiceWorker = globalThis.window === undefined;
+		// `true` is default value for `persistent` when omitted, so identity test for boolean.
+		if (persistent !== false && !isServiceWorker) {
+			// Firefox MV2
 			console.log("lr_action.createMenu: run for persistent extension");
 			return _doCreateMenu();
 		}
 
-		let menuCreated = false;
-		bapi.runtime.onInstalled.addListener(async function lr_onInstalled_menu(details) {
+		// Simple `Promise` is enough for concurrency between 2 functions.
+		let menuCreated;
+		async function _recreateMenu(eventName, details) {
 			if (menuCreated) {
-				console.log("lr_action.createMenu: onInstalled: created earlier");
+				console.log("lr_action.createMenu", eventName, "created earlier");
 				return;
 			}
-			console.log("lr_action.createMenu: onInstalled(%o)", details);
+			menuCreated = true;
+			console.log("lr_action.createMenu", eventName, "creating", details);
 			try {
+				// Should be necessary only in the case of update,
+				// so `storage.local` maybe used.
+				// See the test using `contextMenus.create` below however.
 				await bapi.contextMenus.removeAll();
 			} catch (ex) {
-				console.error("lr_action.createMenu: onInstalled: ignored error: %o", ex);
+				console.error("lr_action.createMenu", event, "ignored error", ex);
 			}
 			lr_action._doCreateMenu();
-			menuCreated = true;
-		});
+		}
+		bapi.runtime.onInstalled.addListener(_recreateMenu.bind(null, "onInstalled"));
 
-		// Try to deal with bugs, unsure if it is really necessary
-		// since there is fallback with timeout below.
-		bapi.runtime.onStartup.addListener(async function lr_onStartup_menu() {
-			if (menuCreated) {
-				console.log("lr_action.createMenu: onStartup: created earlier");
-				return;
-			}
-			console.log("lr_action.createMenu: onStartup");
-			try {
-				await bapi.contextMenus.removeAll();
-			} catch (ex) {
-				console.error("lr_action.createMenu: onStartup: ignored error: %o", ex);
-			}
-			lr_action._doCreateMenu();
-			menuCreated = true;
-		});
+		function lr_createMenu_check(eventName) {
+			// Exceptions in `setTimeout` callback are reported to console
+			// and collected errors, so no point in try-catch here.
 
-		// Last resort when neither of listeners above invoked due to bugs.
-		setTimeout(async function lr_createMenu_delayed() {
 			// There is no point to check `menuCreated` since it is `false`
 			// for resumed extension.
 			console.log("lr_action.createMenu: delayed: checking...");
-			try {
-				await bapi.contextMenus.update("LR_FRAME_REMARK", {});
-				// menu created.
-				// TODO: Are there cases when after extension update
-				// menu is not recreated, so versions for normal and incognito
-				// contexts (separately) should be added to local storage?
-				console.log("lr_action.createMenu: delayed: menu is ready");
-				return;
-			} catch (ex) {
-				console.log("lr_action.createMenu: delayed: recreating due to check error: %o", ex);
-			}
-			try {
-				await bapi.contextMenus.removeAll();
-			} catch (ex) {
-				console.error("lr_action.createMenu: delayed: ignored error: %o", ex);
-			}
-			lr_action._doCreateMenu();
-			menuCreated = true;
-		}, 333);
+			// Menus `update` does not throw exceptions.
+			// Never happens in Firefox-115 ESR.
+			// Tried mv2 and mv3, `browser` and `chrome`,
+			// `menus` and `contextMenus`,
+			// `runtime.lastError` in callback and returned `Promise`.
+			// Never happens in Chromium-129. Only `lastError` in callback
+			// may be used to detect an error.
+			// `update` approach was working in Chrome due to `promisify`
+			// polyfill in `bapi`.
+			bapi.contextMenus.create(
+				{ id: "LR_FRAME_REMARK", title: "LR Internal Error"},
+				function _lr_createMenuDelayed() {
+					const { lastError } = chrome.runtime;
+					if (lastError != null) {
+						const known = [
+							// Firefox 115 ESR mv3 (with period):
+							"The menu id LR_FRAME_REMARK already exists in menus.create.",
+							// Firefox 115 ESR mv2 (no period):
+							"ID already exists: LR_FRAME_REMARK",
+							// Chromium-129 mv3:
+							"Cannot create item with duplicate id LR_FRAME_REMARK"
+						].indexOf(lastError.message) >= 0;
+						if (!known) {
+							console.error("Unexpected menu detection message:", lastError.message);
+						}
+						// menu created.
+						// TODO: Are there cases when after extension update
+						// menu is not recreated, so versions for normal and incognito
+						// contexts (separately) should be added to local storage?
+						console.log(`lr_action.createMenu: ${eventName}: menu is ready`);
+						return;
+					}
+					console.error("Menu is not ready", eventName);
+					_recreateMenu(eventName);
+				});
+		}
+
+		// Try to deal with bugs, unsure if it is really necessary
+		// since there is fallback with timeout below.
+		bapi.runtime.onStartup.addListener(lr_createMenu_check.bind(null, "onStartup"));
+		// Last resort when neither of listeners above invoked due to bugs.
+		setTimeout(lr_createMenu_check.bind(null, "delayed"), 333);
 	}
 
 	async function _doCreateMenu() {
@@ -334,7 +349,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	/// Asks export permission and calls `_singleTabActionDo`.
-	/// Called throgh `browserAction` listener and context menu
+	/// Called through `browserAction` listener and context menu
 	/// items for frame (page), link, and image.
 	async function _singleTabAction(clickData, targetTab, props, executor) {
 		// No `await` here to avoid lost of user action context in Firefox.
