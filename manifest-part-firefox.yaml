@@ -5,4 +5,4 @@ optional_permissions:
 applications:
   gecko:
     id: linkremark@maxnikulin.github.io
-    strict_min_version: '91.0'
+    strict_min_version: '102.0'

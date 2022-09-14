@@ -196,6 +196,11 @@ function bapiChrome(chrome) {
 		webNavigation: {
 			getAllFrames: promisify,
 		},
+		// `chrome.scripting.executeScript` returns `undefined` in Firefox mv2 extensions
+		// so it is impossible to use `chrome` directly instead of `bapi`.
+		scripting: {
+			executeScript: asis,
+		},
 	};
 
 	class BapiHandler {

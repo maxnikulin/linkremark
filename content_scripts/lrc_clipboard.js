@@ -25,7 +25,7 @@
 
 "use strict";
 
-(function lrc_clipboard() {
+(async function lrc_clipboard() {
 	const CLIPBOARD_TIMEOUT = 330;
 	// In Firefox-115 ESR `document.execCommand("copy")` may propagate
 	// to other documents. Chromium-127 is not affected.
@@ -204,12 +204,8 @@
 		return result;
 	}
 
-	const result = { warnings };
+	const retval = { warnings };
 	try {
-		function lrRandomId() {
-			return Math.floor(Math.random()*Math.pow(2, 53));
-		}
-
 		async function lrSendMessageChrome(msg) {
 			const error = new Error();
 			return new Promise(function(resolve, reject) {
@@ -243,20 +239,6 @@
 				throw response.error;
 			}
 			throw new Error ("Invalid response object");
-		}
-
-		async function lrSettleAsyncScriptPromise(promiseId, func) {
-			let result;
-			try {
-				result = await func();
-				// lrSendSendMessage for result should be outside of try-catch
-				// since there is no point to report its failure to the background page
-				// using the same (already failed) method.
-			} catch (ex) {
-				lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex), warnings ]);
-				throw ex;
-			}
-			lrSendMessage("asyncScript.resolve", [ promiseId, result, warnings ]);
 		}
 
 		async function lrLaunchProtocolHandlerFromContentScript(url, detectUnconfigured) {
@@ -350,7 +332,7 @@
 				(async () => lrCopyUsingEvent(text))(), CLIPBOARD_TIMEOUT);
 		}
 
-		async function lrPostResultFromContentScript() {
+		async function lrGetCaptureCopyLaunch() {
 			const { transport, formats } = await lrSendMessage("store.getCapture");
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
@@ -367,21 +349,16 @@
 			}
 			throw new Error(`Unsupported method ${method}`);
 		}
-		const promiseId = lrRandomId();
-		// async function does not block execution
-		lrSettleAsyncScriptPromise(promiseId, lrPostResultFromContentScript);
-		result.promise = promiseId;
 
-		return result;
+		retval.result = await lrGetCaptureCopyLaunch();
+		return retval;
 	} catch (ex) {
-		result.error = lrToObject(ex);
-		return result;
+		retval.error = lrToObject(ex);
+		return retval;
 	} finally {
 		if (warnings.length === 0) {
-			delete result.warnings;
+			delete retval.warnings;
 		}
-		// clear warnings before async actions
-		warnings = [];
 	}
 	return { error: "LR internal error: lrc_clipboard.js: should not reach end of the function" };
 })();

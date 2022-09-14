@@ -49,9 +49,9 @@ var lr_clipboard;
 var lr_export;
 var lr_native_export;
 var lr_notify;
+var lr_scripting;
 var lr_settings;
 var lr_util;
-var gLrAsyncScript;
 
 !function lrNotifyLoading() {
 	// Make load errors visible to users.

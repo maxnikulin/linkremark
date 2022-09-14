@@ -37,6 +37,7 @@
 		"browser_style": true
 	},
 	"permissions": [
+		"scripting",
 		"storage",
 		"activeTab",
 		"contextMenus",
@@ -69,11 +70,11 @@
 			"background/lr_rpc_store.js",
 			"background/lr_addon_rpc.js",
 			"background/lr_settings.js",
-			"background/lr_async_script.js",
 			"background/lr_export.js",
 			"background/lr_clipboard.js",
 			"background/lr_native_connection.js",
 			"background/lr_native_export.js",
+			"background/lr_scripting.js",
 			"background/lr_tabframe.js",
 			"background/lr_notify.js",
 			"background/lr_action.js",
@@ -84,7 +85,7 @@
 	"applications": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",
-			"strict_min_version": "91.0"
+			"strict_min_version": "102.0"
 		}
 	}
 }

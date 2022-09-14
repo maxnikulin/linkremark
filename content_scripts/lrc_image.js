@@ -17,7 +17,7 @@
 
 "use strict";
 
-(function lrc_image() {
+(async function lrc_image() {
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
@@ -75,57 +75,15 @@
 		}
 	}
 
-	function lrRandomId() {
-		return Math.floor(Math.random()*Math.pow(2, 53));
-	}
-
-	async function lrSendMessageChrome(msg) {
-		const error = new Error();
-		return new Promise(function(resolve, reject) {
-			try {
-				chrome.runtime.sendMessage(msg, function(response) {
-					const lastError = chrome.runtime.lastError;
-					if (lastError instanceof Error) {
-						reject(lastError);
-					} else if (lastError) {
-						error.message = lastError.message || "lrSendMessage: empty lastError";
-						reject(error);
-					} else {
-						resolve(response);
-					}
-				});
-			} catch (ex) {
-				reject(ex);
-			}
-		});
-	}
-
 	async function lrSendMessage(method, params) {
 		const msg = {method, params};
-		const response = await (
-			typeof browser !== "undefined" ?
-			browser.runtime.sendMessage(msg) : lrSendMessageChrome(msg)
-		);
+		const response = await browser.runtime.sendMessage(msg);
 		if (response != null && response.result !== undefined) {
 			return response.result;
 		} else if (response != null && response.error) {
 			throw response.error;
 		}
 		throw new Error ("Invalid response object");
-	}
-
-	async function lrSettleAsyncScriptPromise(promiseId, func) {
-		let result;
-		try {
-			result = await func();
-			// lrSendSendMessage for result should be outside of try-catch
-			// since there is no point to report its failure to the background page
-			// using the same (already failed) method.
-		} catch (ex) {
-			lrSendMessage("asyncScript.reject", [ promiseId, lrToObject(ex) ]);
-			throw ex;
-		}
-		lrSendMessage("asyncScript.resolve", [ promiseId, result ]);
 	}
 
 	async function getTargetElement(errorCb) {
@@ -201,10 +159,7 @@
 	}
 
 	try {
-		const promiseId = lrRandomId();
-		// async function does not block execution
-		lrSettleAsyncScriptPromise(promiseId, lrcImageProperties);
-		return { promise: promiseId };
+		return { result: await lrcImageProperties() };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}

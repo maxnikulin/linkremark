@@ -89,8 +89,33 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (!(tabId >= 0)) {
 			throw new Error("_lrClipboardContentScript: invalid tabId");
 		}
-		// TODO handle warnings in return value
-		return { preview: !await gLrAsyncScript.exec(tabId, 0, { file: "/content_scripts/lrc_clipboard.js" }) };
+		const scriptResult = await lr_scripting.executeScript(
+			{ tabId, frameId: 0 }, "/content_scripts/lrc_clipboard.js");
+		const { result, error, warnings } = scriptResult || {};
+		if (result) {
+			if (error) {
+				console.warn("_lrClipboardContentScript: ignore error", error);
+			}
+			if (warnings) {
+				console.warn("_lrClipboardContentScript: ignore warnings", warnings);
+			}
+			if (result !== true && typeof result !== "string") {
+				console.warn("_lrClipboardContentScript: result is not true");
+			}
+		} else {
+			let errObjects = warnings || [];
+			if (error) {
+				errObjects.push(error);
+			}
+			// TODO errObjects = errObjects.map(lr_common.objectToError);
+			if (errObjects.length === 1) {
+				throw errObjects[0];
+			}
+			throw new AggregateError(errObjects, "Copy from content script failed");
+		}
+		return {
+			preview: !result,
+		};
 	}
 
 	async function _lrClipboardCopyFromBackground(text) {
