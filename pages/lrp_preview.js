@@ -128,7 +128,7 @@ async function lrNativeMessagingAction(dispatch, getState) {
 	}
 	*/
 	// TODO check that response to the same request received
-	const response = await lrSendMessage(
+	const response = await lr_common.sendMessage(
 		"export.process", [ capture, { method: "native-messaging", backend: name } ]);
 	const { error, debugInfo } = response || {};
 	if (debugInfo) {
@@ -157,7 +157,7 @@ async function lrLaunchOrgProtocolHandlerAction(dispatch, getState) {
 }
 
 async function lrPreviewGetCapture(dispatch, getState) {
-	const cached = await lrSendMessage("store.getResult");
+	const cached = await lr_common.sendMessage("store.getResult");
 
 	// No try-catch is necessary here
 	if (cached === "NO_CAPTURE") {
@@ -166,7 +166,7 @@ async function lrPreviewGetCapture(dispatch, getState) {
 		// using of this page as a playground with no guide for debug.
 		// In the case of severe error it may be confusing however.
 		dispatch(gLrPreviewLog.finished({
-			id: bapiGetId(),
+			id: lr_common.getId(),
 			message: "Nothing has been captured yet",
 			name: "Warning",
 		}));
@@ -227,7 +227,7 @@ async function lrPreviewGetCapture(dispatch, getState) {
 			}
 		} else {
 			dispatch(gLrPreviewLog.finished({
-				id: bapiGetId(),
+				id: lr_common.getId(),
 				message: "No capture result received",
 				name: "Error",
 			}));
@@ -275,7 +275,7 @@ async function lrPreviewGetCapture(dispatch, getState) {
 	// No point for try-catch for last action since error will be reported by the caller.
 	if (error) {
 		lrPreviewLogException({ dispatch, getState }, { message: "A problem with capture", error });
-		await lrSendMessage("store.putPreviewError", lr_common.errorToObject(
+		await lr_common.sendMessage("store.putPreviewError", lr_common.errorToObject(
 			new LrWarning("User action required due to error or warning")));
 		await lrPromiseTimeout(1000);
 	} else if (method) {
@@ -308,7 +308,7 @@ function lrMakeTransportAction({ method, close, launch }) {
 	};
 	const handler = actions[method];
 	return async function lrTransportAction(dispatch, getState) {
-		const id = bapiGetId();
+		const id = lr_common.getId();
 		let delayTime = Date.now() + 1000;
 		try {
 			if (!handler) {
@@ -318,7 +318,7 @@ function lrMakeTransportAction({ method, close, launch }) {
 				id, message: `Exporting using ${method}...` }));
 			await handler(dispatch, getState);
 			if (launch) {
-				await lrSendMessage("store.putPreviewError", false);
+				await lr_common.sendMessage("store.putPreviewError", false);
 			}
 			dispatch(gLrPreviewLog.finished({
 				id, message: `Exported using ${method}` }));
@@ -333,7 +333,7 @@ function lrMakeTransportAction({ method, close, launch }) {
 				name: "Error",
 			}));
 			if (launch) {
-				await lrSendMessage(
+				await lr_common.sendMessage(
 					"store.putPreviewError",
 					lr_common.errorToObject(ex || new Error("Unknown error")));
 				// Delay before reload
@@ -370,7 +370,7 @@ function lrMakeUpdateProjectionAction(format) {
 			if (capture == null) {
 				if (format === "org-protocol") {
 					debug("org-protocol options");
-					const availableFormats = await lrSendMessage("export.availableFormats");
+					const availableFormats = await lr_common.sendMessage("export.availableFormats");
 					const { options } = availableFormats.find(f => f.format === "org-protocol");
 					return dispatch(gLrPreviewActions.captureFormat(lrPmDefaultProjection(format, options)));
 				} else {
@@ -387,7 +387,7 @@ function lrMakeUpdateProjectionAction(format) {
 			const options = currentProjection && currentProjection.options &&
 				JSON.parse(currentProjection.options);
 			const { result: newCapture, error, debugInfo } =
-				await lrSendMessage(
+				await lr_common.sendMessage(
 					"export.format",
 					[ capture, { format, version: LR_PM_DEFAULT_FORMAT_VERSIONS[format], options } ]
 				) || {};
@@ -405,7 +405,7 @@ function lrMakeUpdateProjectionAction(format) {
 			console.error("lrUpdateProjectionAction: %o", ex);
 			// TODO report progress
 			dispatch(gLrPreviewLog.finished({
-				id: bapiGetId(),
+				id: lr_common.getId(),
 				message: `Formatting to ${format} failed: ${ex}`,
 				name: "Error",
 			}));
@@ -1006,7 +1006,7 @@ const gLrPreviewActions = {
 		return { type: "transport/change", data: { source: "user", ...nameValue } } ;
 	},
 	focusTransportMethod: function(method) {
-		return { type: "transport/change", data: { name: "focus", value: bapiGetId(), method } };
+		return { type: "transport/change", data: { name: "focus", value: lr_common.getId(), method } };
 	},
 };
 
@@ -1099,7 +1099,7 @@ function lrPreviewLogException(store, data) {
 							const message = errorText(subError);
 							const name = String(subError.name || "OtherError");
 							store.dispatch(gLrPreviewLog.finished({
-								id: bapiGetId(),
+								id: lr_common.getId(),
 								message: String(message || subError.name || subError),
 								name,
 							}));
@@ -1118,7 +1118,7 @@ function lrPreviewLogException(store, data) {
 				}
 				const name = (error && error.name) || "OtherError";
 				store.dispatch(gLrPreviewLog.finished({
-					id: id != null ? id : bapiGetId(),
+					id: id != null ? id : lr_common.getId(),
 					message: errorMessage,
 					name: String(name),
 				}));
@@ -1330,7 +1330,7 @@ async function lrPreviewMain(eventSources) {
 
 	try {
 		await dispatch(lrWithTimeout(1000, async function lrPreviewGetSettings(dispatch) {
-			const settings = await lrSendMessage("settings.get");
+			const settings = await lr_common.sendMessage("settings.get");
 			dispatch(gLrPreviewActions.settings(settings));
 			const method = settings && settings["export.method"];
 			if (method && method != "native-messaging") {

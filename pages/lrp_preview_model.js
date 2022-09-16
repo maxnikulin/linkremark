@@ -173,7 +173,7 @@ function lrPmCaptureUpdate(origCapture, updateCapture) {
 	}
 	const current = { ...(origCapture.current || {}) };
 	const formats = { ...(origCapture.formats || {}) };
-	let adjust = bapiGetId();
+	let adjust = lr_common.getId();
 	const updated = new Set();
 	for (
 		let projection, projectionId = transport && transport.captureId;
@@ -244,7 +244,7 @@ function lrPmDefaultProjection(format, options) {
 	if (version == null) {
 		throw new Error(`No default version for "${format}" format`);
 	}
-	const projection = { format, version, id: bapiGetId() };
+	const projection = { format, version, id: lr_common.getId() };
 	if (options != null) {
 		projection.options = options;
 	}
@@ -275,14 +275,14 @@ function lrPmUpdateProjection(capture, diff) {
 		return capture;
 	}
 
-	const newId = bapiGetId();
+	const newId = lr_common.getId();
 	// fake modified on first change
 	const projection = {
 		...(current != null ? current : lrPmDefaultProjection(format)),
 		id: newId,
 		modified: current != null && current.modified != null
 		? current.modified
-		: (currentId != null ? currentId : bapiGetId()),
+		: (currentId != null ? currentId : lr_common.getId()),
 		[field]: value,
 	};
 

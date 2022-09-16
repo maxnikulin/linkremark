@@ -26,7 +26,7 @@ var lr_tabframe = lr_util.namespace(lr_tabframe, function lr_tabframe() {
 	lr_tabframe.scriptTimeout = 2000;
 
 	function makeCapture(result) {
-		const id = result.id || bapiGetId();
+		const id = result.id || lr_common.getId();
 		return {
 			formats: { [id]: {
 				...result,

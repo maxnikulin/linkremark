@@ -120,6 +120,29 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 			document.removeEventListener("copy", lr_oncopy, true);
 		}
 	},
+	getId: function(init) { return () => init++; } (Date.now()),
+	/**
+	 * runtime.sendMessage wrapper for communication similar to JSON-RPC
+	 *
+	 * Actually it is simplified version of protocol.
+	 * Successful response have `response` field.
+	 * Otherwise promise is rejected either using `error` field
+	 * or just stating that onMessage handler does not follow the rules.
+	 */
+	async sendMessage(method, params) {
+		const response = await bapi.runtime.sendMessage({ id: lr_common.getId(), method, params });
+		if (response != null) {
+			if (response._type === "ExecInfo") {
+				return response;
+			} else if ("result" in response) {
+				return response.result;
+			} else if ("error" in response) {
+				throw new Error(response.error);
+			}
+		}
+		console.error("lr_common.sendMessage: invalid response", response);
+		throw new Error ("Invalid response object");
+	},
 });
 
 class LrError extends Error {

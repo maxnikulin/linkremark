@@ -87,7 +87,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 	class LrActiveActionLock {
 		constructor({ id, title, onFinished }) {
 			// Force string to make "data-" (`dataset`) DOM operations more convenient.
-			this.id = id != null ? id : String(bapiGetId());
+			this.id = id != null ? id : String(lr_common.getId());
 			this.title = title;
 			this._abortController = new AbortController();
 			this.lock = new LrActionLock({
@@ -132,7 +132,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 						}
 						this._pending.reject(new LrActionLockCancelledError("Another action requested"));
 					}
-					const id = String(bapiGetId());
+					const id = String(lr_common.getId());
 					const retval = new Promise((resolve, reject) => this._pending = { resolve, reject, title, id });
 					if (this._subscription != null) {
 						this._subscription.notify({ id, title, status: "pending" });

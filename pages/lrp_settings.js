@@ -234,7 +234,7 @@ async function lrInputChanged(e) {
 			form[name + ".useDefault"].checked = false;
 		}
 		const change = makeValueDescriptor(form, name);
-		const update = await lrSendMessage("settings.update", [{ [name]: change }]);
+		const update = await lr_common.sendMessage("settings.update", [{ [name]: change }]);
 		console.debug(change, update);
 		for (const [name, valueObject] of Object.entries(update || {})) {
 			const property = gDescriptors.get(name);
@@ -250,7 +250,7 @@ async function lrInputChanged(e) {
 
 async function renderDescriptors() {
 	const form = document.getElementById("formDescriptors");
-	const descriptors = await lrSendMessage("settings.descriptors");
+	const descriptors = await lr_common.sendMessage("settings.descriptors");
 	gDescriptors = new Map(descriptors.map(p => [p.name, p]));
 	for (const property of descriptors) {
 		const isText = getType(property) === "text";
@@ -288,7 +288,7 @@ async function lrOnFileLoad() {
 	for (let f of fileLoad.files) {
 		try {
 			const settings = JSON.parse(await f.text());
-			const update = await lrSendMessage("settings.update", [settings, true ]);
+			const update = await lr_common.sendMessage("settings.update", [settings, true ]);
 			divReport.append(E(
 				"p", null,
 				`Backup restored from ${f.name}`

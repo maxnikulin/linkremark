@@ -35,6 +35,7 @@
 <link rel=\"icon\" sizes=\"48x48\" href=\"/icons/lr-48.png\">
 <link rel=\"icon\" sizes=\"64x64\" href=\"/icons/lr-64.png\">
 <script src=\"/common/bapi.js\"></script>
+<script src=\"/common/lr_common.js\"></script>
 <script src=\"/pages/lrp_navigation.js\"></script>
 <script src=\"/pages/lrp_help.js\"></script>
 <style>

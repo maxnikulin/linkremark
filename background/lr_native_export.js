@@ -114,7 +114,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			 * `runtime.reload()` breaks options page in Chromium-95.
 			 * Add workarounds to force reloading of the options page.
 			 */
-			lrSendMessage("extension.reload");
+			lr_common.sendMessage("extension.reload");
 			await new Promise(resolve => setTimeout(resolve, 100));
 			bapi.runtime.reload();
 		}
@@ -143,7 +143,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		while (queue.length > 0) {
 			const element = queue.pop();
 			if (element.urls) {
-				const id = bapiGetId();
+				const id = lr_common.getId();
 				element.id = id;
 				queryArray.push({ id, variants: element.urls });
 				continue;
@@ -250,7 +250,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		return await lr_executor.run(
 			async function checkKnownUrlsEndpoint(params, executor) {
 				const { backend, variants } = params && params[0] || {};
-				const id = bapiGetId();
+				const id = lr_common.getId();
 				const result = await lr_native_export._queryMentions(
 					[ { id, variants } ], { backend }, executor);
 				const { response } = result;

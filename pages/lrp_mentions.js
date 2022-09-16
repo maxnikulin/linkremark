@@ -284,13 +284,13 @@ var gLrMentionsActions = {
 			if (!variants || !(variants.length > 0)) {
 				throw new Error("No URLs specified");
 			}
-			id = bapiGetId();
+			id = lr_common.getId();
 			dispatch(gLrPreviewLog.started({ id, message: "Checking mentions..." }));
 			const hasPermission = await lrRequestNativeMessagingPermission();
 			if (!hasPermission) {
 				throw new Error("Request for native messaging permission is rejected");
 			}
-			const response = await lrSendMessage("nativeMessaging.mentions", [ { backend, variants } ]);
+			const response = await lr_common.sendMessage("nativeMessaging.mentions", [ { backend, variants } ]);
 			dispatch(gLrMentionsActions.mentionsResult(response.result));
 			if (response.error) {
 				lrPreviewLogException({ dispatch, getState }, { ...response, id });
@@ -303,7 +303,7 @@ var gLrMentionsActions = {
 	},
 	visit: function(query) {
 		return async function lrMentionsVisit(dispatch, getState) {
-			let id = bapiGetId();
+			let id = lr_common.getId();
 			try {
 				const file = query && query.path;
 				if (!file) {
@@ -322,7 +322,7 @@ var gLrMentionsActions = {
 				if (backend) {
 					params.backend = backend;
 				}
-				const result = await lrSendMessage("nativeMessaging.visit", [ arg, params ]);
+				const result = await lr_common.sendMessage("nativeMessaging.visit", [ arg, params ]);
 				dispatch(gLrPreviewLog.finished({ id, message: "Open mention completed." }));
 				return result;
 			} catch (error) {

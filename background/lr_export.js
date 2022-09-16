@@ -268,7 +268,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 
 		const ready = lr_export.findFormat(capture, { format, version, options });
 		const result = ready || versionInfo.formatter(capture, { ...options, recursionLimit }, executor);
-		result.id = result.id || bapiGetId();
+		result.id = result.id || lr_common.getId();
 		const resultOptions = result.options || options;
 		if (resultOptions) {
 			result.options = resultOptions;

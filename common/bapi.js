@@ -246,27 +246,3 @@ function bapiChrome(chrome) {
 	}
 	return new Proxy(chrome, new BapiHandler(methods));
 }
-
-const bapiGetId = function(init) { return () => init++; } (Date.now());
-/**
- * runtime.sendMessage wrapper for communication similar to JSON-RPC
- *
- * Actually it is simplified version of protocol.
- * Successful response have `response` field.
- * Otherwise promise is rejected either using `error` field
- * or just stating that onMessage handler does not follow the rules.
- */
-async function lrSendMessage(method, params) {
-	const response = await bapi.runtime.sendMessage({ id: bapiGetId(), method, params });
-	if (response != null) {
-		if (response._type === "ExecInfo") {
-			return response;
-		} else if ("result" in response) {
-			return response.result;
-		} else if ("error" in response) {
-			throw new Error(response.error);
-		}
-	}
-	console.error("lrSendMessage: invalid response", response);
-	throw new Error ("Invalid response object");
-}

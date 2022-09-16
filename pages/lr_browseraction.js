@@ -137,7 +137,7 @@ function lrbaOnDisconnect(port) {
 
 async function lrbaSendMessage(method) {
 	try {
-		await lrSendMessage(method);
+		await lr_common.sendMessage(method);
 	} catch (ex) {
 		lrbaAddError(ex, method);
 	}

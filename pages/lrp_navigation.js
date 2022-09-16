@@ -42,7 +42,7 @@ function lrpSetupHelpHandler(id="help") {
 			ev.target.removeEventListener("click", lrpHelp);
 		}
 		try {
-			lrSendMessage("action.help").catch(lrpOnHelpError);
+			lr_common.sendMessage("action.help").catch(lrpOnHelpError);
 			ev.preventDefault();
 			ev.stopImmediatePropagation();
 		} catch (ex) {
