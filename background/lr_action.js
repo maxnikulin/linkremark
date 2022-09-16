@@ -202,6 +202,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		// (selected with Ctrl) tab captures just it.
 		// Click on a highlighted tab initiates capture of all highlighted tabs.
 		const hasTabMenu = "TAB" in bapi.contextMenus.ContextType;
+		const actionContext = "ACTION" in bapi.contextMenus.ContextType ? "action" : "browser_action";
 		const itemArray = [
 			{
 				contexts: [ "all" ],
@@ -212,25 +213,25 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				title: "Remark for the page",
 			},
 			{
-				contexts: hasTabMenu ? [ "tab", "browser_action" ] : [ "browser_action" ],
+				contexts: hasTabMenu ? [ "tab", actionContext ] : [ actionContext ],
 				enabled: true,
 				id: "LR_TAB",
 				title: "Remark for highlighted tabs",
 			},
 			bapi.tabs.group && {
-				contexts: [ "browser_action" ],
+				contexts: [ actionContext ],
 				enabled: true,
 				id: "LR_TAB_GROUP",
 				title: "Remark for tab group",
 			},
 			{
-				contexts: [ "browser_action" ],
+				contexts: [ actionContext ],
 				enabled: true,
 				id: "LR_PREVIEW",
 				title: "Debug info",
 			},
 			{
-				contexts: [ "browser_action" ],
+				contexts: [ actionContext ],
 				enabled: true,
 				id: "LR_HELP",
 				title: "LR Help", // TODO i18n

@@ -141,7 +141,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 						if (
 							!fromBrowserActionPopup && this._subscription != null
 							// namely `chrome`, not `bapi` here
-							&& chrome.browserAction.openPopup !== undefined
+							&& chrome["action" in chrome ? "action" : "browserAction"].openPopup !== undefined
 						) {
 							if (this._subscription) {
 								this._subscription.expectConnect();

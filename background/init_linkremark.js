@@ -55,13 +55,15 @@ var lr_util;
 
 !function lrNotifyLoading() {
 	// Make load errors visible to users.
-	// `bapi` has not initialized yet, so use `chrome` as more portable
-	if (chrome.browserAction.setBadgeText) {
-		chrome.browserAction.setBadgeText({ text: "…"});
+	// `bapi` has not initialized yet, so use `chrome` as more portable.
+	// The expression is supposed to suppress linter warning at addons.mozilla.org.
+	const action = chrome["browserAction" in chrome ? "browserAction" : "action"];
+	if (action.setBadgeText) {
+		action.setBadgeText({ text: "…"});
 	}
-	if (chrome.browserAction.setBadgeBackgroundColor) {
-		chrome.browserAction.setBadgeBackgroundColor({ color: [159, 0, 0, 159] });
+	if (action.setBadgeBackgroundColor) {
+		action.setBadgeBackgroundColor({ color: [159, 0, 0, 159] });
 	}
 	var name = chrome.runtime.getManifest().short_name || "";
-	chrome.browserAction.setTitle({ title: name + " Loading..." });
+	action.setTitle({ title: name + " Loading..." });
 }();
