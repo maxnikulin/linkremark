@@ -28,7 +28,7 @@ try {
 	/* It catches only errors in synchronous code run on add-on startup.
 	 * Errors from event listeners such as `browserAction.onClicked`
 	 * are invisible for this handler. */
-	window.addEventListener("error", function(...args) {
+	self.addEventListener("error", function(...args) {
 		++gLrLoadErrorCount;
 	});
 } catch (ex) {
