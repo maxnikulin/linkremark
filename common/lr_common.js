@@ -110,10 +110,11 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		return obj != null && String(obj.name).endsWith("Warning");
 	},
 	isGecko() {
-		// Unsure if the following is stable across whole family
-		// (IceCat, SeeMonkey, TorBrowser):
-		//     navigator.product === "Gecko"
-		return Boolean(window.InstallTrigger);
+		// Chromium-104 reports `navigator.product === "Gecko"`,
+		// `userAgent` and `appVersion` are likely unreliable as well.
+		// As of Firefox-105, it does not support service worker as background
+		// page to test	`Boolean(window.InstallTrigger)`.
+		return chrome.runtime.getURL("/").startsWith("moz-extension:/");
 	},
 	copyUsingEvent(text) {
 		// Copy event interceptors are not expected on the add-on page,
