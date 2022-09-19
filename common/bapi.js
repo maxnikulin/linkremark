@@ -35,8 +35,8 @@ var bapiType;
 
 if (bapi) {
 	bapiType = 'firefox';
-} else if (window.chrome) {
-	bapi = bapiChrome(window.chrome);
+} else if (typeof chrome !== "undefined") {
+	bapi = bapiChrome(chrome);
 	bapiType = 'chrome';
 } else {
 	bapiType = 'unknown';
@@ -119,43 +119,12 @@ function bapiChrome(chrome) {
 		return new EventWithSendResponse(Reflect.get(target, prop));
 	};
 
-	var methods = { 
-		browserAction: {
-			onClicked: asis, /*{
-				addListener: asis,
-			}, */
-			/* Hidden behind a flag in Chrome, invokes `onClicked` listeners
-			 * in Firefox-92 if popup is empty string "". */
-			openPopup: promisify,
-			setTitle: promisify,
-			setBadgeText: promisify,
-			setBadgeBackgroundColor: promisify,
-			setPopup: promisify,
-		},
-		commands: {
-			onCommand: asis /* {
-				addListener: asis,
-			}, */
-		},
-		contextMenus: {
-			ContextType: asis, // "TAB" feature detection in Firefox
-			create: asis,
-			removeAll: promisify,
-			update: promisify,
-			onClicked: asis,
-		},
-		i18n: {
-			getMessage: asis,
-			// getUILanguage: asis, // Unsure if it is better than navigator.language
-		},
-		permissions: {
-			contains: promisify,
-			getAll: promisify,
-			remove: promisify,
-			request: promisify,
-			onAdded: promisifyEventWithResponse,
-			onRemoved: promisifyEventWithResponse,
-		},
+	var methods = {
+		browserAction: "action",
+		commands: asis,
+		contextMenus: asis,
+		i18n: asis,
+		permissions: asis,
 		runtime: {
 			lastError: asis,
 			connect: asis,
@@ -167,40 +136,20 @@ function bapiChrome(chrome) {
 			onInstalled: asis,
 			onStartup: asis,
 			reload: asis,
-			sendMessage: promisify,
-			getPlatformInfo: promisify,
-			openOptionsPage: promisify,
+			sendMessage: asis,
+			getPlatformInfo: asis,
+			openOptionsPage: asis,
 			onMessage: promisifyEventWithResponse,
-		},
-		storage: {
-			local: {
-				set: promisify,
-				get: promisify,
-			},
-			onChanged: asis,
-		},
-		tabs: {
-			create: promisify,
-			// compatibility: Chrome >= 39, Firefox >= 43
-			executeScript: promisify,
-			// Feature detection in Chrome. `tabGroups` to get name of group available for manifest v3 only.
-			group: promisify,
-			get: promisify,
-			query: promisify,
-			remove: promisify,
-			update: promisify,
-		},
-		windows: {
-			update: promisify,
-		},
-		webNavigation: {
-			getAllFrames: promisify,
 		},
 		// `chrome.scripting.executeScript` returns `undefined` in Firefox mv2 extensions
 		// so it is impossible to use `chrome` directly instead of `bapi`.
 		scripting: {
 			executeScript: asis,
 		},
+		storage: asis,
+		tabs: asis,
+		windows: asis,
+		webNavigation: asis,
 	};
 
 	class BapiHandler {
@@ -213,13 +162,15 @@ function bapiChrome(chrome) {
 			if (mapping === undefined) {
 				return undefined;
 			}
-			const targetProperty = Reflect.get(target, property);
+			const isAlias = typeof mapping === "string";
+			const targetName = isAlias ? mapping : property;
+			const targetProperty = Reflect.get(target, targetName);
 			if (targetProperty === undefined) {
 				// revoked permission
 				this._cache.delete(property)
 				return targetProperty;
 			}
-			if (mapping === asis) {
+			if (isAlias || mapping === asis) {
 				return targetProperty;
 			}
 			let cached = this._cache.get(property);
@@ -235,13 +186,22 @@ function bapiChrome(chrome) {
 			return cached;
 		}
 		has(target, property) {
-			return this._propertyMap[property] !== undefined && Reflect.has(target, property);
+			const mapping = this._propertyMap[property];
+			if (mapping === undefined) {
+				return mapping;
+			}
+			return Reflect.has(target, typeof mapping === "string" ? mapping : property);
 		}
 		// Added with hope to improve debugging experience in Chromium,
 		// it does not affect completion in console however.
 		ownKeys(target) {
 			const set = new Set(Reflect.ownKeys(target));
-			return Object.keys(this._propertyMap).filter(k => set.has(k));
+			console.log(Object.entries(this._propertyMap)
+				.map((k, v) => set.has(typeof v === "string" ? v : k) ? k : undefined)
+				.filter(k => k !== undefined));
+			return Object.entries(this._propertyMap)
+				.map((k, v) => set.has(typeof v === "string" ? v : k) ? k : undefined)
+				.filter(k => k !== undefined);
 		}
 	}
 	return new Proxy(chrome, new BapiHandler(methods));

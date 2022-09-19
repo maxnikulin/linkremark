@@ -1,3 +1,18 @@
-minimum_chrome_version: '78.0'
+manifest_version: 3
+action:
+  default_title: __MSG_cmdPageRemark__
+  browser_style: true
+  default_icon:
+    '16': icons/lr-16.png
+    '32': icons/lr-32.png
+commands:
+  _execute_action:
+    description: __MSG_cmdPageRemark__
+    suggested_key:
+      default: Ctrl+Shift+L
+      mac: Command+Shift+L
+host_permissions:
+- <all_urls>
 background:
-  persistent: false
+  service_worker: lr_sw.js
+minimum_chrome_version: '102.0'

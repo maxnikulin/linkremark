@@ -1,9 +1,8 @@
 {
-	"manifest_version": 2,
 	"name": "__MSG_extName__",
 	"short_name": "__MSG_extShortName__",
 	"description": "__MSG_extDescription__",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"author": "__MSG_extAuthor__",
 	"homepage_url": "https://github.com/maxnikulin/linkremark",
 	"default_locale": "en",
@@ -15,6 +14,25 @@
 		"64": "icons/lr-64.png",
 		"128": "icons/lr-128.png"
 	},
+	"options_ui": {
+		"page": "pages/lrp_settings.html",
+		"browser_style": true
+	},
+	"permissions": [
+		"scripting",
+		"storage",
+		"activeTab",
+		"contextMenus",
+		"webNavigation",
+		"menus",
+		"<all_urls>"
+	],
+	"optional_permissions": [
+		"nativeMessaging",
+		"tabs",
+		"clipboardWrite"
+	],
+	"manifest_version": 2,
 	"browser_action": {
 		"default_title": "__MSG_cmdPageRemark__",
 		"browser_style": true,
@@ -32,24 +50,6 @@
 			}
 		}
 	},
-	"options_ui": {
-		"page": "pages/lrp_settings.html",
-		"browser_style": true
-	},
-	"permissions": [
-		"scripting",
-		"storage",
-		"activeTab",
-		"contextMenus",
-		"webNavigation",
-		"<all_urls>",
-		"menus"
-	],
-	"optional_permissions": [
-		"nativeMessaging",
-		"tabs",
-		"clipboardWrite"
-	],
 	"background": {
 		"scripts": [
 			"background/init_linkremark.js",

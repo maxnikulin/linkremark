@@ -1,13 +1,58 @@
 
 MAKE_MANIFEST = tools/make_manifest.py
+MAKE_SW = tools/make_sw.py
 MANIFEST_FIREFOX_src = manifest-common.yaml manifest-part-firefox.yaml
 MANIFEST_TEST_src = manifest-part-test.yaml
 MANIFEST_FIREFOX_TEST_src = $(MANIFEST_FIREFOX_src) $(MANIFEST_TEST_src)
 
 MANIFEST_CHROME_DEV_src = manifest-part-chrome-dev.yaml
 MANIFEST_CHROME_src = manifest-common.yaml manifest-part-chrome.yaml
-MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
+MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src)
 MANIFEST_CHROME_TEST_src += $(MANIFEST_CHROME_DEV_src)
+
+SW_JS = lr_sw.js
+SW_DIST_JS = lr_sw_dist.js
+SW_SRC += \
+	common/bapi.js \
+	common/lr_common.js \
+	background/lr_util.js \
+	background/lr_multimap.js \
+	background/lr_iter.js \
+	background/lr_actionlock.js \
+	background/lr_executor.js \
+	background/lr_formatter.js \
+	background/lr_format_org.js \
+	background/lr_org_buffer.js \
+	background/lr_org_tree.js \
+	background/lr_schema_org.js \
+	background/lr_meta.js \
+	common/lr_org_protocol.js \
+	background/lr_rpc_store.js \
+	background/lr_addon_rpc.js \
+	background/lr_settings.js \
+	background/lr_export.js \
+	background/lr_clipboard.js \
+	background/lr_native_connection.js \
+	background/lr_native_export.js \
+	background/lr_scripting.js \
+	background/lr_tabframe.js \
+	background/lr_notify.js \
+	background/lr_action.js \
+	background/lr_schema_org_product.js
+
+SW_TEST_JS = lr_sw_test.js
+SW_TEST_SRC += \
+	test/js/lr_test.js \
+	test/js/lr_test_org.js \
+	test/js/lr_test_org_tree.js \
+	test/js/lr_test_json_ld.js \
+	test/js/lr_test_format_org.js \
+	test/js/lr_test_meta.js \
+	test/js/lr_test_microdata.js \
+	test/js/lr_test_schema_org_product.js
+
+SW_INIT = background/init_linkremark.js
+SW_MAIN = background/main_linkremark.js
 
 HELP_PAGE = pages/lrp_help.html
 
@@ -52,16 +97,18 @@ manifest-firefox.json: $(MANIFEST_FIREFOX_src)
 manifest-firefox-test.json: $(MANIFEST_FIREFOX_TEST_src)
 	$(MAKE_MANIFEST) --output $@ $(MANIFEST_FIREFOX_TEST_src)
 
-manifest-firefox.json manifest-firefox-test.json: $(MAKE_MANIFEST)
+manifest-firefox.json manifest-firefox-test.json: $(MAKE_MANIFEST) Makefile
 
 # For development with almost no build step.
 # Not a real dependency-aware target
 # extension id: mgmcoaemjnaehlliifkgljdnbpedihoe
-chrome: manifest-chrome.json $(HELP_PAGE)
+chrome: $(SW_DIST_JS) manifest-chrome.json $(HELP_PAGE)
 	ln -sf manifest-chrome.json manifest.json
+	ln -sf $(SW_DIST_JS) $(SW_JS)
 
-chrome-test: manifest-chrome-test.json $(HELP_PAGE)
+chrome-test: $(SW_TEST_JS) manifest-chrome-test.json $(HELP_PAGE)
 	ln -sf manifest-chrome-test.json manifest.json
+	ln -sf $(SW_TEST_JS) $(SW_JS)
 
 manifest-chrome.json: $(MANIFEST_CHROME_src) $(MANIFEST_CHROME_DEV_src)
 	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_src) $(MANIFEST_CHROME_DEV_src)
@@ -72,7 +119,7 @@ manifest-chrome-dist.json: $(MANIFEST_CHROME_src)
 manifest-chrome-test.json: $(MANIFEST_CHROME_TEST_src)
 	$(MAKE_MANIFEST) --output $@ $(MANIFEST_CHROME_TEST_src)
 
-manifest-chrome.json manifest-chrome-test.json manifest-chrome-dist.json: $(MAKE_MANIFEST)
+manifest-chrome.json manifest-chrome-test.json manifest-chrome-dist.json: $(MAKE_MANIFEST) Makefile
 
 $(HELP_PAGE): README.org tools/help.el
 	$(EMACS) $(EMACS_FLAGS) --load tools/help.el
@@ -96,17 +143,25 @@ firefox-dist: firefox
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
-chrome-dist: manifest-chrome-dist.json $(HELP_PAGE)
+chrome-dist: chrome manifest-chrome-dist.json $(HELP_PAGE)
 	ln -sf manifest-chrome-dist.json manifest.json
 	set -e ; \
 	version="`python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])' <manifest-chrome.json`" ; \
-	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
 	file="linkremark-$${version}.zip" ; \
 	$(RM) "$$file" ; \
-	zip --must-match "$$file" manifest.json $$background \
+	zip --must-match "$$file" manifest.json \
+		$(SW_JS) $(SW_INIT) $(SW_SRC) $(SW_MAIN) \
 		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
+
+$(SW_DIST_JS): $(MAKE_SW) Makefile
+	$(MAKE_SW) --output $@ \
+		--init $(SW_INIT) --main $(SW_MAIN) $(SW_SRC)
+
+$(SW_TEST_JS): $(MAKE_SW) Makefile
+	$(MAKE_SW) --output $@ \
+		--init $(SW_INIT) --main $(SW_MAIN) $(SW_SRC) $(SW_TEST_SRC)
 
 # Writing to a build directory causes an issue with the image
 # included from `doc/`. `<base href="../">` makes `<a href"#...">`

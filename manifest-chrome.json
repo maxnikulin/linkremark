@@ -1,9 +1,8 @@
 {
-	"manifest_version": 2,
 	"name": "__MSG_extName__",
 	"short_name": "__MSG_extShortName__",
 	"description": "__MSG_extDescription__",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"author": "__MSG_extAuthor__",
 	"homepage_url": "https://github.com/maxnikulin/linkremark",
 	"default_locale": "en",
@@ -15,23 +14,6 @@
 		"64": "icons/lr-64.png",
 		"128": "icons/lr-128.png"
 	},
-	"browser_action": {
-		"default_title": "__MSG_cmdPageRemark__",
-		"browser_style": true,
-		"default_icon": {
-			"16": "icons/lr-16.png",
-			"32": "icons/lr-32.png"
-		}
-	},
-	"commands": {
-		"_execute_browser_action": {
-			"description": "__MSG_cmdPageRemark__",
-			"suggested_key": {
-				"default": "Ctrl+Shift+L",
-				"mac": "Command+Shift+L"
-			}
-		}
-	},
 	"options_ui": {
 		"page": "pages/lrp_settings.html",
 		"browser_style": true
@@ -41,46 +23,36 @@
 		"storage",
 		"activeTab",
 		"contextMenus",
-		"webNavigation",
-		"<all_urls>"
+		"webNavigation"
 	],
 	"optional_permissions": [
 		"nativeMessaging",
 		"tabs"
 	],
-	"background": {
-		"scripts": [
-			"background/init_linkremark.js",
-			"common/bapi.js",
-			"common/lr_common.js",
-			"background/lr_util.js",
-			"background/lr_multimap.js",
-			"background/lr_iter.js",
-			"background/lr_actionlock.js",
-			"background/lr_executor.js",
-			"background/lr_formatter.js",
-			"background/lr_format_org.js",
-			"background/lr_org_buffer.js",
-			"background/lr_org_tree.js",
-			"background/lr_schema_org.js",
-			"background/lr_meta.js",
-			"common/lr_org_protocol.js",
-			"background/lr_rpc_store.js",
-			"background/lr_addon_rpc.js",
-			"background/lr_settings.js",
-			"background/lr_export.js",
-			"background/lr_clipboard.js",
-			"background/lr_native_connection.js",
-			"background/lr_native_export.js",
-			"background/lr_scripting.js",
-			"background/lr_tabframe.js",
-			"background/lr_notify.js",
-			"background/lr_action.js",
-			"background/lr_schema_org_product.js",
-			"background/main_linkremark.js"
-		],
-		"persistent": false
+	"manifest_version": 3,
+	"action": {
+		"default_title": "__MSG_cmdPageRemark__",
+		"browser_style": true,
+		"default_icon": {
+			"16": "icons/lr-16.png",
+			"32": "icons/lr-32.png"
+		}
 	},
-	"minimum_chrome_version": "78.0",
+	"commands": {
+		"_execute_action": {
+			"description": "__MSG_cmdPageRemark__",
+			"suggested_key": {
+				"default": "Ctrl+Shift+L",
+				"mac": "Command+Shift+L"
+			}
+		}
+	},
+	"host_permissions": [
+		"<all_urls>"
+	],
+	"background": {
+		"service_worker": "lr_sw.js"
+	},
+	"minimum_chrome_version": "102.0",
 	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAppqCVaSILjGICFxDHisZnNm09KRN1jigkQ0DBvRYNjWbVCZR4MLI/USfKsghtRqdy64gVCTEicy01aDkv8z+h8hp3F66MDiXE8bw1y7GoUvYtbbBjPkFl6XH8ZLPpSYstExbzes1wPOR3muHSijVbwqt8tobTpqb2U7oJjJNagJq3tkRsI+DeGG4vsZXu53J57UTuo9Usr0b0pibjBVH+i5u3Tm1QTecif+WQRUAtuJRw0QP//H3Hd3ehgcykyDnMvtPo7BoYZiRXpdxarRpAB8IEdtzx2BMWDv3UuxZ4RgBrCE72g3JtExdGb7jve5YlzT5NFS7wrCeyeE219AGyQIDAQAB"
 }

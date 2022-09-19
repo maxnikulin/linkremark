@@ -1,7 +1,51 @@
+manifest_version: 2
+browser_action:
+  default_title: __MSG_cmdPageRemark__
+  browser_style: true
+  default_icon:
+    '16': icons/lr-16.png
+    '32': icons/lr-32.png
+commands:
+  _execute_browser_action:
+    description: __MSG_cmdPageRemark__
+    suggested_key:
+      default: Ctrl+Shift+L
+      mac: Command+Shift+L
 permissions:
 - menus
+- <all_urls>
 optional_permissions:
 - clipboardWrite
+background:
+  scripts:
+  - background/init_linkremark.js
+  - common/bapi.js
+  - common/lr_common.js
+  - background/lr_util.js
+  - background/lr_multimap.js
+  - background/lr_iter.js
+  - background/lr_actionlock.js
+  - background/lr_executor.js
+  - background/lr_formatter.js
+  - background/lr_format_org.js
+  - background/lr_org_buffer.js
+  - background/lr_org_tree.js
+  - background/lr_schema_org.js
+  - background/lr_meta.js
+  - common/lr_org_protocol.js
+  - background/lr_rpc_store.js
+  - background/lr_addon_rpc.js
+  - background/lr_settings.js
+  - background/lr_export.js
+  - background/lr_clipboard.js
+  - background/lr_native_connection.js
+  - background/lr_native_export.js
+  - background/lr_scripting.js
+  - background/lr_tabframe.js
+  - background/lr_notify.js
+  - background/lr_action.js
+  - background/lr_schema_org_product.js
+  - background/main_linkremark.js
 applications:
   gecko:
     id: linkremark@maxnikulin.github.io
