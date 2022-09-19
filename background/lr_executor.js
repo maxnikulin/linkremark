@@ -554,7 +554,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			try {
 				if (executor.lock) {
 					status = status || (ex && (lr_common.isWarning(ex) ? "warning" : "error"));
-					executor.lock.then(lock => lock.finished(status));
+					executor.lock.then(lock => lock.finished?.(status));
 				}
 			} catch (ex) {
 				console.error("lr_executor.run.unlock: ignored error: %o", ex);
