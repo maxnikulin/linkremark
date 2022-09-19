@@ -25,6 +25,8 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		get name() { return Object.getPrototypeOf(this).constructor.name; }
 	}
 
+	const permissions = [ "nativeMessaging" ];
+
 	async function hello(params) {
 		 return await lr_executor.run(
 			async function lrNativeAppHello(params, executor) {
@@ -184,8 +186,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	}
 
 	async function _queryMentions(queryArray, params, executor) {
-		const hasPermissions = await bapi.permissions.contains(
-			{ permissions: [ "nativeMessaging" ] });
+		const hasPermissions = await bapi.permissions.contains({ permissions });
 		if (!hasPermissions) {
 			return { response: "NO_PERMISSIONS" };
 		}
@@ -280,13 +281,6 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			title: "Browser native messaging communication channel",
 			priority: 10,
 		});
-		/* Firefox-78 ESR does not support `nativeMessaging` in `optional_permissions`
-		 * see [[https://bugzilla.mozilla.org/1630415]]
-		 * "1630415 - make nativeMessaging an optional permission".
-		 * Implemented in Firefox-87.
-		 * Chromium-90 does not expose `chrome.runtime.connectNative`
-		 * till extension reload.
-		 */
 		lr_settings.registerOption({
 			name: "permissions.nativeMessaging",
 			type: "permission",
@@ -327,12 +321,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		lr_export.registerMethod({
 			method: "native-messaging",
 			handler: lrSendToNative,
-			permissions: function lrNativeMessagingPermissions() {
-				const permission = "nativeMessaging";
-				const optional = bapi.runtime.getManifest().optional_permissions;
-				const hasOptional = optional && optional.indexOf(permission) >= 0;
-				return hasOptional ? [ permission ] : null;
-			},
+			permissions,
 		});
 	};
 	Object.assign(this, {

@@ -44,8 +44,8 @@
 		"<all_urls>"
 	],
 	"optional_permissions": [
-		"tabs",
-		"nativeMessaging"
+		"nativeMessaging",
+		"tabs"
 	],
 	"background": {
 		"scripts": [

@@ -43,6 +43,7 @@
 		"webNavigation", "<all_urls>"
 	],
 	"optional_permissions": [
+		 "nativeMessaging",
 		"tabs"
 	],
 	"background": {

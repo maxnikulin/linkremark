@@ -1,6 +1,6 @@
 {
 	"permissions": [
-		"menus", "nativeMessaging"
+		"menus"
 	],
 	"optional_permissions": [
 		"clipboardWrite"
@@ -8,7 +8,7 @@
 	"applications": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",
-			"strict_min_version": "78.0"
+			"strict_min_version": "91.0"
 		}
 	}
 }

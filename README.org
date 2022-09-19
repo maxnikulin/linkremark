@@ -262,9 +262,8 @@ of the native application).
 Open LinkRemark settings page[fn:1]. Set "Name of native messaging backend
 application" in the "Browser native messaging communication channel" section
 to the id of configured native app (e.g. =burl=
-or =io.github.maxnikulin.burl=). Grant permission for
-"Exchange messages with other programs" (in Firefox, while compatibility with
-Firefox-78 is maintained, this permission is requested during installation).
+or =io.github.maxnikulin.burl=). Grant the permission for
+"Exchange messages with other programs".
 
 Known URLs should be reported in response to capture of pages already
 present in your notes. Preview and debug info page has a form for testing
@@ -331,11 +330,6 @@ you need to install and configure an extra application, so you should
 either trust this external tool or should develop it yourself.
 
 This permission is relevant for experienced Emacs and Org Mode users.
-
-This permission can not be requested on demand in Firefox-78.10 ESR
-available in Debian stable,
-see [[https://bugzilla.mozilla.org/1630415]]
-"1630415 - make nativeMessaging an optional permission".
 
 Extension can not launch any application till it is explicitly added
 to a configuration file (manifest) by the user, so do not worry,

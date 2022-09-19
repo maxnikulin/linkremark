@@ -1,8 +1,5 @@
 {
 	"minimum_chrome_version": "78.0",
-	"optional_permissions": [
-		 "nativeMessaging"
-	],
 	"background": {
 		"persistent": false
 	}
