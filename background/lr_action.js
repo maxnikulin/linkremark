@@ -311,7 +311,11 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	async function getActiveTab() {
 		try {
-			const tab = await bapi.tabs.query({currentWindow: true, active: true});
+			// Follow recommendation from
+			// https://developer.chrome.com/docs/extensions/reference/tabs/#get-the-current-tab
+			// however for query from background page or service worker
+			// `currentWindow` should work like `lastFocusedWindow`.
+			const tab = await bapi.tabs.query({lastFocusedWindow: true, active: true});
 			const activeTab = tab != null && tab.length > 0 ? tab[0] : null;
 			if (activeTab) {
 				return activeTab;
@@ -373,7 +377,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return this.tab.highlighted;
 		}
 		async getArray() {
-			return bapi.tabs.query({ highlighted: true, currentWindow: true });
+			return bapi.tabs.query({ highlighted: true, lastFocusedWindow: true });
 		}
 	}
 
