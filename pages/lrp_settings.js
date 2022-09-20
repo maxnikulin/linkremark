@@ -389,9 +389,11 @@ function lrpListenForReload() {
 	 * to get access to `runtime.connectNative()`.
 	 * Add workarounds to force reloading of the options page.
 	 */
-	bapi.runtime.onMessage.addListener(msg => {
+	bapi.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 		if (msg && msg.method === "extension.reload") {
-			window.location.reload();
+			console.log("Reloading preferences page due to request from background page");
+			setTimeout(() => window.location.reload(), 200);
+			sendResponse({ result: true });
 		}
 	});
 }

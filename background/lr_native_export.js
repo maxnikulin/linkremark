@@ -99,6 +99,10 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		return backend;
 	}
 
+	async function _hasPermissions() {
+		return await bapi.permissions.contains({ permissions });
+	}
+
 	/** Wrap the call with try-finally to ensure that connection is closed.
 	 *
 	 * There is no way to ensure resource release in JS. Even generators
@@ -108,12 +112,16 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		const timeout = (params && params.timeout) || TIMEOUT;
 		const backend = _getBackend(params);
 		if (!bapi.runtime.connectNative) {
+			if (!await _hasPermissions()) {
+				throw new Error("Request for nativeMessaging permission was rejected");
+			}
 			/* Due to https://crbug.com/936415 and https://crbug.com/935904
 			 * extension in Chromium must be reloaded after `permissions.request()`
 			 * to get access to `runtime.connectNative()`.
 			 * `runtime.reload()` breaks options page in Chromium-95.
 			 * Add workarounds to force reloading of the options page.
 			 */
+			console.log("Reloading extension with hope to get access to runtime.connectNative, https://crbug.com/935904");
 			lr_common.sendMessage("extension.reload");
 			await new Promise(resolve => setTimeout(resolve, 100));
 			bapi.runtime.reload();
@@ -186,8 +194,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	}
 
 	async function _queryMentions(queryArray, params, executor) {
-		const hasPermissions = await bapi.permissions.contains({ permissions });
-		if (!hasPermissions) {
+		if (!await _hasPermissions()) {
 			return { response: "NO_PERMISSIONS" };
 		}
 		const { backend, connection, hello } = await connectionWithHello(params, executor);
