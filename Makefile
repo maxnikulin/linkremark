@@ -14,6 +14,8 @@ SW_JS = lr_sw.js
 SW_DIST_JS = lr_sw_dist.js
 SW_SRC += \
 	background/lr_force_sw_activate.js \
+	mwel/common/mwel_console.js \
+	background/lr_con.js \
 	common/bapi.js \
 	common/lr_common.js \
 	background/lr_util.js \

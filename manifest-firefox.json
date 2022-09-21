@@ -53,6 +53,8 @@
 	"background": {
 		"scripts": [
 			"background/init_linkremark.js",
+			"mwel/common/mwel_console.js",
+			"background/lr_con.js",
 			"common/bapi.js",
 			"common/lr_common.js",
 			"background/lr_util.js",

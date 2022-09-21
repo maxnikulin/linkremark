@@ -17,6 +17,16 @@ try {
 	Promise.reject(ex);
 }
 try {
+	importScripts("mwel/common/mwel_console.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("background/lr_con.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
 	importScripts("common/bapi.js");
 } catch (ex) {
 	Promise.reject(ex);
