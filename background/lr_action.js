@@ -266,6 +266,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	};
 	
 	this.contextMenuListener = async function(clickData, tab) {
+		con.debug("contextMenus(click, tab)", clickData, tab);
 		// TODO avoid async due to
 		// https://bugzilla.mozilla.org/1398672
 		//
@@ -624,6 +625,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		 * https://bugzilla.mozilla.org/1405031
 		 * "Support additional click events for browserAction and pageAction"
 		 */
+		con.debug("action(tab, click)", tab, onClickData);
 		lr_action._run(lr_action._singleTabAction, onClickData, tab, null);
 	}
 
