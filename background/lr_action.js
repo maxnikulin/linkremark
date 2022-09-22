@@ -22,7 +22,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	const PREVIEW = "PREVIEW";
 
 	async function _run(func, clickData, tab, params) {
-		const tabPromise = tab && tab.id >= 0 ? tab : getActiveTab();
+		const tabPromise = lr_action.getActiveTab(tab);
 		async function lr_action_run_onError(error, executor) {
 			if (
 				typeof lr_actionlock !== undefined
@@ -309,35 +309,41 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		};
 	};
 
-	async function getActiveTab() {
-		try {
-			// Follow recommendation from
-			// https://developer.chrome.com/docs/extensions/reference/tabs/#get-the-current-tab
-			// however for query from background page or service worker
-			// `currentWindow` should work like `lastFocusedWindow`.
-			const tab = await bapi.tabs.query({lastFocusedWindow: true, active: true});
-			const activeTab = tab != null && tab.length > 0 ? tab[0] : null;
-			if (activeTab) {
-				return activeTab;
-			}
-			console.error("lrGetActiveTab: empty query result");
-		} catch (ex) {
-			console.error("lrGetActiveTab: error:", ex);
+	lr_action.getActiveTab = /* async */ function getActiveTab(targetTab) {
+		if (targetTab?.id >= 0) {
+			return targetTab;
 		}
-		return null;
+		async function _getActiveTabAsync(targetTab) {
+			try {
+				// Follow recommendation from
+				// https://developer.chrome.com/docs/extensions/reference/tabs/#get-the-current-tab
+				// however for query from background page or service worker
+				// `currentWindow` should work like `lastFocusedWindow`.
+				const tabs = await bapi.tabs.query({lastFocusedWindow: true, active: true});
+				const activeTab = tabs?.[0];
+				if (activeTab != null) {
+					return activeTab;
+				}
+				console.error("lr_action.getActiveTab: empty query result");
+			} catch (ex) {
+				console.error("lr_action.getActiveTab: error:", ex);
+			}
+			return targetTab;
+		}
+		return _getActiveTabAsync(targetTab);
 	}
 
 	/// Asks export permission and calls `_singleTabActionDo`.
 	/// Called throgh `browserAction` listener and context menu
 	/// items for frame (page), link, and image.
-	async function _singleTabAction(clickData, tab, props, executor) {
+	async function _singleTabAction(clickData, targetTab, props, executor) {
+		// No `await` here to avoid lost of user action context in Firefox.
+		const currentTabPromise = lr_action.getActiveTab(targetTab);
 		const { type, fromBrowserActionPopup } = props || {};
 		const exportPermissionPromise = fromBrowserActionPopup ?
 			Promise.resolve("skip, async call from popup") :
 			lr_export.requestPermissions();
-		// FIXME tab may be undefined here and `await` must not be added
-		// before permission request.
-		executor.notifier.startContext(tab, { default: true });
+		executor.notifier.startContext(currentTabPromise, { default: true });
 		executor.acquireLock(type || "Tab", fromBrowserActionPopup);
 		await executor.step(
 			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
@@ -348,22 +354,22 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		);
 
 		return await executor.step(
-			lr_action._singleTabActionDo, clickData, tab, type, executor);
+			lr_action._singleTabActionDo, clickData, targetTab, type, executor);
 	}
 
 	/// Skips permission request. Necessary due to branches of highlightedTabsAction.
 	async function _singleTabActionDo(clickData, tab, type, executor) {
 		// A hack to ensure that tab is known before opening preview window
 		// for previous capture.
-		let activeTabPromise = !(tab != null && tab.id >= 0) ? getActiveTab() : null;
+		let activeTabPromise = lr_action.getActiveTab(tab);
 
 		await lr_action._waitLock(executor);
 
 		const target = lr_action.clickDataToTarget(clickData, tab, type);
 		// In chromium-87 contextMenus listener gets
 		// tab.id == -1 and tab.windowId == -1 for PDF files
-		// For commands (shrotcuts) tab is `null`.
-		const activeTab = activeTabPromise != null ? await activeTabPromise : tab;
+		// For commands (shortcuts) tab is `null`.
+		const activeTab = await activeTabPromise;
 		const params = { frameTab: tab || activeTab, windowTab: activeTab, target };
 		return await executor.step(
 			captureAndExportResult, activeTab, lrCaptureSingleTab, params, executor);
@@ -641,9 +647,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	}
 
 	async function _openUniqueAddonPage(relativeURL, openerTab) {
-		if (openerTab == null) {
-			openerTab = await lr_action.getActiveTab();
-		}
+		openerTab = await lr_action.getActiveTab(openerTab);
 		const pageURL = bapi.runtime.getURL(relativeURL);
 		if (openerTab.url && openerTab.url.startsWith(pageURL)) {
 			return;
@@ -710,7 +714,6 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 	Object.assign(this, {
 		createMenu,
-		getActiveTab,
 		captureCurrentTabEndpoint,
 		openHelp,
 		openHelpEndpoint,
@@ -724,8 +727,8 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		_singleTabAction,
 		_singleTabActionDo,
 		_tabBunchAction,
-		internal: { PREVIEW,
-			getActiveTab,
+		internal: {
+			PREVIEW,
 		},
 	});
 

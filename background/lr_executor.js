@@ -50,6 +50,14 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		/// TODO: Should be called through LrExecutor, not directly.
 		async startContext(tab, params) {
 			try {
+				if (lr_util.isPromise(tab)) {
+					tab = await tab;
+				}
+			} catch (ex) {
+				console.warn("LrBrowserActionNotifier.startContext: failed to resolve promise: %o", ex);
+			}
+
+			try {
 				let tabId, url;
 				if (tab == null) {
 					tabId = null;
