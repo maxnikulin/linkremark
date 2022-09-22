@@ -51,6 +51,11 @@ var lr_util = function() {
 		return Object.prototype.toString.call(func) === '[object GeneratorFunction]';
 	};
 
+	lr_util.isPromise = function isPromise(obj) {
+		const then = obj?.then;
+		return then && lr_util.isFunction(then);
+	};
+
 	this.errorToObject = lr_common.errorToObject;
 
 	// Does not work as `debugName` for stack traces in Firefox.
