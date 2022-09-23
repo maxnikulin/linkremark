@@ -57,7 +57,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			capture,
 			{
 				format: "org-protocol",
-				version: lr_export.ORG_PROTOCOL_VERION,
+				version: lr_export.ORG_PROTOCOL_VERSION,
 				options: formatterOptions,
 				recursionLimit: 4,
 			},

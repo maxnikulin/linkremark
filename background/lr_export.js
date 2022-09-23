@@ -20,7 +20,7 @@
 /// `lr_export` is a global object rather than a namespace of free functions.
 var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	var lr_export = this;
-	this.ORG_PROTOCOL_VERION = "0.2";
+	this.ORG_PROTOCOL_VERSION = "0.2";
 	this.formatMap = new Map();
 	this.methodMap = new Map();
 
@@ -79,7 +79,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 
 		lr_export.registerFormat({
 			format: "org-protocol",
-			version: lr_export.ORG_PROTOCOL_VERION,
+			version: lr_export.ORG_PROTOCOL_VERSION,
 			options: {
 				format: "export.methods.orgProtocol.formatterType",
 				version: "export.methods.orgProtocol.formatterVersion",

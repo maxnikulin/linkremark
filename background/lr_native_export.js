@@ -48,7 +48,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 						function formatFallback(capture, executor) {
 							return lr_export.format(
 								capture,
-								{ format: "org", version: lr_export.ORG_PROTOCOL_VERION, recursionLimit: 4 },
+								{ format: "org", version: lr_export.ORG_PROTOCOL_VERSION, recursionLimit: 4 },
 								executor);
 						},
 						capture /*, executor implicit argument */);
