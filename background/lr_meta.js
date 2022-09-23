@@ -611,6 +611,7 @@ class LrMeta {
 				srcUrl: lr_meta.sanitizeUrl,
 				referrer: lr_meta.sanitizeUrl,
 				favicon: lr_meta.sanitizeUrl,
+				tabGroupTitle: lr_meta.sanitizeLength,
 				title: lr_meta.sanitizeLength,
 				linkText: lr_meta.sanitizeText,
 				selection: lr_meta.sanitizeTextOrArray,
@@ -752,6 +753,7 @@ lr_meta.mergeTab = function(frameInfo, meta) {
 	meta.addDescriptor("url", { value: tab.url, key: "tab.url" }, { skipEmpty: true });
 	meta.addDescriptor("title", { value: tab.title, key: "tab.title" }, { skipEmpty: true });
 	meta.addDescriptor("favicon", { value: tab.favIconUrl, key: "tab.favicon" }, { skipEmpty: true });
+	meta.addDescriptor("tabGroupTitle", { value: tab.groupTitle, key: "tab.groupTitle" }, { skipEmpty: true });
 };
 
 lr_meta.mergeFrame = function(frameInfo, meta) {

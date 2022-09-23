@@ -640,6 +640,16 @@ function lr_format_org_frame_web_page(frame, options = {}) {
 		// Link to particular part of the same page is not formatted as a link.
 		body.push(...lr_format_org_link_text_properties(frame));
 	}
+	try {
+		const variants = Array.from(
+			lr_format_org.valuesFromDescriptors(frame.descriptors("tabGroupTitle"))
+		).filter(v => v !== options?.skipTabGroup);
+		if (variants.length > 0) {
+			body.push(LrOrgDefinitionItem({ term: "tab group"}, variants.join(",")));
+		}
+	} catch (ex) {
+		console.error("lr_format_org_frame: ignoring tabGroupTitle error for: %o %o", entry, ex);
+	}
 
 	body.push(LrOrgSeparatorLine);
 	if (!options.suppressSelection) {
@@ -669,7 +679,7 @@ function lr_format_org_referrer(frame) {
 	return result;
 }
 
-function lr_format_org_image(frameChain, target, baseProperties) {
+function lr_format_org_image(frameChain, target, baseProperties, options) {
 	const meta = frameChain[0];
 
 	if (target !== 'image' || (
@@ -700,7 +710,7 @@ function lr_format_org_image(frameChain, target, baseProperties) {
 		}
 	}
 	const title = lr_format_org.makeImageTitle(meta);
-	const config = { title, url, properties, baseProperties, description };
+	const config = { ...(options || {}), title, url, properties, baseProperties, description };
 	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
 
@@ -717,7 +727,7 @@ function* lr_format_org_link_text_properties(meta) {
 	}
 }
 
-function lr_format_org_link (frameChain, target, baseProperties) {
+function lr_format_org_link (frameChain, target, baseProperties, options) {
 	const meta = frameChain[0];
 	if (target !== 'link') {
 		console.error("Not a link"); // TODO report to error collector
@@ -743,12 +753,12 @@ function lr_format_org_link (frameChain, target, baseProperties) {
 	}
 	description.push(...lr_format_org_link_text_properties(meta));
 	const title = lr_format_org.makeLinkTitle(meta);
-	const config = { title, url, properties: baseProperties, baseProperties, description };
+	const config = { ...(options || {}), title, url, properties: baseProperties, baseProperties, description };
 	return lr_format_frame_chain_with_target(frameChain, target, config);
 }
 
 function lr_format_frame_chain_with_target(frameChain, target, config) {
-	const { title, url, description, properties, baseProperties } = config;
+	const { title, url, description, properties, baseProperties, ...options } = config;
 	const { LrOrgHeading, LrOrgSeparatorLine } = lr_org_tree;
 	description.push(LrOrgSeparatorLine);
 	description.push(...lr_format_org_selection(frameChain[0]));
@@ -759,7 +769,7 @@ function lr_format_frame_chain_with_target(frameChain, target, config) {
 		description.push("On the page"); // TODO i18n
 	}
 	description.push(LrOrgSeparatorLine);
-	const sourceFrames = lr_format_org_frame_chain(frameChain, target, baseProperties);
+	const sourceFrames = lr_format_org_frame_chain(frameChain, target, baseProperties, options);
 	const tree = LrOrgHeading(
 		{ heading: title, properties },
 		...description,
@@ -768,9 +778,10 @@ function lr_format_frame_chain_with_target(frameChain, target, config) {
 	return { title, url, tree };
 }
 
-function lr_format_org_frame_chain(frameChain, target, baseProperties) {
+function lr_format_org_frame_chain(frameChain, target, baseProperties, options) {
 	return frameChain.map((frame, index, array) => lr_format_org_frame(
 		frame, {
+			...(options || {}),
 			suppressSelection: index === 0 && !!target,
 			addReferrer: index === array.length - 1,
 			separateReferrer: false,
@@ -779,7 +790,7 @@ function lr_format_org_frame_chain(frameChain, target, baseProperties) {
 	).tree);
 }
 
-function lr_format_org_tab_frame_chain(object) {
+function lr_format_org_tab_frame_chain(object, options) {
 	const type = object && object._type;
 	if (type !== "TabFrameChain") {
 		throw new TypeError(`lr_format_org_tab_frame_chain: type "${type}" !== "TabFrameChain"`);
@@ -787,6 +798,7 @@ function lr_format_org_tab_frame_chain(object) {
 	const frameChain = object.elements;
 	const baseProperties = [["DATE_ADDED", new Date()]];
 	let result = null;
+	options = options || {};
 	const target = lr_meta.firstValue(frameChain[0].descriptors("target"));
 	switch (target) {
 		case "image":
@@ -800,6 +812,7 @@ function lr_format_org_tab_frame_chain(object) {
 		const subframes = frameChain.slice(1).map(
 			(frame, index, array) => lr_format_org_frame(
 				frame, {
+					...options,
 					suppressSelection: false,
 					addReferrer: index === array.length - 1,
 					separateReferrer: false,
@@ -808,6 +821,7 @@ function lr_format_org_tab_frame_chain(object) {
 			).tree
 		);
 		result = lr_format_org_frame(frameChain[0], {
+			...options,
 			suppressSelection: false,
 			addReferrer: subframes.length === 0,
 			separateReferrer: false,
@@ -816,6 +830,27 @@ function lr_format_org_tab_frame_chain(object) {
 		});
 	}
 	return result;
+}
+
+function lr_format_org_tab_group_title(elements) {
+	const noTitle = Symbol("noTitle");
+	let title = undefined;
+	for (const tab of elements) {
+		if (tab._type !== "TabFrameChain") {
+			continue;
+		}
+		for (const candidate of lr_format_org.valuesFromDescriptors(
+			tab.elements[0].descriptors("tabGroupTitle"))
+		) {
+			if (noTitle === title) {
+				title = candidate;
+			} else if (title !== candidate) {
+				title = noTitle;
+				break;
+			}
+		}
+	}
+	return title !== noTitle ? title : undefined;
 }
 
 function lr_format_org_tab_group(object, executor) {
@@ -827,7 +862,11 @@ function lr_format_org_tab_group(object, executor) {
 		throw new TypeError('lr_format_org_tab_group: elements is not an Array');
 	}
 
-	const title = [ "Tab group", lr_org_buffer.LrOrgWordSeparator, new Date() ];
+	const title = executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		lr_format_org_tab_group_title,
+		elements
+	) ?? [ "Tab group", lr_org_buffer.LrOrgWordSeparator, new Date() ];
 	const children = [];
 	const errors = [];
 	let formattedTabs = 0;
@@ -844,7 +883,7 @@ function lr_format_org_tab_group(object, executor) {
 						executor.child(
 							{ contextObject: tab, },
 							lr_format_org_tab_frame_chain,
-							tab
+							tab, { skipTabGroup: title },
 						).tree);
 					++formattedTabs;
 					break;

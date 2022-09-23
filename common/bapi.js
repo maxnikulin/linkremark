@@ -148,6 +148,7 @@ function bapiChrome(chrome) {
 		},
 		storage: asis,
 		tabs: asis,
+		tabGroups: asis,
 		windows: asis,
 		webNavigation: asis,
 	};

@@ -27,7 +27,8 @@
 	],
 	"optional_permissions": [
 		"nativeMessaging",
-		"tabs"
+		"tabs",
+		"tabGroups"
 	],
 	"manifest_version": 3,
 	"action": {

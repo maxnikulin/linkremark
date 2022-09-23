@@ -407,6 +407,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	class _GroupedTabBunch {
 		constructor(tab) {
 			this.tab = tab;
+			if (tab.groupId >= 0) {
+				this.groupId = tab.groupId;
+			}
 		}
 		get isBunch() {
 			return this.tab.groupId >= 0;
@@ -535,7 +538,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				tabTargets.push({ frameTab: tab, windowTab: tab });
 			}
 		};
-		return await executor.step(captureAndExportResult, tab, lrCaptureTabGroup, tabTargets, executor);
+		const captureTarget = {
+			tabs: tabTargets,
+			groupId: bunch.groupId,
+		}
+		return await executor.step(
+			captureAndExportResult, tab, lrCaptureTabGroup, captureTarget, executor);
 	}
 
 	async function captureAndExportResult(activeTab, method, params, executor) {

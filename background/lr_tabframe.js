@@ -295,16 +295,18 @@ function lrFrameChainOrTopFrame(frameMap) {
 	return [frameMap.get(0)];
 }
 
-async function lrCaptureTabGroup(tabTargetArray, executor) {
-	const promises = executor.step(function launchTabGroupCaptures(executor) {
-		return tabTargetArray.map(tabTarget => {
-			const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
-			return executor.child(
-				{ contextId: tab && tab.id },
-				lrCaptureSingleTab, tabTarget
-				/* implicit childExecutor argument */);
-		});
-	});
+async function lrCaptureTabGroup(captureTarget, executor) {
+	const promises = executor.step(
+		function launchTabGroupCaptures(tabTargetArray, executor) {
+			return tabTargetArray.map(tabTarget => {
+				const tab = tabTarget && (tabTarget.windowTab || tabTarget.frameTab);
+				return executor.child(
+					{ contextId: tab && tab.id },
+					lrCaptureSingleTab, tabTarget
+					/* implicit childExecutor argument */);
+			});
+		},
+		captureTarget?.tabs);
 	const { elements, errors } = await executor.step(async function waitTabGroupCaptures(executor) {
 		let errors = [];
 		let elements = [];
@@ -345,10 +347,7 @@ async function lrCaptureTabGroup(tabTargetArray, executor) {
 		},
 		promises, elements, errors);
 
-	return {
-		title: "Tab Group", // i18n
-		body: { _type: "TabGroup", elements },
-	};
+	return { body: { _type: "TabGroup", elements, }, };
 }
 
 async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
@@ -496,12 +495,25 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 	) || [];
 	const frameMap = lrMakeFrameMap(activeTab, frameArray);
 	console.assert(frameMap.has(0), "frameMap has at least synthetic frameId 0");
-	frameMap.get(0).tab = {
+	const outerTab = frameMap.get(0).tab = {
 		id: activeTab.id,
 		url: activeTab.url,
 		title: activeTab.title,
 		favIconUrl: activeTab.favIconUrl
 	};
+	await executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		async function lrAddGroupName(tab, groupId) {
+			if (!(groupId >= 0)) {
+				return;
+			}
+			const title = (await bapi.tabGroups?.get(groupId))?.title;
+			if (title) {
+				tab.groupTitle = title;
+			}
+		},
+		outerTab,
+		activeTab?.groupId);
 	const chain = frameId != null ? await lrFrameChainByClickData(tab, frameMap, clickData, executor) :
 		await lrFrameChainGuessSelected(activeTab, frameMap, executor);
 	// Hope that checking here instead of `lrExecutePermissionForbiddenCheckScript`
