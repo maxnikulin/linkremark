@@ -453,7 +453,7 @@ async function lrFrameChainByClickData(tab, frameMap, clickData, executor) {
 	if (topFrame && topFrame.clickData == null && clickData.pageUrl) {
 		topFrame.clickData = { url: clickData.pageUrl };
 	}
-	await lrExecRelationsScript(tab, frameMap.values(), executor);
+	await lrExecRelationsScript(tab, chain, executor);
 	return chain;
 }
 
