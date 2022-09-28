@@ -11,7 +11,7 @@ commands:
     suggested_key:
       default: Ctrl+Shift+L
       mac: Command+Shift+L
-host_permissions:
+optional_host_permissions:
 - <all_urls>
 optional_permissions:
 - tabGroups

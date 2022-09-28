@@ -40,7 +40,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		}
 		if (details.name.startsWith("permissions.")) {
 			const perm = details.name.substring(12);
-			const optional = bapi.runtime.getManifest().optional_permissions;
+			const field = details.host ? "optional_host_permissions" : "optional_permissions";
+			const optional = bapi.runtime.getManifest()[field];
 			if (!optional || !(optional.indexOf(perm) >= 0)) {
 				console.log(
 					"lr_settings.registerOption: skip optional permission %s as disabled for this browser.",
@@ -230,6 +231,21 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 				"for capture heading title.",
 			],
 			type: "permission",
+			parent: "misc",
+		});
+		this.registerOption({
+			name: "permissions.<all_urls>",
+			title: 'Permission: Execute content scripts on all sites ("<all_urls>")',
+			version: "0.4",
+			description: [
+				"In Chrome it causes \"Read and change all your data on all websites\"",
+				"permission warning, may be reset by selecting \"On click\"",
+				"for site permissions in extension details.",
+				"Required to extract metadata when you capture several tabs.",
+				"Not necessary when capturing top level frame (page).",
+			],
+			type: "permission",
+			host: true,
 			parent: "misc",
 		});
 	};

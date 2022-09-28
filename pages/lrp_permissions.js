@@ -41,8 +41,8 @@ var LrPermissionsActions = {
 function lrPermissionsReducer(state = {}, {type, data}) {
 	switch (type) {
 		case "permissions/added": {
-			const perms = data.permissions || [];
-			const updates = data.permissions.filter(p => !state[p] || !state[p].state);
+			const perms = (data.permissions || []).concat(data.origins || []);
+			const updates = perms.filter(p => !state[p] || !state[p].state);
 			if (updates.length > 0) {
 				const replace = {};
 				for (const p of updates) {
@@ -53,8 +53,8 @@ function lrPermissionsReducer(state = {}, {type, data}) {
 			break;
 		}
 		case "permissions/removed": {
-			const perms = data.permissions || [];
-			const updates = data.permissions.filter(p => state[p] && state[p].state);
+			const perms = (data.permissions || []).concat(data.origins || []);
+			const updates = perms.filter(p => state[p] && state[p].state);
 			if (updates.length > 0) {
 				const replace = {};
 				for (const p of updates) {
@@ -65,10 +65,11 @@ function lrPermissionsReducer(state = {}, {type, data}) {
 			break;
 		}
 		case "permissions/current": {
-			if (!data.permissions) {
+			if (!data.permissions && !data.origins) {
 				break;
 			}
-			const diff = new Map(data.permissions.map(k => [k, true]));
+			const perms = (data.permissions || []).concat(data.origins || []);
+			const diff = new Map(perms.map(k => [k, true]));
 			for (const [k, v] of state ? Object.entries(state) : []) {
 				if (v && v.state) {
 					if (!diff.delete(k)) {
@@ -89,7 +90,8 @@ function lrPermissionsReducer(state = {}, {type, data}) {
 		case "permissions/request/completed":
 		case "permissions/request/failed": {
 			const permissions = { ...state };
-			for (const p of data.permissions && data.permissions.permissions || []) {
+			const perms = (data.permissions?.permissions || []).concat(data.permissions?.origins || []);
+			for (const p of perms) {
 				const prop = permissions[p] = { ...(permissions[p] || {}) };
 				prop.requests = prop.requests ? prop.requests.slice() : [];
 				const ind = prop.requests.findIndex(r => r.id === data.id);

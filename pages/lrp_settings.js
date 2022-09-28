@@ -20,16 +20,26 @@
 var gDescriptors = false;
 
 class LrPermissionControl {
-	constructor(name) {
+	constructor(name, isHost) {
 		this.name = name;
+		this.host = isHost;
 		this.permission = this.name.substring(12);
 	}
 	render() {
 		this.checkbox = E('input', { type: 'checkbox', name: this.name });
+		const hidden = [];
+		if (this.host) {
+			this.hostInput = E('input', {
+				type: 'hidden',
+				name: this.name + ".host",
+				value: "t",
+			});
+			hidden.push(this.hostInput);
+		}
 		this.progress = E('span', { className: 'invisible' }, " Updating...");
 		this.error = E('span', { className: 'invisible error'}, " Failed");
 		const label = E('label', null, this.checkbox, "Allowed");
-		return E('div', null, label, this.progress, this.error);
+		return E('div', null, label, ...hidden, this.progress, this.error);
 	}
 	mapStateToProps(state) {
 		return state && state.permissions && state.permissions[this.permission];
@@ -188,7 +198,7 @@ function getType(property) {
 }
 
 function formatPermission(property) {
-	const control = new LrPermissionControl(property.name);
+	const control = new LrPermissionControl(property.name, property.host);
 	const dom = control.render();
 	// HTML elements should be already created to properly updateProps.
 	lrEventSources.stateStore.registerComponent(
@@ -221,11 +231,12 @@ async function lrInputChanged(e) {
 		const targetName = e.target.name;
 		if (targetName.startsWith("permissions.")) {
 			const name = targetName.substring(12);
-			const permObj = { permissions: [ name ] };
+			const isHost = form[targetName + ".host"];
+			const permObj = isHost ? { origins: [ name ] } : { permissions: [ name ] };
 			const state = e.target.checked;
 			// Reset to original state till permission change event,
 			e.target.checked = !e.target.checked;
-			lrEventSources.permissionEvents.change(state, { permissions: [name] });
+			lrEventSources.permissionEvents.change(state, permObj);
 			return;
 		}
 		const real = targetName.startsWith("real.");
