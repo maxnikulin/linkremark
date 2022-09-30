@@ -22,7 +22,8 @@ class LrRpcError extends Error {
 }
 
 class LrAddonRpc {
-	constructor() {
+	constructor(initPromise) {
+		this.initPromise = initPromise;
 		this.methods = new Map();
 		this.subscriptionHandlers = new Map();
 		this.subscribed = new WeakMap();
@@ -88,6 +89,7 @@ class LrAddonRpc {
 		if (unknown.length > 0) {
 			throw new LrRpcError(`Unknown request fields: ${unknown}`);
 		}
+		await this.initPromise;
 		const callback = this.methods.get(method);
 		if (!callback) {
 			throw new LrRpcError(`Unknown method: ${method}`);
@@ -110,7 +112,7 @@ class LrAddonRpc {
 		port.onDisconnect.addListener(this.onConnectedDisconnect);
 	}
 
-	_onConnectedMessage(request, port) {
+	async _onConnectedMessage(request, port) {
 		const subscribed = this.subscribed.get(port);
 		if (subscribed != null) {
 			// Should not happen, just for the case when message arrived
@@ -127,6 +129,7 @@ class LrAddonRpc {
 			console.warn("LrAddonRpc: message from connection: expected subscription, got %o", request);
 			return;
 		}
+		await this.initPromise;
 		const handler = this.subscriptionHandlers.get(subscription);
 		if (handler == null) {
 			console.warn("LrAddonRpc: attempt to subscribe to unknown handler: %o %o", request, port);

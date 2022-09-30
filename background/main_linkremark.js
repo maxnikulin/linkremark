@@ -47,7 +47,14 @@ var lrResetLoadingState = lr_util.notFatal(function() {
 	}
 });
 
-function lrMainSync() {
+// for debugging
+var lrAsyncInitPromise;
+
+function lrMainSync(initAsync) {
+	// postpone till completion of this function,
+	// allow "Uncaught (in promise) Error" reporting
+	const initAsyncResult = Promise.resolve().then(initAsync);
+	lrAsyncInitPromise = initAsyncResult.then(() => true, e => e);
 	lr_settings.initSync();
 	lr_export.initSync();
 	lr_native_export.initSync();
@@ -59,9 +66,10 @@ function lrMainSync() {
 		Promise.reject(ex);
 	}
 	gLrRpcStore = new LrRpcStore();
-	gLrAddonRpc = new LrAddonRpc();
+	gLrAddonRpc = new LrAddonRpc(lrAsyncInitPromise);
 	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);
 	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
+	return initAsyncResult.catch(e => { throw e; });
 }
 
 async function lrMainAsync() {
@@ -89,6 +97,5 @@ async function lrMainAsync() {
 	console.debug("LR: async init completed");
 }
 
-lrMainSync();
-lrMainAsync();
+lrMainSync(lrMainAsync);
 console.debug("LR: sync init completed");
