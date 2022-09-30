@@ -31,6 +31,9 @@ try {
 	self.addEventListener("error", function(...args) {
 		++gLrLoadErrorCount;
 	});
+	self.addEventListener("unhandledrejection", function(...args) {
+		++gLrLoadErrorCount;
+	});
 } catch (ex) {
 	console.error("LR error while trying to set error listener", ex);
 }
