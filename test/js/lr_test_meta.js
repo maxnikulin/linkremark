@@ -125,6 +125,24 @@ var lr_test_meta = lr_util.namespace(lr_test_meta, function lr_test_meta() {
 		},
 	});
 
+	lr_test_meta.cases_sanitizeURL = [
+		[
+			"httpS://EN.WIKIPEDIA.org/wiki/Wikipedia",
+			"https://en.wikipedia.org/wiki/Wikipedia",
+			"Protocol and hostname are converted to lower case",
+		],
+	];
+
+	lr_test.assignParametrized(
+		this, lr_test_meta.cases_sanitizeURL,
+		function test_sanitizeURL(url, expect, comment) {
+			const exp = Array.isArray(expect) ? expect : [ expect ];
+			const act = new Set(
+				Array.from(lr_meta.sanitizeUrl({value: url}))
+				.map(descr => descr.error || descr.value));
+			lr_test.assertEq(exp, act, comment);
+		});
+
 	Object.assign(this, {
 		cases_matchDOI,
 	});
