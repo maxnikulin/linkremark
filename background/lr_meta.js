@@ -277,6 +277,8 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	}
 
 	function* sanitizeUrl(valueAndError) {
+		// TODO strip `view-source:` prefix (Firefox).
+		// TODO strip `view-source:` equivalent for Chromium.
 		delete valueAndError._urlSanitized;
 		valueAndError = doSanitizeLength(valueAndError);
 		let doiVariants;

@@ -511,6 +511,11 @@ async function lrFrameChainGuessSelected(tab, frameMap, executor) {
 async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 	const stepTimeout = { timeout: lr_tabframe.scriptTimeout };
 	const frameId = clickData && tab && tab.id >= 0 ? clickData.frameId : null;
+	// In Chromium `tab.url != frame.url` is possible, e.g.
+	// `tab.url == "view-source:http://127.0.0.1:8000/"`
+	// `frame.url == "http://127.0.0.1:8000/"`
+	// `tab.title == "view-source:127.0.0.1:8000"`.
+	// However `clickData.pageUrl` is the same as `frame.url`.
 	// The only reason to call webNavigation.getFrame()
 	// might be errorOccured property, but it is unused currently.
 	// Fake top level frame will be added by lrMakeFrameMap.
