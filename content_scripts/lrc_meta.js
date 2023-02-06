@@ -178,6 +178,7 @@
 			case 'canonical':
 			case 'shortlink':
 			case 'shorturl':
+			case 'shortlinkUrl':
 				attrs.key = `link.${attrs.rel}`;
 				attrs.property = 'url';
 				break;
