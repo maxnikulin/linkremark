@@ -126,6 +126,15 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	};
 
 	async function requestPermissions() {
+		if (!lr_settings.isReady()) {
+			/* User action context is lost in Firefox causing rejection
+			 * or `permissions.request
+			 * https://bugzilla.mozilla.org/1398833
+			 * "chrome.permissions.request needs to be called directly from input handler,
+			 * making it impossible to check for permissions first"
+			 */
+			await lr_settings.wait();
+		}
 		const method = lr_settings.getOption("export.method");
 		const descriptor = this.methodMap.get(method);
 		if (descriptor == null) {
@@ -133,13 +142,24 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 		}
 		let { permissions } = descriptor;
 		if (lr_util.isFunction(permissions)) {
-			permissions = permissions();
+			permissions = permissions(lr_settings);
 		}
 		if (permissions) {
 			// For logging purposes only
+			let result;
+			try {
+				result = await bapi.permissions.request({ permissions });
+			} catch (ex) {
+				// Avoid Firefox error due to lack of user action context
+				// while settings are loaded.
+				result = await bapi.permissions.contains({ permissions });
+				if (!result) {
+					throw ex;
+				}
+			}
 			return {
 				permissions,
-				result: await bapi.permissions.request({ permissions }),
+				result,
 			};
 		}
 		return true;

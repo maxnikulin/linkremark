@@ -21,8 +21,32 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 	var lr_settings = this;
 	this.NAME_SETTING = "settings.extensionName";
 	this.EXTENSION_NAME = "LinkRemark";
+	this.LOAD_TIMEOUT = 500;
 
 	this.settingsMap = new Map();
+
+	/** In the case of service worker or background event page
+	 * a listener of user action may be called before settings have been loaded.
+	 * It happens if the extension was unloaded due to timeout.
+	 * In Firefox it means inability to request permission based on
+	 * settings:
+	 * https://bugzilla.mozilla.org/1398833
+	 * "chrome.permissions.request needs to be called directly from input handler,
+	 * making it impossible to check for permissions first"
+	 *
+	 * Using `storage.local.get` with callback
+	 * *from event handler* helps in Chromium-126
+	 * but not in Firefox-115.13 ESR.
+	 */
+	lr_settings.initCallback = function initCallback(continuation) {
+		if (lr_settings.isReady()) {
+			return continuation();
+		}
+		lr_settings._storageGet(continuation);
+	};
+
+	lr_settings.isReady = function isReady() { return lr_settings.current != null; }
+	lr_settings.wait = async function wait() { return lr_settings._readyPromise; }
 
 	this.registerOption = function(details) {
 		if (details == null) {
@@ -94,7 +118,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		return descriptor.defaultValue;
 	};
 
-	this.getSettings = function(names) {
+	lr_settings.getSettings = async function getSettings(names) {
+		await this.wait();
 		if (names == null) {
 			const result = {};
 			for (const [key, descriptor] of this.settingsMap) {
@@ -132,6 +157,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 	};
 
 	this.initSync = function() {
+		lr_settings._readyPromise = this._initLoad();
+
 		this.version = bapi.runtime.getManifest().version;
 
 		this.registerGroup({
@@ -277,22 +304,103 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		return result;
 	};
 
-	this.initAsync = async function() {
+	lr_settings._initLoad = function _initLoad() {
+		console.assert(
+			!("_loadDeferred" in lr_settings),
+			"lr_settings._initLoad should be called once");
+		const loadDeferred = lr_settings._loadDeferred = {
+			resolve(values) {
+				if (this._resolve === undefined) {
+					console.warn("LR: settings loaded after failure");
+					return;
+				}
+				this._resolve(values);
+				this.destroy();
+			},
+			reject(ex) {
+				if (ex == null) {
+					ex = new Error("Timeout");
+				}
+				console.warn("LR: settings load failed", ex);
+				this.reject?.(ex);
+				this.destroy();
+			},
+			destroy() {
+				lr_settings._loadDeferred = undefined;
+				delete this._resolve;
+				delete this._reject;
+				if (this.loadTimer !== undefined) {
+					clearTimeout(this.loadTimer);
+					delete this.loadTimer;
+				}
+			},
+		};
+		let promise;
 		try {
-			let values = await this.load();
+			promise = new Promise((resolve, reject) => {
+				loadDeferred._resolve = resolve;
+				loadDeferred._reject = reject;
+			});
+			loadDeferred.loadTimer = setTimeout(
+				loadDeferred.reject.bind(loadDeferred),
+				lr_settings.LOAD_TIMEOUT);
+			lr_settings._storageGet(null);
+		} catch (ex) {
+			loadDeferred.reject(ex);
+		}
+		return promise;
+	};
+
+	this._storageGet = function _storageGet(callback) {
+		// Not `bapi` since callback is mandatory here.
+		chrome.storage.local.get(
+			"settings", lr_settings._storageGetCallback.bind(lr_settings, callback));
+	};
+
+	this._storageGetCallback = async function _storageGetCallback(continuation, values) {
+		if (continuation !== null && lr_settings.isReady()) {
+			return continuation();
+		}
+		try {
+			values = values?.settings;
+			// TODO extract lastError from bapi.
+			const { lastError } = chrome.runtime;
+			if (lastError != null) {
+				throw new Error(lastError.message || String(lastError));
+			}
+			if (lr_settings.isReady()) {
+				console.warn("LR: settings already loaded");
+				return;
+			}
+			let setPromise;
 			if (values == null || Object.keys(values).length === 0) {
 				values = lr_settings.initValues();
-				await bapi.storage.local.set({ settings: values });
+				setPromise = bapi.storage.local.set({ settings: values });
 			}
 			// FIXME write version comparator
 			// and reject settings for newer versions of the extension
-			this.current = values;
+			lr_settings.current = values;
+			lr_settings._loadDeferred?.resolve(values);
+			try {
+				continuation?.();
+			} catch (ex) {
+				Promise.reject(ex);
+			} finally {
+				continuation = null;
+			}
+			await setPromise;
 		} catch (ex) {
-			console.error("LR: storage unavailable:", ex);
+			lr_settings._loadDeferred?.reject(ex);
+			try {
+				continuation?.();
+			} catch (ex) {
+				Promise.reject(ex);
+			}
 		}
 	};
 
-	this.getDescriptors = function() {
+	lr_settings.getDescriptors = async function getDescriptors() {
+		await this.wait();
 		const { LrMultiMap } = lr_multimap;
 		const settingsMap = this.settingsMap;
 		const ROOT_NODE = Symbol.for("LrRootNode");
@@ -380,7 +488,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 	};
 
 	// TODO Separate into model part and async part actual updating the storage.
-	this.update = async function(params) {
+	lr_settings.update = async function update(params) {
+		await this.wait();
 		const [obj, replace] = params;
 		let needCommit = false;
 		const update = {};

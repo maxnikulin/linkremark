@@ -325,21 +325,21 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		lr_export.registerMethod({
 			method: "clipboard",
 			handler: lrCopyToClipboard,
-			permissions: function lrClipboardPermissions() {
+			permissions: function lrClipboardPermissions(settings) {
 				const optional = bapi.runtime.getManifest().optional_permissions;
 				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
-				const usePreview = lr_settings.getOption("export.methods.clipboard.usePreview");
+				const usePreview = settings.getOption("export.methods.clipboard.usePreview");
 				return !usePreview && hasOptional ? [ "clipboardWrite" ] : null;
 			},
 		});
 		lr_export.registerMethod({
 			method: "org-protocol",
 			handler: lrLaunchOrgProtocolHandler,
-			permissions: function lrOrgProtocolPermissions() {
+			permissions: function lrOrgProtocolPermissions(settings) {
 				const optional = bapi.runtime.getManifest().optional_permissions;
 				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
-				const usePreview = lr_settings.getOption("export.methods.orgProtocol.usePreview");
-				const clipboardForBody = lr_settings.getOption("export.methods.orgProtocol.clipboardForBody");
+				const usePreview = settings.getOption("export.methods.orgProtocol.usePreview");
+				const clipboardForBody = settings.getOption("export.methods.orgProtocol.clipboardForBody");
 				return !usePreview && clipboardForBody && hasOptional ? [ "clipboardWrite" ] : null;
 			},
 		});

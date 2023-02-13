@@ -73,7 +73,7 @@ function lrMainSync(initAsync) {
 }
 
 async function lrMainAsync() {
-	await lr_settings.initAsync();
+	await lr_settings.wait();
 	await lr_export.initAsync();
 	gLrAddonRpc.register("store.getResult", gLrRpcStore.handleResult);
 	gLrAddonRpc.register("store.getCapture", gLrRpcStore.handleCapture);

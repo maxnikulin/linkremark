@@ -68,7 +68,22 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			return status;
 		}
 
-		const retval = await lr_executor.run(
+		// In Chromium service worker, settings may be loaded using callback
+		// without loosing user gesture context for `permissions.request`.
+		if (!lr_common.isGecko()) {
+			const continuation = func;
+			func = async (...args) => {
+				return new Promise((resolve, reject) =>
+					lr_settings.initCallback(function _lr_action_run_c(args)  {
+						try {
+							resolve(continuation(...args));
+						} catch (ex) {
+							reject(ex);
+						}
+					}.bind(null, args)));
+			};
+		}
+		const retval = lr_executor.run(
 			{
 				notifier: new lr_executor.LrBrowserActionNotifier(),
 				oncompleted: { func: lr_action_onCompleted, },
