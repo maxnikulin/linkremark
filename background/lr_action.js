@@ -350,6 +350,16 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		return _getActiveTabAsync(targetTab);
 	}
 
+	async function _waitExportPermissionPromise(executor, promise) {
+		return await executor.step(
+			{ result: true, errorAction: lr_executor.ERROR_IS_WARNING },
+			async function lr_action_waitExportPermissionsPromise(promise) {
+				return await promise;
+			},
+			promise,
+		);
+	}
+
 	/// Asks export permission and calls `_singleTabActionDo`.
 	/// Called through `browserAction` listener and context menu
 	/// items for frame (page), link, and image.
@@ -362,13 +372,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			lr_export.requestPermissions();
 		executor.notifier.startContext(currentTabPromise, { default: true });
 		executor.acquireLock(type || "Tab", fromBrowserActionPopup);
-		await executor.step(
-			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
-			async function lrWaitExportPermissionsPromise(promise) {
-				return await promise;
-			},
-			exportPermissionPromise,
-		);
+		await _waitExportPermissionPromise(executor, exportPermissionPromise);
 
 		return await executor.step(
 			lr_action._singleTabActionDo, clickData, targetTab, type, executor);
@@ -460,14 +464,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				// Capture just that tab.
 				await bapi.tabs.update(tab.id, { active: true });
 			}
-			// TODO consider executor.waitPromise method
-			await executor.step(
-				{ result: true, errorAction: lr_executor.IGNORE_ERROR },
-				async function lrWaitExportPermissionsPromise(promise) {
-					return await promise;
-				},
-				exportPermissionPromise,
-			);
+			await _waitExportPermissionPromise(executor, exportPermissionPromise);
 			return await executor.step(
 				lr_action._singleTabActionDo, clickData, tab, null, executor);
 		}
@@ -499,13 +496,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				lr_action._singleTabActionDo, clickData, tab, null, executor);
 		}
 
-		await executor.step(
-			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
-			async function lrWaitExportPermissionsPromise(promise) {
-				return await promise;
-			},
-			exportPermissionPromise
-		);
+		await _waitExportPermissionPromise(executor, exportPermissionPromise);
 		const hasPermission = await executor.step(
 			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
 			async function lrWaitTabPermissionsPromise(promise) {
