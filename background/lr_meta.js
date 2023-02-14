@@ -249,7 +249,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 			value = value.href;
 		}
 		if (typeof value !== 'string') {
-			return { value: null, ...error, error: "TypeError" };
+			return { value: null, error: "TypeError", ...error };
 		}
 		if (value.startsWith("javascript:")) {
 			return { value: "javascript:", ...error, error: "LrForbiddenUrlSchema" };
@@ -316,7 +316,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 			if (typeof value === 'string') {
 				yield* sanitizeText(valueError);
 			} else {
-				yield { value: [], ...error, error: "TypeError" };
+				yield { value: [], error: "TypeError", ...arrayError };
 			}
 			return;
 		}
@@ -347,7 +347,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 				result.push(fragment);
 				continue;
 			} else if (typeof value !== "string") {
-				result.push({...fragment, value: "", error: "TypeError"});
+				result.push({ error: "TypeError", ...fragment, value: "" });
 				error = reduceError(error, "TypeError");
 				continue;
 			}
