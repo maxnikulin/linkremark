@@ -513,7 +513,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 
 		await _waitExportPermissionPromise(executor, exportPermissionPromise);
 		const hasPermission = await executor.step(
-			{ result: true, errorAction: lr_executor.IGNORE_ERROR },
+			{ result: true, errorAction: lr_executor.ERROR_IS_WARNING },
 			async function lrWaitTabPermissionsPromise(promise) {
 				return await promise;
 			},
