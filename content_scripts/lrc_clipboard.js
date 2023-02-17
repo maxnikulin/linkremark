@@ -61,6 +61,7 @@
 
 	function lrCopyUsingEvent(text) {
 		let status = null;
+		// FIXME Sync with `common/lr_common.js`
 		// Document may install copy event interceptor earlier.
 		let listenerInvoked = false;
 		function lrc_oncopy(event) {
@@ -69,7 +70,7 @@
 			event.preventDefault();
 			event.clipboardData.clearData();
 			event.clipboardData.setData("text/plain", text);
-			listenerInvoked = false;
+			listenerInvoked = true;
 		}
 		document.addEventListener("copy", lrc_oncopy, true);
 
