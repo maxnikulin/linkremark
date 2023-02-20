@@ -1,11 +1,11 @@
 
 MAKE_MANIFEST = tools/make_manifest.py
-MANIFEST_FIREFOX_src = manifest-common.json manifest-part-firefox.json
+MANIFEST_FIREFOX_src = manifest-common.yaml manifest-part-firefox.yaml
 MANIFEST_TEST_src = manifest-part-test.yaml
 MANIFEST_FIREFOX_TEST_src = $(MANIFEST_FIREFOX_src) $(MANIFEST_TEST_src)
 
 MANIFEST_CHROME_DEV_src = manifest-part-chrome-dev.yaml
-MANIFEST_CHROME_src = manifest-common.json manifest-part-chrome.json
+MANIFEST_CHROME_src = manifest-common.yaml manifest-part-chrome.yaml
 MANIFEST_CHROME_TEST_src = $(MANIFEST_CHROME_src) $(MANIFEST_TEST_src)
 MANIFEST_CHROME_TEST_src += $(MANIFEST_CHROME_DEV_src)
 
@@ -86,7 +86,7 @@ clean:
 
 firefox-dist: firefox
 	set -e ; \
-	out="`cat manifest-common.json | \
+	out="`cat manifest-firefox.json | \
 		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"`" ; \
 	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
 	file="linkremark-$${out}-unsigned.xpi" ; \
