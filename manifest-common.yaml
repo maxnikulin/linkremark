@@ -43,5 +43,23 @@ permissions:
 - contextMenus
 - webNavigation
 optional_permissions:
+# `clipboardWrite` allows to copy to clipboard any time.
+# Added to reliably copy capture when preview page is disabled
+# in extension settings. Should not be necessary in Firefox-115 ESR
+# and newer since user action context is propagated to the background
+# script, see <https://bugzilla.mozilla.org/1835585>.
+# In Chrome mv3 extensions `navigator.clipboard` is unavailable
+# in service worker and user gesture context is not propagated
+# to offscreen documents. The only reliable way is `window.execCommand("copy")`
+# from an offscreen document when this permission is granted.
+# In Chrome mv2 extensions it is possible to
+# copy using DOM command and event from background page without this permission.
+# In Firefox any `await` causes lost of user action context, see
+# https://bugzilla.mozilla.org/1398833
+# "chrome.permissions.request needs to be called directly from input handler,
+# making it impossible to check for permissions first"
+# So despite the extension copies to clipboard only in response to user action,
+# it is necessary to request permission to do it any time.
+- clipboardWrite
 - nativeMessaging
 - tabs

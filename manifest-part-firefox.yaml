@@ -15,7 +15,6 @@ permissions:
 - menus
 optional_permissions:
 - <all_urls>
-- clipboardWrite
 background:
   scripts:
   - background/init_linkremark.js

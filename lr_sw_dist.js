@@ -127,6 +127,11 @@ try {
 	Promise.reject(ex);
 }
 try {
+	importScripts("background/lr_offscreen_clipboard.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
 	importScripts("background/lr_clipboard.js");
 } catch (ex) {
 	Promise.reject(ex);

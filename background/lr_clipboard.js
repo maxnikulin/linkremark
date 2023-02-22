@@ -120,53 +120,99 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		};
 	}
 
-	async function _lrClipboardCopyFromBackground(text) {
-		// impossible in mv3
+	async function _lrClipboardBgChrome(text, abortSignal) {
 		const errors = [];
 		try {
-			if (typeof document !== "undefined" && lr_common.copyUsingEvent(text)) {
+			if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+				/* Has not implemented for mv3 service worker at least in Chrome-111.
+				 * Does not work for mv2 background page because the document is never
+				 * focused: `chromium-browser: DOMException: Document is not focused.`
+				 * (chromium-87). Extension `clipboardWrite` permission allows
+				 * `document.execCommand("copy")`, but not `navigator.clipboard.writeText`.
+				 * Background page (mv2) in chromium-87 reports granted for
+				 *
+				 *     navigator.permissions.query({ name: 'clipboard-write' })
+				 */
+				await navigator.clipboard.writeText(text);
 				return true;
 			}
 		} catch (ex) {
 			console.log(
-				"lr_clipboard._lrClipboardCopyFromBackground: failed to copy using command and event: %o", ex);
+				"lr_clipboard._lrClipboardBgChrome: service worker navigator.clipboard failed: %o", ex);
 			errors.push(ex);
 		}
-		if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-			// It seems that result value is unspecified.
-			// On failure the promise is rejected.
-			/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
-			 * do not help.
-			 *     navigator.permissions.query({ name: 'clipboard-write' })
-			 * reports "granted".
-			 * chromium-browser: DOMException: Document is not focused.
-			 *
-			 * For Firefox it looks like the best method if clipboard permission
-			 * is requested. At least unless it is disabled through about:config.
-			 */
-			try {
-				await navigator.clipboard.writeText(text);
+		try {
+			if ("lr_offscreen_clipboard" in self) {
+				if (!await lr_offscreen_clipboard.copy(text, abortSignal)) {
+					throw new Error("Clipboard offscreen operation failed");
+				}
 				return true;
-			} catch (ex) {
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
-				// Bug 1670252 navigator.clipboard.writeText rejects with undefined as rejection value
-				// Fixed in Firefox-85
-				ex = ex || new Error("Not allowd: navigator.clipboard");
-				console.log(
-					"lr_clipboard._lrClipboardCopyFromBackground: failed to copy using navigator.clipboard: %o", ex);
-				errors.push(ex);
 			}
+		} catch (ex) {
+			console.log(
+				"lr_clipboard._lrClipboardBgChrome: offscreen command&event failed: %o", ex);
+			errors.push(ex);
+		}
+		const message = "Clipboard MV3 operation failed";
+		if (errors.length === 1) {
+			throw new LrError(message, { cause: errors[0] });
+		} else if (errors.length !== 0) {
+			throw new LrAggregateError(errors, message);
+		}
+		return false;
+	}
+	async function _lrClipboardBgMV2(text) {
+		const errors = [];
+		try {
+			if (typeof document !== "undefined" && lr_common.copyUsingEvent(text)) {
+				// May work in Firefox without clipboard permission
+				// within several seconds after user action.
+				return true;
+			}
+		} catch (ex) {
+			console.log(
+				"lr_clipboard._lrClipboardBgMV2: background command&event failed: %o", ex);
+			errors.push(ex);
+		}
+		try {
+			/* For Firefox it looks like the best method if clipboard permission
+			 * is granted. At least unless it is disabled through about:config.
+			 *
+			 * Does not work in Chrome mv2 background page because the document is never
+			 * focused: `chromium-browser: DOMException: Document is not focused.`
+			 * (tested in chromium-87). Extension `clipboardWrite` permission allows
+			 * `document.execCommand("copy")`, but not `navigator.clipboard.writeText`.
+			 * Background page (mv2) in chromium-87 reports granted for
+			 *
+			 *     navigator.permissions.query({ name: 'clipboard-write' })
+			 *
+			 * Return value is unspecified, on failure the promise is rejected.
+			 */
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch (ex) {
+			console.log(
+				"lr_clipboard._lrClipboardBgMV2: background navigator.clipboard: %o", ex);
+			errors.push(ex);
 		}
 		const message = "Background clipboard operation failed";
-		if (errors.length > 1) {
-			throw new LrAggregateError(errors, message);
-		} else if (errors.length !== 0) {
+		if (errors.length === 1) {
 			throw new LrError(message, { cause: errors[0] });
+		} else if (errors.length !== 0) {
+			throw new LrAggregateError(errors, message);
 		}
 		return false;
 	}
 
-	async function _lrClipboardBackground(capture, options) {
+	async function _lrClipboardBgCopy(text, abortSignal) {
+		// no need of `await`
+		if (chrome.runtime.getManifest().manifest_version === 2) {
+			return _lrClipboardBgMV2(text);
+		}
+		return _lrClipboardBgChrome(text, abortSignal);
+	}
+
+	async function _lrClipboardBackground(capture, options, executor) {
 		const { captureId, method } = capture && capture.transport;
 		if (method === "org-protocol" && !(options && options.allowBackground)) {
 			console.debug("lr_clipboard._lrClipboardBackground: allowBackground is disabled for org-protocol");
@@ -178,7 +224,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		let result = method !== "org-protocol" || !!projection.url;
 		if (result && content) {
 			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
-			result = await _lrClipboardCopyFromBackground(text);
+			result = await _lrClipboardBgCopy(text, executor.lock?.signal);
 			if (!result) {
 				return false;
 			}
@@ -326,21 +372,26 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			method: "clipboard",
 			handler: lrCopyToClipboard,
 			permissions: function lrClipboardPermissions(settings) {
-				const optional = bapi.runtime.getManifest().optional_permissions;
-				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
+				const allOptional = chrome.runtime.getManifest().optional_permissions;
+				const optional = allOptional?.filter(
+					p => p === "offscreen" || p === "clipboardWrite");
 				const usePreview = settings.getOption("export.methods.clipboard.usePreview");
-				return !usePreview && hasOptional ? [ "clipboardWrite" ] : null;
+				return !usePreview && optional?.length > 0 ? optional : null;
 			},
 		});
 		lr_export.registerMethod({
 			method: "org-protocol",
 			handler: lrLaunchOrgProtocolHandler,
 			permissions: function lrOrgProtocolPermissions(settings) {
-				const optional = bapi.runtime.getManifest().optional_permissions;
-				const hasOptional = optional && optional.indexOf("clipboardWrite") >= 0;
 				const usePreview = settings.getOption("export.methods.orgProtocol.usePreview");
 				const clipboardForBody = settings.getOption("export.methods.orgProtocol.clipboardForBody");
-				return !usePreview && clipboardForBody && hasOptional ? [ "clipboardWrite" ] : null;
+				if (usePreview || !clipboardForBody) {
+					return null;
+				}
+				const allOptional = chrome.runtime.getManifest().optional_permissions;
+				const optional = allOptional?.filter(
+					p => p === "offscreen" || p === "clipboardWrite");
+				return optional?.length > 0 ? optional : null;
 			},
 		});
 
@@ -369,12 +420,16 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			version: "0.2",
 			title: 'Permission: Input data to the clipboard ("clipboardWrite")',
 			description: [
-				"In Firefox clipboard permission is required to copy capture result",
-				"bypassing preview page.",
-				"Chrome better tracks user action context making this permission unnecessary.",
+				"Allow to copy capture result to clipboard without",
+				"additional click on preview page.",
+				"In Firefox clipboard may work unreliably",
+				"when this permission is not granted.",
+				"In Chrome \"offscreen\" permission is required in addition to this one.",
+				"",
+				"Unfortunately this permission allows overwriting",
+				"clippboard content any time.",
 				"You can use native-messaging or org-protocol method",
-				"if you are afraid",
-				"that add-on can silently overwrite data in clipboard.",
+				"instead if you are afraid.",
 			],
 			parent: "export.methods.clipboard",
 		});

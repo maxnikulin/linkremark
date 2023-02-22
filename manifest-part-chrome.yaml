@@ -14,7 +14,10 @@ commands:
 optional_host_permissions:
 - <all_urls>
 optional_permissions:
+# `offscreen` page is required to copy to clipboard from service worker.
+- offscreen
 - tabGroups
 background:
   service_worker: lr_sw.js
-minimum_chrome_version: '102.0'
+# - Chromium-109: `chrome.offscreen` API
+minimum_chrome_version: '109.0'

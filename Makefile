@@ -36,6 +36,7 @@ SW_SRC += \
 	background/lr_export.js \
 	background/lr_abortable_ctx.js \
 	background/lr_offscreen.js \
+	background/lr_offscreen_clipboard.js \
 	background/lr_clipboard.js \
 	background/lr_native_connection.js \
 	background/lr_native_export.js \
@@ -78,6 +79,8 @@ CONTENT_SRC += content_scripts/lrc_relations.js
 ICONS_SRC += icons/lr-16.png icons/lr-32.png
 ICONS_SRC += icons/lr-24.png icons/lr-48.png
 ICONS_SRC += icons/lr-64.png icons/lr-128.png
+
+OFFSCREEN_SRC += offscreen/lro_clipboard.html offscreen/lro_clipboard.js
 
 EMACS = LC_ALL=en_US.UTF-8 TZ=Z LANGUAGE=en emacs
 EMACS_FLAGS = --batch --no-init-file
@@ -157,7 +160,7 @@ chrome-dist: chrome manifest-chrome-dist.json $(HELP_PAGE)
 	$(RM) "$$file" ; \
 	zip --must-match "$$file" manifest.json \
 		$(SW_JS) $(SW_INIT) $(SW_SRC) $(SW_MAIN) \
-		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
+		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) $(OFFSCREEN_SRC) \
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
