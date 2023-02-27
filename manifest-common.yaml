@@ -14,7 +14,27 @@ icons:
   '128': icons/lr-128.png
 options_ui:
   page: pages/lrp_settings.html
-  browser_style: true
+  # Do not use `browser_style` or `chrome_style` they never worked
+  # consistently and have been deprecated:
+  # - <https://bugzilla.mozilla.org/1827910>
+  # - <https://crbug.com/973157>
+  # - <https://github.com/w3c/webextensions/issues/366>
+  # browser_style: true
+  #
+  # Do not use embedded settings page.
+  # - Dialog with adaptive design is too narrow in Chromium (e.g. v110)
+  #   https://crbug.com/459959
+  #   "Render embedded options pages offscreen with correct CSS media view-mode"
+  # - Embedded page have scroll issues in Firefox
+  #   <https://bugzilla.mozilla.org/1770726>
+  #   'Add-on "options_ui" page can not be scrolled from keyboard'
+  #   <https://bugzilla.mozilla.org/1763419>
+  #   "Extensions options fail to scroll" (2 fingers touchpad gesture)
+  # - Attempt to use units relative to outer page size causes
+  #   funny animation and CPU load in Firefox and Chromium (e.g. v110)
+  #   <https://bugzilla.mozilla.org/1774724>
+  #   "A height: 100vh element makes add-on options_ui page continuously growing"
+  open_in_tab: true
 permissions:
 # Available in Firefox-102 mv2 extensions despite it is mv3 API
 - scripting

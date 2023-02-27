@@ -16,7 +16,7 @@
 	},
 	"options_ui": {
 		"page": "pages/lrp_settings.html",
-		"browser_style": true
+		"open_in_tab": true
 	},
 	"permissions": [
 		"scripting",
