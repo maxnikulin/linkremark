@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 07:43 -->
+<!-- 2024-10-26 Sat 07:55 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -146,12 +146,48 @@ On the page
 <h2 id="usage"><span class="section-number-2">3.</span> Usage</h2>
 <div class="outline-text-2" id="text-usage">
 <p>
-Optionally select some text and choose an option from context menu (right click,
-<code>[Menu]</code> or <code>[Shift+F10]</code> keys).
-Unless you are going to capture a particular link,
+Optionally select some text and choose an add-on action item
+from context menu (right click, <code>[Menu]</code> or <code>[Shift+F10]</code> keys).
+Unless you are going to capture a particular link or specific frame,
 you can click on the extension icon in browser toolbar ("browser action")
 or may configure a shortcut on the add-ons page<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
 (Firefox: "Manage Extension Shrotcuts" in the gear menu).
+</p>
+
+<p>
+To capture several tabs, select (highlight) them e.g. by holding
+<code>[Shift]</code> or <code>[Ctrl]</code> while clicking on tab headers and open extension
+action menu in the browser toolbar
+or (Firefox only) context menu for header of a selected tab
+and choose "Remark for highlighted tabs".
+</p>
+
+<p>
+Additional permissions are required to capture multiple tabs,
+see the <a href="#permissions">Permissions</a> section for more details.
+Most complete metadata may be extracted with
+<a href="#access-your-data-for-all-websites-allurls">&lt;all_urls&gt;</a>,
+however in general it is the most dangerous permission.
+When <a href="#access-browser-tabs-tabs">tabs</a> permission is granted,
+metadata are unavailable,
+but tab title and page URL are accessible to the extension.
+Notice that the <a href="#access-your-data-for-all-websites-allurls">&lt;all_urls&gt;</a>
+permission is not enough
+when you are going to capture a privileged page like <code>chrome://</code>, <code>about:</code>,
+or <code>https://addons.mozilla.org</code> (in Firefox) and you should
+grant <a href="#access-browser-tabs-tabs">tabs</a> in such case.
+Just the current tab and the pages captured earlier are available
+for group actions in the absence of these permissions.
+It is specifics of the <code>activeTab</code> permission.
+</p>
+
+<p>
+Chrome has a menu item to capture all pages that belong to
+the earlier created tab group. It acts for the current tab if it is a
+standalone one.
+If the <a href="#view-and-manage-your-tab-groups-tabgroups-chrome">tabGroups</a>
+permission is granted then the tab group title is used to name
+the bunch of captured pages. It is unrelated to metadata.
 </p>
 
 <p>
@@ -370,13 +406,21 @@ Chrome: "Read and change all your data on all websites".
 
 <p>
 The add-on may gather data for a group of selected (highlighted)
-tabs in Firefox or from subframes loaded from other site
-than top level page in the tab. Due to some limitations
+tabs or from cross-origin subframes (loaded from other site
+than top level page in the tab). Due to some limitations
 of WebExtensions API, per-site permission requests on demand
 may require several steps of interaction with
 user to complete a capture. It may be annoying after all.
-This permission may be perceived as "too much". In future I may
-consider making it optional one.
+This permission may be perceived as "too much".
+</p>
+
+<p>
+It is necessary to explicitly enable this permission from
+extension options in Chrome or from permissions tab of add-on management
+UI in Firefox. It is reasonably considered  as rather dangerous.
+Alternatively <a href="#access-browser-tabs-tabs">tabs</a>
+permission is enough to get tab titles and URLs,
+but not their URLs, see the <a href="#usage">Usage</a> section for clarification.
 </p>
 
 <p>
@@ -430,24 +474,59 @@ to make this permission optional.
 <h3 id="access-browser-tabs-tabs"><span class="section-number-3">5.4.</span> Access browser tabs (<code>tabs</code>)</h3>
 <div class="outline-text-3" id="text-access-browser-tabs-tabs">
 <p>
-Additional feature is available in Firefox only.
-When granted, it is possible to capture a group of tabs.
-Select some tabs e.g. by holding <code>[Ctrl]</code> while clicking on tab headers
-and open context menu (right click) for a header of selected tab.
+Chrome asks "Read your browsing history" when the extensions is installed
+due to the
+<a href="#access-browser-activity-during-navigation-webnavigation">webNavigation</a>
+required permission.
 </p>
 
 <p>
-Requested on demand when not granted.
+When several tabs are captured at ones, this permission may be necessary
+to get URLs and titles of privileged pages. See the <a href="#usage">Usage</a> section
+for relation to the <a href="#access-your-data-for-all-websites-allurls">&lt;all_urls&gt;</a>
+permission.
+</p>
+
+<p>
+Requested on demand when a corresponding menu item is invoked.
+</p>
+</div>
+</div>
+<div id="outline-container-view-and-manage-your-tab-groups-tabgroups-chrome" class="outline-3">
+<h3 id="view-and-manage-your-tab-groups-tabgroups-chrome"><span class="section-number-3">5.5.</span> View and manage your tab groups (<code>tabGroups</code>, Chrome)</h3>
+<div class="outline-text-3" id="text-view-and-manage-your-tab-groups-tabgroups-chrome">
+<p>
+May be granted from the extension options page.
+Allows "Remark for tab group" action to use tab group name
+for heading title instead of generic "Tab group" name.
+To get list of tabs that belongs to the same group
+the extension needs the <a href="#access-browser-tabs-tabs">tabs</a>
+permission, not <code>tabGroups</code>.
+</p>
+
+<p>
+This extension only reads tab group property, it does not modify
+and does not create groups of tabs.
+</p>
+
+<p>
+See the <a href="#usage">Usage</a> section for explanation why either
+<a href="#access-your-data-for-all-websites-allurls">&lt;all_urls&gt;</a>
+or <a href="#access-browser-tabs-tabs">tabs</a> permissions
+are necessary to actually get info about pages from a tab group.
+Notice that <code>tabGroups</code> does not allow that.
+</p>
+
+<p>
+Do not confuse tab group with highlighting (selecting) several tabs.
 </p>
 </div>
 </div>
 <div id="outline-container-input-data-to-the-clipboard-clipboardwrite" class="outline-3">
-<h3 id="input-data-to-the-clipboard-clipboardwrite"><span class="section-number-3">5.5.</span> Input data to the clipboard (<code>clipboardWrite</code>)</h3>
+<h3 id="input-data-to-the-clipboard-clipboardwrite"><span class="section-number-3">5.6.</span> Input data to the clipboard (<code>clipboardWrite</code>)</h3>
 <div class="outline-text-3" id="text-input-data-to-the-clipboard-clipboardwrite">
 <p>
-In Chrome it is called "Modify data you copy and paste",
-but due to better tracking of user action context
-it is not required.
+In Chrome it is called "Modify data you copy and paste".
 </p>
 
 <p>
@@ -473,7 +552,7 @@ Sorry for this inconvenience.
 
 <p>
 This permission may be revoked as soon as you configure native application
-or desktop-wide org-protocol handler.
+or desktop-wide handler for the <code>org-protocol:</code> URI scheme.
 </p>
 </div>
 </div>
@@ -560,7 +639,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 07:43</p>
+<p class="date">Created: 2024-10-26 Sat 07:55</p>
 </div>
 </body>
 </html>

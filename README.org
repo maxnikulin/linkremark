@@ -115,12 +115,42 @@ clipboard to pass captures to your notes.
   :CUSTOM_ID: usage
   :END:
 
-Optionally select some text and choose an option from context menu (right click,
-=[Menu]= or =[Shift+F10]= keys).
-Unless you are going to capture a particular link,
+Optionally select some text and choose an add-on action item
+from context menu (right click, =[Menu]= or =[Shift+F10]= keys).
+Unless you are going to capture a particular link or specific frame,
 you can click on the extension icon in browser toolbar ("browser action")
 or may configure a shortcut on the add-ons page[fn:1]
 (Firefox: "Manage Extension Shrotcuts" in the gear menu).
+
+To capture several tabs, select (highlight) them e.g. by holding
+=[Shift]= or =[Ctrl]= while clicking on tab headers and open extension
+action menu in the browser toolbar
+or (Firefox only) context menu for header of a selected tab
+and choose "Remark for highlighted tabs".
+
+Additional permissions are required to capture multiple tabs,
+see the [[#permissions][Permissions]] section for more details.
+Most complete metadata may be extracted with
+[[#access-your-data-for-all-websites-allurls][<all_urls>]],
+however in general it is the most dangerous permission.
+When [[#access-browser-tabs-tabs][tabs]] permission is granted,
+metadata are unavailable,
+but tab title and page URL are accessible to the extension.
+Notice that the [[#access-your-data-for-all-websites-allurls][<all_urls>]]
+permission is not enough
+when you are going to capture a privileged page like =chrome://=, =about:=,
+or =https://addons.mozilla.org= (in Firefox) and you should
+grant [[#access-browser-tabs-tabs][tabs]] in such case.
+Just the current tab and the pages captured earlier are available
+for group actions in the absence of these permissions.
+It is specifics of the =activeTab= permission.
+
+Chrome has a menu item to capture all pages that belong to
+the earlier created tab group. It acts for the current tab if it is a
+standalone one.
+If the [[#view-and-manage-your-tab-groups-tabgroups-chrome][tabGroups]]
+permission is granted then the tab group title is used to name
+the bunch of captured pages. It is unrelated to metadata.
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
@@ -334,13 +364,19 @@ taking into account current settings.
 Chrome: "Read and change all your data on all websites".
 
 The add-on may gather data for a group of selected (highlighted)
-tabs in Firefox or from subframes loaded from other site
-than top level page in the tab. Due to some limitations
+tabs or from cross-origin subframes (loaded from other site
+than top level page in the tab). Due to some limitations
 of WebExtensions API, per-site permission requests on demand
 may require several steps of interaction with
 user to complete a capture. It may be annoying after all.
-This permission may be perceived as "too much". In future I may
-consider making it optional one.
+This permission may be perceived as "too much".
+
+It is necessary to explicitly enable this permission from
+extension options in Chrome or from permissions tab of add-on management
+UI in Firefox. It is reasonably considered  as rather dangerous.
+Alternatively [[#access-browser-tabs-tabs][tabs]]
+permission is enough to get tab titles and URLs,
+but not their URLs, see the [[#usage][Usage]] section for clarification.
 
 It is a bug, if this extension attempts to inspect content
 of some tab without explicit user action.
@@ -381,21 +417,47 @@ to make this permission optional.
 :CUSTOM_ID: access-browser-tabs-tabs
 :END:
 
-Additional feature is available in Firefox only.
-When granted, it is possible to capture a group of tabs.
-Select some tabs e.g. by holding =[Ctrl]= while clicking on tab headers
-and open context menu (right click) for a header of selected tab.
+Chrome asks "Read your browsing history" when the extensions is installed
+due to the
+[[#access-browser-activity-during-navigation-webnavigation][webNavigation]]
+required permission.
 
-Requested on demand when not granted.
+When several tabs are captured at ones, this permission may be necessary
+to get URLs and titles of privileged pages. See the [[#usage][Usage]] section
+for relation to the [[#access-your-data-for-all-websites-allurls][<all_urls>]]
+permission.
+
+Requested on demand when a corresponding menu item is invoked.
+
+*** View and manage your tab groups (=tabGroups=, Chrome)
+:PROPERTIES:
+:CUSTOM_ID: view-and-manage-your-tab-groups-tabgroups-chrome
+:END:
+
+May be granted from the extension options page.
+Allows "Remark for tab group" action to use tab group name
+for heading title instead of generic "Tab group" name.
+To get list of tabs that belongs to the same group
+the extension needs the [[#access-browser-tabs-tabs][tabs]]
+permission, not =tabGroups=.
+
+This extension only reads tab group property, it does not modify
+and does not create groups of tabs.
+
+See the [[#usage][Usage]] section for explanation why either
+[[#access-your-data-for-all-websites-allurls][<all_urls>]]
+or [[#access-browser-tabs-tabs][tabs]] permissions
+are necessary to actually get info about pages from a tab group.
+Notice that =tabGroups= does not allow that.
+
+Do not confuse tab group with highlighting (selecting) several tabs.
 
 *** Input data to the clipboard (=clipboardWrite=)
 :PROPERTIES:
 :CUSTOM_ID: input-data-to-the-clipboard-clipboardwrite
 :END:
 
-In Chrome it is called "Modify data you copy and paste",
-but due to better tracking of user action context
-it is not required.
+In Chrome it is called "Modify data you copy and paste".
 
 In Firefox, without such permission, an extension can not copy data
 to clipboard except if it is immediate action in response to e.g.
@@ -415,7 +477,7 @@ preview page is unavoidable in Chrome and can appear for a second.
 Sorry for this inconvenience.
 
 This permission may be revoked as soon as you configure native application
-or desktop-wide org-protocol handler.
+or desktop-wide handler for the =org-protocol:= URI scheme.
 
 ** Troubleshooting
 :PROPERTIES:
