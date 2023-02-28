@@ -73,7 +73,7 @@ https://github.com/maxnikulin/linkremark/releases
 It is possible to try latest development version by loading
 content of this repository as a temporary add-on in Firefox
 or as an unpacked extension in Chrome.
-Create a symlink =manifest.json= to either =manifest-firefox.json
+Create a symlink =manifest.json= to either =manifest-firefox.json=
 or =manifest-chrome.json= file.
 
 For everyday use you might wish to configure native application
