@@ -4,7 +4,8 @@
 #   markers around whole link description.
 # - Enable footnotes. For various issues see
 #   <https://github.com/wallyqs/org-ruby/issues/2>
-#+OPTIONS: ^:nil f:t
+# - Suppress subsections of Permissions.
+#+OPTIONS: ^:nil f:t toc:1
 #+PROPERTY: header-args :eval never-export :exports code :results silent
 
 #+begin_comment
@@ -21,11 +22,16 @@ Due to limitation of GitHub Org renderer
   <https://github.com/wallyqs/org-ruby/issues/32>
 #+end_comment
 
+:skiphelp:
 Install [[file:icons/lr-32.png]] LinkRemark:
 - [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox add-on at addons.mozilla.org]],
 - [[https://chrome.google.com/webstore/detail/mgmcoaemjnaehlliifkgljdnbpedihoe][Extension in Chrome Web Store]].
+:end:
 
 ** Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:END:
 
 LinkRemark is a browser extension that allows to save some context
 while capturing notes using [[https://orgmode.org][Org mode]] for [[https://www.gnu.org/software/emacs/][GNU Emacs]].
@@ -52,6 +58,9 @@ peculiarities, so you will have to manually add some info
 and to remove some redundant entries.
 
 ** Example of link capture
+:PROPERTIES:
+:CUSTOM_ID: example-of-link-capture
+:END:
 
 #+begin_src org
   ,* Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
@@ -81,7 +90,7 @@ and to remove some redundant entries.
   - referrer :: [[https://www.google.com/]]
 #+end_src
 
-** Install
+** Install                                                         :skiphelp:
 
 You can install LinkRemark from browser extension catalogues, see
 [[https://addons.mozilla.org/firefox/addon/linkremark/][addons.mozilla.org for Firefox]]
@@ -204,15 +213,20 @@ you could find description of workflow in blogs, e.g.
 by Sacha Chua.
 
 ** Checking if an URL is already in your notes
+:PROPERTIES:
+:CUSTOM_ID: checking-if-an-url-is-already-in-your-notes
+:END:
 
 This is a new feature in LinkRemark-0.2, it was not included in 0.1 version.
 Please, consider current implementation
 as a proof of concept, there are a lot of things to polish yet.
 It is tested on Linux only.
 
+:skiphelp:
 #+attr_html: :alt Screenshot of Preview & Debug Info page of LinkRemark extension for capture of https://orgmode.org/ when org-manual.org and org-guide.org are configured as note files for bURL
 #+attr_html: :style max-height: 50%
 [[file:doc/burl-linkremark-preview-demo.png]]
+:end:
 
 bURL <https://github.com/maxnikulin/burl> native messaging app (backend)
 is required. It allows to invoke =emacsclient= directly without setting up
@@ -241,6 +255,7 @@ for particular user of Firefox on Linux assuming that =burl_backend=
 binary is copied to =~/.local/bin=, run a command
 similar[fn:5] to the following one:
 
+#+name: firefox-native-messaging-host-burl
 #+begin_example
   mkdir ~/.mozilla/native-messaging-hosts
   ~/.local/bin/burl_backend -manifest-firefox ~/.mozilla/native-messaging-hosts/ \
@@ -263,7 +278,7 @@ Open LinkRemark settings page[fn:3]. Set "Name of native messaging backend
 application" in the "Browser native messaging communication channel" section
 to the id of configured native app (e.g. =burl=
 or =io.github.maxnikulin.burl=). Grant the permission for
-"Exchange messages with other programs".
+[[#exchange-messages-with-other-programs-nativemessaging]["Exchange messages with other programs"]].
 
 Known URLs should be reported in response to capture of pages already
 present in your notes. Preview and debug info page has a form for testing
@@ -273,7 +288,7 @@ You can set "Method how to pass capture to desktop environment" to
 "native-messaging", however it is not required. You can continue
 with clipboard or org-protocol desktop-wide handler.
 
-** Alternatives
+** Alternatives                                                    :skiphelp:
 
 There are some projects that allows to capture URL + page title +
 selection text or URL + text link. It is not enough for me.
@@ -297,14 +312,23 @@ Unlike this extension, it supports custom handlers for particular
 websites, and has recipes for scientific papers and BibTeX format.
 
 ** Permissions
+:PROPERTIES:
+:CUSTOM_ID: permissions
+:END:
 
 You could find more information what every requested
 permission means on the following page from the Mozilla Support site:
 [[https://support.mozilla.org/kb/permission-request-messages-explained][Permission request messages explained]].
 
-*** Requested on Install
+Open extensions preferences[fn:3] to grant or revoke optional
+permissions. Firefox has permissions tab in the add-on manager[fn:1].
+They may be requested on demand to successfully complete requested action
+taking into account current settings.
 
-**** Access your data for all websites (=<all_urls>=)
+*** Access your data for all websites (=<all_urls>=)
+:PROPERTIES:
+:CUSTOM_ID: access-your-data-for-all-websites-allurls
+:END:
 
 Chrome: "Read and change all your data on all websites".
 
@@ -320,7 +344,10 @@ consider making it optional one.
 It is a bug, if this extension attempts to inspect content
 of some tab without explicit user action.
 
-**** Exchange messages with other programs (=nativeMessaging=)
+*** Exchange messages with other programs (=nativeMessaging=)
+:PROPERTIES:
+:CUSTOM_ID: exchange-messages-with-other-programs-nativemessaging
+:END:
 
 Chrome: "Communicate with cooperating native applications", optional.
 
@@ -335,7 +362,10 @@ Extension can not launch any application till it is explicitly added
 to a configuration file (manifest) by the user, so do not worry,
 extensions can not run arbitrary binaries with no cooperation from users.
 
-**** Access browser activity during navigation (=webNavigation=)
+*** Access browser activity during navigation (=webNavigation=)
+:PROPERTIES:
+:CUSTOM_ID: access-browser-activity-during-navigation-webnavigation
+:END:
 
 Chrome: "Read your browsing history".
 
@@ -345,14 +375,10 @@ and capture is invoked using keyboard shortcut.
 Maybe I will add a less reliable fallback in future
 to make this permission optional.
 
-*** Optional permissions
-
-Open extensions preferences[fn:3] to grant or revoke permissions
-from this set. Firefox has permissions tab in the add-on manager[fn:1].
-They may be requested on demand to successfully complete requested action
-taking into account current settings.
-
-**** Access browser tabs (=tabs=)
+*** Access browser tabs (=tabs=)
+:PROPERTIES:
+:CUSTOM_ID: access-browser-tabs-tabs
+:END:
 
 Additional feature is available in Firefox only.
 When granted, it is possible to capture a group of tabs.
@@ -361,7 +387,10 @@ and open context menu (right click) for a header of selected tab.
 
 Requested on demand when not granted.
 
-**** Input data to the clipboard (=clipboardWrite=)
+*** Input data to the clipboard (=clipboardWrite=)
+:PROPERTIES:
+:CUSTOM_ID: input-data-to-the-clipboard-clipboardwrite
+:END:
 
 In Chrome it is called "Modify data you copy and paste",
 but due to better tracking of user action context
@@ -388,6 +417,9 @@ This permission may be revoked as soon as you configure native application
 or desktop-wide org-protocol handler.
 
 ** Troubleshooting
+:PROPERTIES:
+:CUSTOM_ID: troubleshooting
+:END:
 
 1. Try to open Debug Info (Preview) extension page through context menu for
    the extension button in tool bar (extension browser action)
@@ -405,6 +437,9 @@ docs. It is worth checking errors reported to the browser console
 just try =journalctl --user --follow=.
 
 ** License
+:PROPERTIES:
+:CUSTOM_ID: license
+:END:
 
 LinkRemark is published under [[https://www.gnu.org/licenses/gpl-3.0.html][the GNU GPLv3 license]] or any later
 version, see [[file:LICENSE.txt][LICENSE.txt]].

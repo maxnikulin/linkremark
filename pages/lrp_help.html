@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 07:42 -->
+<!-- 2024-10-26 Sat 07:43 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LinkRemark Help</title>
+<title>LinkRemark — notes for web pages augmented by metadata</title>
 <meta name="generator" content="Org Mode" />
 
 <link rel="fluid-icon" sizes="128x128" href="/icons/lr-128.png">
@@ -25,6 +25,12 @@ body {
 	padding-inline: 1ex;
 	hyphens: auto;
 	text-align: justify;
+	/* Injected CSS (desktop theme?) could cause 1em smaller
+	 * for body than for html element and result in inconsistent
+	 * margins.
+	 *
+	 * Do not use `font-size` since it affects monospace font as well. */
+	font: 1rem system-ui, sans-serif;
 }
 html {
 	background-color: lightblue;
@@ -38,7 +44,7 @@ img.logo {
 	float: left;
 	margin-inline-start: calc(max(-50vw + 50% + 2ex,-128px - 2ex));
 }
-pre.example {
+pre.example, pre.src {
 	white-space: pre-wrap;
 }
 </style>
@@ -46,17 +52,100 @@ pre.example {
 <body>
 <div id="preamble" class="status">
 <img src="/icons/lr-128.png" alt="LinkRemark logo" class="logo">
-<div><p>Find more information on the project page
+<div><p>Check the project page
 <a href="https://github.com/maxnikulin/linkremark">https://<wbr>github.<wbr>com/<wbr>maxnikulin/<wbr>linkremark</a>.
-e.g. how to setup <a href="https://github.com/maxnikulin/burl">bURL</a>
-native application helper for checking your notes for known URLs.</p>
+for up to date version.</p>
 <p>Open <a href="lrp_settings.html" id="settings" target="_blank">settings</a> page.</p>
 </div>
 </div>
 <div id="content" class="content">
 <header>
-<h1 class="title">LinkRemark Help</h1>
-</header><p>
+<h1 class="title">LinkRemark — notes for web pages augmented by metadata</h1>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#introduction">1. Introduction</a></li>
+<li><a href="#example-of-link-capture">2. Example of link capture</a></li>
+<li><a href="#usage">3. Usage</a></li>
+<li><a href="#checking-if-an-url-is-already-in-your-notes">4. Checking if an URL is already in your notes</a></li>
+<li><a href="#permissions">5. Permissions</a></li>
+<li><a href="#troubleshooting">6. Troubleshooting</a></li>
+<li><a href="#license">7. License</a></li>
+</ul>
+</div>
+</nav>
+<div id="outline-container-introduction" class="outline-2">
+<h2 id="introduction"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-introduction">
+<p>
+LinkRemark is a browser extension that allows to save some context
+while capturing notes using <a href="https://orgmode.org">Org mode</a> for <a href="https://www.gnu.org/software/emacs/">GNU Emacs</a>.
+The add-on attempts to extract some metadata from the current web page, e.g.
+author, time when the text was written.
+Actually it just generates (almost) text notes using a few elements
+of Org mode markup.
+</p>
+
+<p>
+The idea is that the note for a link should not be just a <b>bookmark</b>
+to the link target. It should reflect connection of the page
+where it is found and the site it points to.
+A site that brought you to the current page (referrer) could later
+help find more information related to the topic.
+Consider it as an element of associative trails described by Vannevar Bush
+(<a href="https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/">As We May Think, The Atlantic Monthly, Jul 1945</a>)
+However implementation is hardly approaching ideas developed
+by Douglas Engelbart.
+</p>
+
+<p>
+I have not seized experiments with this extension,
+that is why I could not give compatibility promise.
+Unsure if it is reliable enough, personally I find it acceptable.
+Be ready to edit created notes. Almost every site has its own
+peculiarities, so you will have to manually add some info
+and to remove some redundant entries.
+</p>
+</div>
+</div>
+<div id="outline-container-example-of-link-capture" class="outline-2">
+<h2 id="example-of-link-capture"><span class="section-number-2">2.</span> Example of link capture</h2>
+<div class="outline-text-2" id="text-example-of-link-capture">
+<div class="org-src-container">
+<pre class="src src-org"><span style="font-weight: bold;">* Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode</span>
+<span style="font-weight: bold;">:PROPERTIES:</span>
+<span style="font-weight: bold;">:DATE_ADDED:</span> <span style="text-decoration: underline;">[2021-09-28 Tue 12:15]</span>
+<span style="font-weight: bold;">:END:</span>
+
+- <span style="font-weight: bold;">Link URL ::</span> <span style="text-decoration: underline;"><a href="https://karl-voit.at/2014/08/10/bookmarks-with-orgmode/">https://karl-voit.at/2014/08/10/bookmarks-with-orgmode/</a></span>
+- <span style="font-weight: bold;">Link text ::</span> Karl Voit: UOMF: Managing web bookmarks with Org Mode
+
+<span style="font-weight: bold; font-style: italic;">#+begin_quote</span>
+author: Karl Voit
+published: <span style="text-decoration: underline;">[2014-08-10 Sun]</span>
+<span style="font-weight: bold; font-style: italic;">#+end_quote</span>
+
+On the page
+
+<span style="font-weight: bold; font-style: italic;">** Adam Porter &#8212; org-almanac</span>
+<span style="font-weight: bold;">:PROPERTIES:</span>
+<span style="font-weight: bold;">:DATE_ADDED:</span> <span style="text-decoration: underline;">[2021-09-28 Tue 12:15]</span>
+<span style="font-weight: bold;">:LAST_MODIFIED:</span> <span style="text-decoration: underline;">[2021-09-18 Tue 01:23]</span> 09/18/2021 01:23:46
+<span style="font-weight: bold;">:END:</span>
+
+- <span style="font-weight: bold;">URL ::</span> <span style="text-decoration: underline;"><a href="https://alphapapa.github.io/org-almanac/">https://alphapapa.github.io/org-almanac/</a></span>
+- <span style="font-weight: bold;">title ::</span> org-almanac
+- <span style="font-weight: bold;">author ::</span> Adam Porter
+- <span style="font-weight: bold;">referrer ::</span> <span style="text-decoration: underline;"><a href="https://www.google.com/">https://www.google.com/</a></span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-usage" class="outline-2">
+<h2 id="usage"><span class="section-number-2">3.</span> Usage</h2>
+<div class="outline-text-2" id="text-usage">
+<p>
 Optionally select some text and choose an option from context menu (right click,
 <code>[Menu]</code> or <code>[Shift+F10]</code> keys).
 Unless you are going to capture a particular link,
@@ -172,6 +261,255 @@ you could find description of workflow in blogs, e.g.
 <a href="https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/">Learn how to take notes more efficiently in Org Mode</a>
 by Sacha Chua.
 </p>
+</div>
+</div>
+<div id="outline-container-checking-if-an-url-is-already-in-your-notes" class="outline-2">
+<h2 id="checking-if-an-url-is-already-in-your-notes"><span class="section-number-2">4.</span> Checking if an URL is already in your notes</h2>
+<div class="outline-text-2" id="text-checking-if-an-url-is-already-in-your-notes">
+<p>
+This is a new feature in LinkRemark-0.2, it was not included in 0.1 version.
+Please, consider current implementation
+as a proof of concept, there are a lot of things to polish yet.
+It is tested on Linux only.
+</p>
+
+<p>
+bURL <a href="https://github.com/maxnikulin/burl">https://github.com/maxnikulin/burl</a> native messaging app (backend)
+is required. It allows to invoke <code>emacsclient</code> directly without setting up
+of desktop-wide handler for org-protocol. I do not think that protocol
+of internal communication between LinkRemark and bURL is stabilized already.
+</p>
+
+<p>
+<a href="https://github.com/maxnikulin/burl">README file for bURL</a>
+describes how to install and to configure the native application
+(unsure if it is clear enough). Key points:
+</p>
+<ul class="org-ul">
+<li><a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html">Server</a> (<code>M-: (info "(emacs) Emacs Server")</code>)
+is running in Emacs unless it is enough to just see locations of same
+URL in your notes. Otherwise neither clicks on found mentions
+nor org-protocol capture would work.</li>
+<li><a href="https://orgmode.org/manual/Protocols.html">org-protocol</a> (<code>M-: (info "(org) Protocols")</code>)
+is loaded and a template is configured
+to enable capture feature. Alternatively use clipboard and
+C-c C-x C-y, org-paste-subtree.</li>
+<li>Native application is enabled in browser for LinkRemark extension.
+On Linux a JSON file should be created.</li>
+<li>List of files to search for URLs is provided to bURL.
+Currently it is achieved by creating of a wrapper shell script
+for <code>burl_backend</code>.</li>
+</ul>
+
+<p>
+bURL may create configuration files for your. To enable native backend
+for particular user of Firefox on Linux assuming that <code>burl_backend</code>
+binary is copied to <code>~/.local/bin</code>, run a command
+similar<sup><a id="fnr.5.5" class="footref" href="#fn.5" role="doc-backlink">5</a></sup> to the following one:
+</p>
+
+<pre class="example" id="firefox-native-messaging-host-burl">
+mkdir ~/.mozilla/native-messaging-hosts
+~/.local/bin/burl_backend -manifest-firefox ~/.mozilla/native-messaging-hosts/ \
+    -backend burl \
+    -wrapper ~/.local/bin/burl_wrapper \
+    -org ~/org/notes.org \
+    -org ~/org/capture.org
+</pre>
+
+<p>
+It should create <code>burl_wrapper</code> shell script and <code>burl.json</code> file
+(<code>io.github.maxnikulin.burl.json</code> without <code>-backend</code> option) in
+<code>~/.mozilla/native-messaging-hosts/</code> (its basename is the identifier
+of the native application).
+</p>
+
+<p>
+Open LinkRemark settings page<sup><a id="fnr.3.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>. Set "Name of native messaging backend
+application" in the "Browser native messaging communication channel" section
+to the id of configured native app (e.g. <code>burl</code>
+or <code>io.github.maxnikulin.burl</code>). Grant the permission for
+<a href="#exchange-messages-with-other-programs-nativemessaging">"Exchange messages with other programs"</a>.
+</p>
+
+<p>
+Known URLs should be reported in response to capture of pages already
+present in your notes. Preview and debug info page has a form for testing
+of this feature.
+</p>
+
+<p>
+You can set "Method how to pass capture to desktop environment" to
+"native-messaging", however it is not required. You can continue
+with clipboard or org-protocol desktop-wide handler.
+</p>
+</div>
+</div>
+<div id="outline-container-permissions" class="outline-2">
+<h2 id="permissions"><span class="section-number-2">5.</span> Permissions</h2>
+<div class="outline-text-2" id="text-permissions">
+<p>
+You could find more information what every requested
+permission means on the following page from the Mozilla Support site:
+<a href="https://support.mozilla.org/kb/permission-request-messages-explained">Permission request messages explained</a>.
+</p>
+
+<p>
+Open extensions preferences<sup><a id="fnr.3.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup> to grant or revoke optional
+permissions. Firefox has permissions tab in the add-on manager<sup><a id="fnr.1.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>.
+They may be requested on demand to successfully complete requested action
+taking into account current settings.
+</p>
+</div>
+<div id="outline-container-access-your-data-for-all-websites-allurls" class="outline-3">
+<h3 id="access-your-data-for-all-websites-allurls"><span class="section-number-3">5.1.</span> Access your data for all websites (<code>&lt;all_urls&gt;</code>)</h3>
+<div class="outline-text-3" id="text-access-your-data-for-all-websites-allurls">
+<p>
+Chrome: "Read and change all your data on all websites".
+</p>
+
+<p>
+The add-on may gather data for a group of selected (highlighted)
+tabs in Firefox or from subframes loaded from other site
+than top level page in the tab. Due to some limitations
+of WebExtensions API, per-site permission requests on demand
+may require several steps of interaction with
+user to complete a capture. It may be annoying after all.
+This permission may be perceived as "too much". In future I may
+consider making it optional one.
+</p>
+
+<p>
+It is a bug, if this extension attempts to inspect content
+of some tab without explicit user action.
+</p>
+</div>
+</div>
+<div id="outline-container-exchange-messages-with-other-programs-nativemessaging" class="outline-3">
+<h3 id="exchange-messages-with-other-programs-nativemessaging"><span class="section-number-3">5.2.</span> Exchange messages with other programs (<code>nativeMessaging</code>)</h3>
+<div class="outline-text-3" id="text-exchange-messages-with-other-programs-nativemessaging">
+<p>
+Chrome: "Communicate with cooperating native applications", optional.
+</p>
+
+<p>
+Allows the extension to communicate with Emacs without global org-protocol
+handler, so allows to have more secure setup. On the other hand
+you need to install and configure an extra application, so you should
+either trust this external tool or should develop it yourself.
+</p>
+
+<p>
+This permission is relevant for experienced Emacs and Org Mode users.
+</p>
+
+<p>
+Extension can not launch any application till it is explicitly added
+to a configuration file (manifest) by the user, so do not worry,
+extensions can not run arbitrary binaries with no cooperation from users.
+</p>
+</div>
+</div>
+<div id="outline-container-access-browser-activity-during-navigation-webnavigation" class="outline-3">
+<h3 id="access-browser-activity-during-navigation-webnavigation"><span class="section-number-3">5.3.</span> Access browser activity during navigation (<code>webNavigation</code>)</h3>
+<div class="outline-text-3" id="text-access-browser-activity-during-navigation-webnavigation">
+<p>
+Chrome: "Read your browsing history".
+</p>
+
+<p>
+It is necessary to reliably restore tree of nested frames.
+Consider the case when some element is focused in a subframe
+and capture is invoked using keyboard shortcut.
+Maybe I will add a less reliable fallback in future
+to make this permission optional.
+</p>
+</div>
+</div>
+<div id="outline-container-access-browser-tabs-tabs" class="outline-3">
+<h3 id="access-browser-tabs-tabs"><span class="section-number-3">5.4.</span> Access browser tabs (<code>tabs</code>)</h3>
+<div class="outline-text-3" id="text-access-browser-tabs-tabs">
+<p>
+Additional feature is available in Firefox only.
+When granted, it is possible to capture a group of tabs.
+Select some tabs e.g. by holding <code>[Ctrl]</code> while clicking on tab headers
+and open context menu (right click) for a header of selected tab.
+</p>
+
+<p>
+Requested on demand when not granted.
+</p>
+</div>
+</div>
+<div id="outline-container-input-data-to-the-clipboard-clipboardwrite" class="outline-3">
+<h3 id="input-data-to-the-clipboard-clipboardwrite"><span class="section-number-3">5.5.</span> Input data to the clipboard (<code>clipboardWrite</code>)</h3>
+<div class="outline-text-3" id="text-input-data-to-the-clipboard-clipboardwrite">
+<p>
+In Chrome it is called "Modify data you copy and paste",
+but due to better tracking of user action context
+it is not required.
+</p>
+
+<p>
+In Firefox, without such permission, an extension can not copy data
+to clipboard except if it is immediate action in response to e.g.
+click on a button. Clicking on extension button is not the case
+since a lot of work should be done before data become ready for copy,
+so it is not considered as "in response to user action".
+Enable this permission if you prefer to avoid preview page
+as an intermediate state.
+</p>
+
+<p>
+Browsers consider overwriting clipboard content as a potentially
+dangerous action, so they perform, some measures to protect users.
+Security model in Chrome is different from Firefox, so this permission
+does not do anything really useful in Chrome. However unlike Firefox
+it allows to call <code>document.execCommand("copy")</code> from content scripts,
+so the extension can do its job. For privileged tabs (e.g. PDF files)
+preview page is unavoidable in Chrome and can appear for a second.
+Sorry for this inconvenience.
+</p>
+
+<p>
+This permission may be revoked as soon as you configure native application
+or desktop-wide org-protocol handler.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-troubleshooting" class="outline-2">
+<h2 id="troubleshooting"><span class="section-number-2">6.</span> Troubleshooting</h2>
+<div class="outline-text-2" id="text-troubleshooting">
+<ol class="org-ol">
+<li>Try to open Debug Info (Preview) extension page through context menu for
+the extension button in tool bar (extension browser action)
+end expand debug info section there.</li>
+<li>Look for errors in console pane in browser developer tools for the extension.
+It could be opened using "Inspect" link from the <code>about:debugging#/runtime/this-firefox</code>
+page for Firefox. In Chrome menu choose "More tools", "Extensions" and click on the link
+followed "Inspect views" on the add-on card.</li>
+</ol>
+
+<p>
+For native messaging backend problems see the related section in Mozilla
+<a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#Troubleshooting">developer guide</a>
+and Chrome <a href="https://developer.chrome.com/docs/apps/nativeMessaging/#native-messaging-debugging">debugging native messaging</a>
+docs. It is worth checking errors reported to the browser console
+(<code>Ctrl+Shift+J</code> in Firefox). To read messages from Chrome on Linux, start it from a terminal or maybe
+just try <code>journalctl --user --follow</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-license" class="outline-2">
+<h2 id="license"><span class="section-number-2">7.</span> License</h2>
+<div class="outline-text-2" id="text-license">
+<p>
+LinkRemark is published under <a href="https://www.gnu.org/licenses/gpl-3.0.html">the GNU GPLv3 license</a> or any later
+version, see <a rel="nofollow noreferrer" href="https://github.com/maxnikulin/linkremark/blob/master/LICENSE.txt">LICENSE.txt</a>.
+</p>
+</div>
+</div>
 <div id="footnotes">
 <h2 class="footnotes">Footnotes: </h2>
 <div id="text-footnotes">
@@ -222,7 +560,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 07:42</p>
+<p class="date">Created: 2024-10-26 Sat 07:43</p>
 </div>
 </body>
 </html>

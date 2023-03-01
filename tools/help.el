@@ -16,12 +16,14 @@
 (let ((input-file "README.org")
       (output-file "pages/lrp_help.html")
       (async nil)
-      (subtree t)
+      (subtree nil)
       (visible-only nil)
       (body-only nil)
       (org-html-prefer-user-labels t) ; avoid unstable ids
       (ext-plist
        '(:author nil
+		 :exclude-tags ("skiphelp")
+		 :with-drawers (not "skiphelp")
 		 ;; :with-broken-links t
 		 :html-doctype "html5"
 		 :html-html5-fancy t
@@ -46,6 +48,12 @@ body {
 	padding-inline: 1ex;
 	hyphens: auto;
 	text-align: justify;
+	/* Injected CSS (desktop theme?) could cause 1em smaller
+	 * for body than for html element and result in inconsistent
+	 * margins.
+	 *
+	 * Do not use `font-size` since it affects monospace font as well. */
+	font: 1rem system-ui, sans-serif;
 }
 html {
 	background-color: lightblue;
@@ -59,16 +67,15 @@ img.logo {
 	float: left;
 	margin-inline-start: calc(max(-50vw + 50% + 2ex,-128px - 2ex));
 }
-pre.example {
+pre.example, pre.src {
 	white-space: pre-wrap;
 }
 </style>"
 		 :html-validation-link nil
 		 :html-preamble "<img src=\"/icons/lr-128.png\" alt=\"LinkRemark logo\" class=\"logo\">
-<div><p>Find more information on the project page
+<div><p>Check the project page
 <a href=\"https://github.com/maxnikulin/linkremark\">https://<wbr>github.<wbr>com/<wbr>maxnikulin/<wbr>linkremark</a>.
-e.g. how to setup <a href=\"https://github.com/maxnikulin/burl\">bURL</a>
-native application helper for checking your notes for known URLs.</p>
+for up to date version.</p>
 <p>Open <a href=\"lrp_settings.html\" id=\"settings\" target=\"_blank\">settings</a> page.</p>
 </div>
 ")))
@@ -91,7 +98,5 @@ native application helper for checking your notes for known URLs.</p>
        :export
        (lambda (path desc format)
 	   (format "<code>%s</code>" desc)))
-      (goto-char (point-min))
-      (re-search-forward "^\** Usage$")
       (org-export-to-file 'html output-file
 			  async subtree visible-only body-only ext-plist))))
