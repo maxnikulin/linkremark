@@ -56,6 +56,26 @@ var lr_util = function() {
 		return then && lr_util.isFunction(then);
 	};
 
+	lr_util.isError = function isError(obj) {
+		// inspired by https://github.com/ehmicky/is-error-instance/
+		try {
+			return obj instanceof Error;
+		} catch (ex) {
+			console.warn("lr_util.isError", obj, ex);
+			return false;
+		}
+		// Instances from other frames.
+		try {
+			const str = lr_util.toString(obj);
+			return str === "[object Error]" // custom errors
+				|| str === "[object DOMException]";
+		} catch (ex) {
+			console.warn("lr_util.isError", obj, ex);
+			return false;
+		}
+		return false;
+	};
+
 	this.errorToObject = lr_common.errorToObject;
 
 	// Does not work as `debugName` for stack traces in Firefox.
