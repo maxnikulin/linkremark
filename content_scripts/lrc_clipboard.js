@@ -206,38 +206,18 @@
 
 	const retval = { warnings };
 	try {
-		async function lrSendMessageChrome(msg) {
-			const error = new Error();
-			return new Promise(function(resolve, reject) {
-				try {
-					chrome.runtime.sendMessage(msg, function(response) {
-						const lastError = chrome.runtime.lastError;
-						if (lastError instanceof Error) {
-							reject(lastError);
-						} else if (lastError) {
-							error.message = lastError.message || "lrSendMessage: empty lastError";
-							reject(error);
-						} else {
-							resolve(response);
-						}
-					});
-				} catch (ex) {
-					reject(ex);
-				}
-			});
-		}
-
 		async function lrSendMessage(method, params) {
 			const msg = {method, params};
-			const response = await (
-				typeof browser !== "undefined" ?
-				browser.runtime.sendMessage(msg) : lrSendMessageChrome(msg)
-			);
-			if (response != null && response.result !== undefined) {
-				return response.result;
-			} else if (response != null && response.error) {
-				throw response.error;
+			const response = typeof browser !== "undefined" ?
+				await browser.runtime.sendMessage(msg) // Firefox
+				: await chrome.runtime.sendMessage(msg); // Chrome mv3
+			const { result, error } = response || {};
+			if (result !== undefined) {
+				return result;
+			} else if (error) {
+				throw error;
 			}
+			console.warn("Invalid message respones", response, msg);
 			throw new Error ("Invalid response object");
 		}
 
