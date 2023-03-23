@@ -116,4 +116,4 @@ test-readme:
 	$(ORG_RUBY_HEADER) >README.html
 	$(ORG_RUBY) $(ORG_RUBY_FLAGS) README.org >>README.html
 
-.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test chrome-dist test-readme
+.PHONY: clean chrome firefox test firefox-dist firefox-test chrome-test chrome-dist test-readme
