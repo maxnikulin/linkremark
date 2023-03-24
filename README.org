@@ -127,6 +127,9 @@ To capture several tabs, select (highlight) them e.g. by holding
 action menu in the browser toolbar
 or (Firefox only) context menu for header of a selected tab
 and choose "Remark for highlighted tabs".
+Pure keyboard shortcuts for Firefox are described in the
+[[https://support.mozilla.org/en-US/kb/keyboard-shortcuts-perform-firefox-tasks-quickly#w_selection-of-multiple-tabs][Selection of Multiple Tabs (Keyboard shortcuts - Perform common Firefox tasks quickly)]]
+support article.
 
 Additional permissions are required to capture multiple tabs,
 see the [[#permissions][Permissions]] section for more details.
