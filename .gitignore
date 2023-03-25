@@ -1,8 +1,10 @@
+# Local Emacs settings
+.dir-locals-2.el
+local.mk
 # Generated for Chrome or for Firefox
 lr_sw_test.js
 manifest.json
 manifest-firefox-test.json
 manifest-chrome-test.json
 manifest-chrome-dist.json
-local.mk
 README.html
