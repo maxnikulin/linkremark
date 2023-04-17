@@ -990,7 +990,7 @@ lr_meta.removeSelfLink = function(meta) {
 		meta.move(link, 'linkUrl', 'url');
 	}
 
-	delete meta.deleteValue("target", "link");
+	meta.deleteValue("target", "link");
 	return meta;
 };
 
