@@ -130,8 +130,13 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	 * or just stating that onMessage handler does not follow the rules.
 	 */
 	async sendMessage(method, params) {
-		const response = await bapi.runtime.sendMessage({ id: lr_common.getId(), method, params });
+		const id = lr_common.getId();
+		const response = await bapi.runtime.sendMessage({ id, method, params });
 		if (response != null) {
+			if (id !== response.id) {
+				console.warn(
+					"lr_common.sendMessage: response.id %o != %o", responde.id, id);
+			}
 			if (response._type === "ExecInfo") {
 				return response;
 			} else if ("result" in response) {
