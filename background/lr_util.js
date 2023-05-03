@@ -124,6 +124,31 @@ var lr_util = function() {
 		return new func() || default_object;
 	};
 
+	lr_util.defineLazyGetter = function defineLazyGetter(obj, name, create) {
+		const props = {
+			configurable: true,
+			enumerable: true,
+		}
+		// A trick to set computed function name for stack traces.
+		// `setFuncName` works in Chromium, but not in Firefox.
+		const funcName = "_lazyGetter_" + String(name);
+		const get = {
+			[funcName]: function (name, create) {
+				const value = create();
+				Object.defineProperty(this, name, {
+					...props,
+					writable: false,
+					value,
+				});
+				return value;
+			}
+		}[funcName];
+		return Object.defineProperty(obj, name, {
+			...props,
+			get: get.bind(obj, name, create),
+		});
+	};
+
 	var platformInfo = { newline: /^win/i.test(navigator.platform) ? "\r\n" : "\n" };
 
 	/*
