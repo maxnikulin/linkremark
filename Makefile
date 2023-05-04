@@ -34,6 +34,7 @@ SW_SRC += \
 	background/lr_addon_rpc.js \
 	background/lr_settings.js \
 	background/lr_export.js \
+	background/lr_abortable_ctx.js \
 	background/lr_clipboard.js \
 	background/lr_native_connection.js \
 	background/lr_native_export.js \
