@@ -173,6 +173,7 @@ class LrTmpAggregateError extends LrAggregateError {
 		return (warn ? LrAggregateWarning : LrAggregateError).name;
 	}
 	fix() {
-		return Object.setPrototypeOf(this, this.isWarning() ? LrAggregateWarning : LrAggregateError);
+		const constructor = this.isWarning() ? LrAggregateWarning : LrAggregateError;
+		return Object.setPrototypeOf(this, constructor.prototype);
 	}
 }
