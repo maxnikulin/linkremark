@@ -34,24 +34,34 @@
 	 * `Error` in prototype chain (maybe it is form other `window`). Firefox-89.
 	 * */
 	function lrToObject(obj) {
+		console.error(obj);
 		if (obj instanceof Error || obj instanceof DOMException) {
-			console.error(obj);
 			var error = Object.create(null);
 			if (obj.message != null) {
 				error.message = obj.message;
 			} else {
-				error.message = "" + obj;
+				error.message = String(obj);
 			}
 			if (obj.name != null) {
-				error.name = "" + obj.name;
+				error.name = String(obj.name);
 			} else {
 				error.name = Object.prototype.toString.call(obj);
 			}
-			for (let prop of ["code", "stack", "fileName", "lineNumber"]) {
-				if (obj[prop] != null) {
-					// Make `stack` readable in `JSON.stringify()` dump.
-					error[prop] = ("" + obj[prop]).split("\n");
+			// TODO DOMException stack may be undefined
+			for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
+				const value = obj[prop];
+				if (value == null) {
+					continue;
 				}
+				if (typeof value !== "string") {
+					// FIXME added to preserve `Number`, actually may cause problems
+					// due to failure of structured clone.
+					error[prop] = value;
+					continue;
+				}
+				// Make `stack` readable in `JSON.stringify()` dump.
+				const lines = value.trim().split("\n");
+				error[prop] = lines.length > 1 ? lines : value;
 			}
 			return error;
 		} else {
