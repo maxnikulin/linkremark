@@ -80,6 +80,32 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		}
 		return error;
 	},
+	objectToError: /* recursive */ function objectToError(obj) {
+		if (obj == null) {
+			return obj;
+		} else if (typeof obj === "string") {
+			return new Error(obj);
+		}
+		const retval = Array.isArray(obj.errors) ? new AggregateError([]) : new Error();
+		for (const field of ["message", "name", "stack", "code", "fileName", "lineNumber", "columnNumber"]) {
+			if (field in obj) {
+				retval[field] = obj[field];
+			}
+		}
+		if ("cause" in obj) {
+			retval.cause = objectToError(obj.cause);
+		}
+		if ("errors" in obj) {
+			const { errors } = obj;
+			if (Array.isArray(errors)) {
+				retval.errors = errors.map(objectToError);
+			} else {
+				console.warn("lr_common.objectToError: errors is not an Array", errors);
+				retval.errors = errors;
+			}
+		}
+		return retval;
+	},
 	isWarning(obj) {
 		return obj != null && String(obj.name).endsWith("Warning");
 	},
@@ -125,9 +151,11 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	 * runtime.sendMessage wrapper for communication similar to JSON-RPC
 	 *
 	 * Actually it is simplified version of protocol.
-	 * Successful response have `response` field.
+	 * Successful response have the `result` field.
 	 * Otherwise promise is rejected either using `error` field
-	 * or just stating that onMessage handler does not follow the rules.
+	 * or just stating that `onMessage` handler does not follow conventions.
+	 *
+	 * TODO: Target: offscreen, background, settings.
 	 */
 	async sendMessage(method, params) {
 		const id = lr_common.getId();
@@ -142,7 +170,11 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 			} else if ("result" in response) {
 				return response.result;
 			} else if ("error" in response) {
-				throw new Error(response.error);
+				const { error } = response;
+				if (typeof error === "string") {
+					throw new Error(error);
+				}
+				throw lr_common.objectToError(error);
 			}
 		}
 		console.error("lr_common.sendMessage: invalid response", response);
