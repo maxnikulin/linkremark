@@ -27,7 +27,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
+lr_content_scripts.lrcClipboard = async function lrcClipboard(capture, params) {
 	const CLIPBOARD_TIMEOUT = 330;
 	// In Firefox-115 ESR `document.execCommand("copy")` may propagate
 	// to other documents. Chromium-127 is not affected.
@@ -193,6 +193,9 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 		let result;
 		try {
 			result = document.execCommand("copy");
+			if (result === true) {
+				result = "contentScript.document.execCommand";
+			}
 		} finally {
 			window.removeEventListener("copy", listener, listenerOptions);
 			removeInput?.();
@@ -261,19 +264,115 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 			}
 		}
 
-		async function lrClipboardCopyFromContentScript(content) {
+		async function lrcClipboardTryNavigator(params) {
+			try {
+				return lrIsGecko()
+					|| params?.hasClipboardWrite
+					|| (await chrome.runtime.sendMessage(
+						{ method: "export.checkUserGesture" }))?.result;
+				
+			} catch (ex) {
+				Promise.reject(ex);
+			}
+			return false
+		}
+
+		async function lrClipboardCopyFromContentScript(content, params) {
 			if (content == null || content === "") {
 				return false;
 			}
 			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
-			// const permission = await navigator.permissions.query({name: 'clipboard-write'});
-			// console.log("lrClipboardWrite permission", permission);
 			try {
-				if (navigator.clipboard && navigator.clipboard.writeText) {
-					await withTimeout(navigator.clipboard.writeText(text), CLIPBOARD_TIMEOUT);
-					return true;
+				if (navigator.clipboard?.writeText === undefined) {
+					// TODO send log to background script, but not as warnings
+					warnings.push(lrToObject(new Error(`navigator.clipboard API disabled for ${location.protocol}`)));
+				} else if (!(await lrcClipboardTryNavigator(params))) {
+					// Try `navigator.clipboard.writeText` first because
+					// it can not be intercepted by a "copy" event listener added
+					// by the web page.
+					//
+					// A permission popup prompt **on behalf of the page**
+					// may appear on attempt to call the method
+					// in Chromium (tested in v112, v127).
+					// The condition above is aimed to use the method only when
+					// it can be used silently. Try to avoid disturbing users
+					// by popups and granting additional privileges to web sites.
+					//
+					// Even when the `clipboardWrite` permission is granted
+					// to the extension, the function call may throw,
+					// if the page document is not focused.
+					// To check `document.hasFocus()` may be used,
+					// but currently it is skipped.
+					//
+					// **Permission popup prompt**
+					//
+					// It is not implemented in Firefox as of v115 ESR.
+					// It is not considered as a bug in Chromium, see
+					// <https://crbug.com/1382608> (WontFix)
+					// "WebExtension Content Script: navigator.clipboard triggers permission dialog"
+					//
+					// The dialog
+					//
+					// > "This {origin|"file"} wants to
+					// >
+					// > See text and images copied to clipboard".
+					//
+					// is rather confusing because:
+					// - Its text is more suitable for the **clipboard-read** permission
+					//   despite `writeText` actual call.
+					// - Permission is requested for the **page origin**, not the extension.
+					//   User may prefer to avoid granting clipboard access to the whole
+					//   web site.
+					//
+					// The returned promise is not settled till the user closes the popup.
+					// It breaks timeout-based error detection in content script.
+					// When not allowed `DOMException: Write permission denied.` happens.
+					//
+					// Clicking on extension action in the toolbar or invoking a command
+					// (shortcut) does not refresh user gesture context.
+					// The popup does not appear and text is copied to clipboard
+					// within a few seconds after a mouse click,
+					// including right click to invoke context menu,
+					// or keyboard navigation on the page.
+					// It does not actually matters which way extension action is invoked:
+					// the toolbar action button or its menu, a command (keyboard shortcut),
+					// or context menu. Context menu sets user gesture context
+					// when it is invoked, not when particular item is selected,
+					// so permission popup depends on delay.
+					//
+					// There is no point to query permissions from `navigator`
+					// because the returned values are always the same,
+					// even when the document is not focused:
+					//
+					//     navigator.permissions.query({name: 'clipboard-write', allowWithoutGesture: true})
+					//     // => {name: 'clipboard_write', state: 'prompt', ...}
+					//     navigator.permissions.query({name: 'clipboard-write', allowWithoutGesture: false})
+					//     // => {name: 'clipboard_write', state: 'granted', ...}
+					//
+					// Notice that in Firefox (e.g. v112) the same query causes `TypeError`
+					// due to unsupported `clipboard-write` permission
+					// <https://searchfox.org/mozilla-central/source/dom/webidl/Permissions.webidl>
+					// <https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/blink/renderer/modules/permissions/permission_descriptor.idl>
+					// In addition the `allowWithoutGesture` parameter
+					// is not supported by Firefox as well.
+					// <https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/blink/renderer/modules/permissions/clipboard_permission_descriptor.idl>
+					//
+					// ** Focus **
+					//
+					// If document is not focused the returned promise is rejected with
+					//
+					//     DOMException: Document is not focused.
+					//
+					// Notice that focus is lost when other browser UI element is focused:
+					// location bar, side bar, developer tools,
+					// `[F6]` is pressed to get keyboard focus on e.g. tab labels.
+					// The document however remains focused when
+					// extension action or tab label is clicked
+					// (even if it is in the extension drop-down menu).
+					warnings.push(lrToObject(new Error("Skip navigator.clipboard to avoid user prompt")));
 				} else {
-					warnings.push(lrToObject(new Error("navigator.clipboard API is disabled")));
+					await withTimeout(navigator.clipboard.writeText(text), CLIPBOARD_TIMEOUT);
+					return "contentScript.navigator.clipboard.writeText";
 				}
 			} catch (ex) {
 				// https://bugzilla.mozilla.org/show_bug.cgi?id=1670252
@@ -299,7 +398,7 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 				(async () => lrCopyUsingEvent(text))(), CLIPBOARD_TIMEOUT);
 		}
 
-		async function lrGetCaptureCopyLaunch(capture) {
+		async function lrGetCaptureCopyLaunch(capture, params) {
 			const { transport, formats } = capture;
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
@@ -307,9 +406,9 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 				if (text == null || text === "") {
 					throw new Error("Internal error: nothing to copy");
 				}
-				return await lrClipboardCopyFromContentScript(text);
+				return await lrClipboardCopyFromContentScript(text, params);
 			} else if (transport.method === "org-protocol") {
-				await lrClipboardCopyFromContentScript(content.body);
+				await lrClipboardCopyFromContentScript(content.body, params);
 				await lrLaunchProtocolHandlerFromContentScript(
 					content.url, content.options && content.options.detectUnconfigured);
 				return true;
@@ -317,7 +416,7 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 			throw new Error(`Unsupported method ${method}`);
 		}
 
-		retval.result = await lrGetCaptureCopyLaunch(capture);
+		retval.result = await lrGetCaptureCopyLaunch(capture, params);
 		return retval;
 	} catch (ex) {
 		retval.error = lrToObject(ex);

@@ -75,6 +75,10 @@ function lrMainSync(initAsync) {
 	gLrAddonRpc.register("nativeMessaging.hello", lr_native_export.hello);
 	gLrAddonRpc.register("nativeMessaging.mentions", lr_native_export.mentionsEndpoint);
 	gLrAddonRpc.register("nativeMessaging.visit", lr_native_export.visitEndpoint);
+	gLrAddonRpc.register(
+		"export.checkUserGesture",
+		lr_export.checkUserGesture.bind(lr_export),
+		{ skipInit: true });
 	gLrAddonRpc.register("export.process", lr_export.processMessage.bind(lr_export));
 	gLrAddonRpc.register("export.format", lr_export.formatMessage.bind(lr_export));
 	gLrAddonRpc.register("export.availableFormats", lr_export.getAvailableFormats.bind(lr_export));

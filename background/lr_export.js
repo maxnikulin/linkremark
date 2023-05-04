@@ -161,6 +161,22 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 		return true;
 	};
 
+	// Chromium only, has no value in Firefox-115 ESR.
+	async function checkUserGesture() {
+		try {
+			return await bapi.permissions.request({});
+		} catch (ex) {
+			const reUserGesture = new RegExp(
+				"(?:must be called during a user gesture"
+				+ "|may only be called from a user input handler)$");
+			const message = ex?.message;
+			if (typeof message !== "string" || !reUserGesture.test(message)) {
+				Promise.reject(ex);
+			}
+		}
+		return false;
+	}
+
 	// For RPC endpoints
 	function _restoreMeta(capture) {
 		for (const key of Object.keys(capture.formats)) {
@@ -330,6 +346,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	};
 
 	Object.assign(this, {
+		checkUserGesture,
 		findFormat,
 		format,
 		formatMessage,

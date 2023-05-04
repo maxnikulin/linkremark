@@ -91,10 +91,13 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (!(tabId >= 0)) {
 			throw new Error("_lrClipboardContentScript: invalid tabId");
 		}
+		// In Chrome `navigator.clipboard.writeText` may cause permission
+		// prompt, if it is called outside of user gesture context without
+		// the `clipboardWrite` permission.
 		const scriptResult = await lr_scripting.executeScript(
 			{ tabId, frameId: 0 },
 			lr_content_scripts.lrcClipboard,
-			[ capture ]);
+			[ capture, await bapi.permissions.contains({ permissions: ["clipboardWrite"] }) ]);
 		const { result, error, warnings } = scriptResult || {};
 		if (result) {
 			if (error) {
