@@ -53,6 +53,7 @@ var lr_util = function() {
 
 	this.errorToObject = lr_common.errorToObject;
 
+	// Does not work as `debugName` for stack traces in Firefox.
 	this.setFuncName = function(func, name) {
 		if (name) {
 			Object.defineProperty(func, "name", { value: name, configurable: true });
