@@ -462,25 +462,30 @@ Do not confuse tab group with highlighting (selecting) several tabs.
 
 In Chrome it is called "Modify data you copy and paste".
 
-In Firefox, without such permission, an extension can not copy data
-to clipboard except if it is immediate action in response to e.g.
-click on a button. Clicking on extension button is not the case
-since a lot of work should be done before data become ready for copy,
-so it is not considered as "in response to user action".
-Enable this permission if you prefer to avoid preview page
-as an intermediate state.
+An optional permission relevant for the "clipboard"
+and combined "org-protocol" with clipboard export methods.
+
+This permission is necessary if you prefer to copy capture
+result to clipboard without intermediate preview page.
+In Chrome it must be combined with
+[[#offscreen-documents-offscreen-chrome][offscreen]].
+Firefox does not need this permission in most cases
+(since version approximately 112).
+
+When this permission is not granted, the add-on still tries
+other methods: content script (less reliable approach)
+and a temporary tab.
 
 Browsers consider overwriting clipboard content as a potentially
 dangerous action, so they perform, some measures to protect users.
-Security model in Chrome is different from Firefox, so this permission
-does not do anything really useful in Chrome. However unlike Firefox
-it allows to call ~document.execCommand("copy")~ from content scripts,
-so the extension can do its job. For privileged tabs (e.g. PDF files)
-preview page is unavoidable in Chrome and can appear for a second.
-Sorry for this inconvenience.
+Security model and thus behavior in Chrome is different from Firefox.
+# Privileged content, e.g. PDF files causes preview tab
+# with a warning anyway.
 
 This permission may be revoked as soon as you configure native application
-or desktop-wide handler for the =org-protocol:= URI scheme.
+with granting
+[[#exchange-messages-with-other-programs-nativemessaging][nativeMessaging]]
+permission or desktop-wide handler for the =org-protocol:= URI scheme.
 
 *** Offscreen documents (=offscreen=, Chrome)
 :PROPERTIES:

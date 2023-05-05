@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 07:59 -->
+<!-- 2024-10-26 Sat 08:00 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -533,29 +533,36 @@ In Chrome it is called "Modify data you copy and paste".
 </p>
 
 <p>
-In Firefox, without such permission, an extension can not copy data
-to clipboard except if it is immediate action in response to e.g.
-click on a button. Clicking on extension button is not the case
-since a lot of work should be done before data become ready for copy,
-so it is not considered as "in response to user action".
-Enable this permission if you prefer to avoid preview page
-as an intermediate state.
+An optional permission relevant for the "clipboard"
+and combined "org-protocol" with clipboard export methods.
+</p>
+
+<p>
+This permission is necessary if you prefer to copy capture
+result to clipboard without intermediate preview page.
+In Chrome it must be combined with
+<a href="#offscreen-documents-offscreen-chrome">offscreen</a>.
+Firefox does not need this permission in most cases
+(since version approximately 112).
+</p>
+
+<p>
+When this permission is not granted, the add-on still tries
+other methods: content script (less reliable approach)
+and a temporary tab.
 </p>
 
 <p>
 Browsers consider overwriting clipboard content as a potentially
 dangerous action, so they perform, some measures to protect users.
-Security model in Chrome is different from Firefox, so this permission
-does not do anything really useful in Chrome. However unlike Firefox
-it allows to call <code>document.execCommand("copy")</code> from content scripts,
-so the extension can do its job. For privileged tabs (e.g. PDF files)
-preview page is unavoidable in Chrome and can appear for a second.
-Sorry for this inconvenience.
+Security model and thus behavior in Chrome is different from Firefox.
 </p>
 
 <p>
 This permission may be revoked as soon as you configure native application
-or desktop-wide handler for the <code>org-protocol:</code> URI scheme.
+with granting
+<a href="#exchange-messages-with-other-programs-nativemessaging">nativeMessaging</a>
+permission or desktop-wide handler for the <code>org-protocol:</code> URI scheme.
 </p>
 </div>
 </div>
@@ -673,7 +680,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 07:59</p>
+<p class="date">Created: 2024-10-26 Sat 08:00</p>
 </div>
 </body>
 </html>
