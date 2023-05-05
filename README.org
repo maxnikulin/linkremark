@@ -482,6 +482,30 @@ Sorry for this inconvenience.
 This permission may be revoked as soon as you configure native application
 or desktop-wide handler for the =org-protocol:= URI scheme.
 
+*** Offscreen documents (=offscreen=, Chrome)
+:PROPERTIES:
+:CUSTOM_ID: offscreen-documents-offscreen-chrome
+:END:
+
+An optional permission relevant for the "clipboard"
+and combined "org-protocol" with clipboard export methods.
+There is no confirm popup dialog for this permission, It may be just
+granted on capture when preview is disabled.
+
+Combined with [[#input-data-to-the-clipboard-clipboardwrite][clipboardWrite]],
+the =offscreen= permission allows to reliably
+copy text to clipboard. The permission is necessary
+when capture preview is disabled.
+
+Chrome have no API for clipboard access from extension background
+service worker. Copy from content script might be unreliable.
+
+If you have a reason to avoid the =offscreen= permission then
+do not grant [[#input-data-to-the-clipboard-clipboardwrite][clipboardWrite]].
+Instead you may choose
+[[#exchange-messages-with-other-programs-nativemessaging][nativeMessaging]]
+or desktop-wide handler for =org-protocol:= URI scheme.
+
 ** Troubleshooting
 :PROPERTIES:
 :CUSTOM_ID: troubleshooting

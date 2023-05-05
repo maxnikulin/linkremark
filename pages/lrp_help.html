@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 07:57 -->
+<!-- 2024-10-26 Sat 07:59 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -559,6 +559,37 @@ or desktop-wide handler for the <code>org-protocol:</code> URI scheme.
 </p>
 </div>
 </div>
+<div id="outline-container-offscreen-documents-offscreen-chrome" class="outline-3">
+<h3 id="offscreen-documents-offscreen-chrome"><span class="section-number-3">5.7.</span> Offscreen documents (<code>offscreen</code>, Chrome)</h3>
+<div class="outline-text-3" id="text-offscreen-documents-offscreen-chrome">
+<p>
+An optional permission relevant for the "clipboard"
+and combined "org-protocol" with clipboard export methods.
+There is no confirm popup dialog for this permission, It may be just
+granted on capture when preview is disabled.
+</p>
+
+<p>
+Combined with <a href="#input-data-to-the-clipboard-clipboardwrite">clipboardWrite</a>,
+the <code>offscreen</code> permission allows to reliably
+copy text to clipboard. The permission is necessary
+when capture preview is disabled.
+</p>
+
+<p>
+Chrome have no API for clipboard access from extension background
+service worker. Copy from content script might be unreliable.
+</p>
+
+<p>
+If you have a reason to avoid the <code>offscreen</code> permission then
+do not grant <a href="#input-data-to-the-clipboard-clipboardwrite">clipboardWrite</a>.
+Instead you may choose
+<a href="#exchange-messages-with-other-programs-nativemessaging">nativeMessaging</a>
+or desktop-wide handler for <code>org-protocol:</code> URI scheme.
+</p>
+</div>
+</div>
 </div>
 <div id="outline-container-troubleshooting" class="outline-2">
 <h2 id="troubleshooting"><span class="section-number-2">6.</span> Troubleshooting</h2>
@@ -642,7 +673,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 07:57</p>
+<p class="date">Created: 2024-10-26 Sat 07:59</p>
 </div>
 </body>
 </html>
