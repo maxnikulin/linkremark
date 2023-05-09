@@ -78,11 +78,13 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 
 	/* Does not work for privileged content.
 	 * However usually allows to avoid flashing new tab.
-	 * Skip if clipboard API is disabled.
+	 * Skip if clipboard API is disabled (can not be tested from mv3 service worker).
 	 */
 	async function _lrClipboardContentScript(capture, options) {
 		const { usePreview, tab } = options || {}
-		if (usePreview || !navigator.clipboard || !navigator.clipboard.writeText) {
+		if (usePreview
+			|| (typeof window !== "undefined" && !navigator.clipboard?.writeText)
+		) {
 			return;
 		}
 		const tabId = tab != null ? tab.id : null;
@@ -119,9 +121,10 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 	}
 
 	async function _lrClipboardCopyFromBackground(text) {
+		// impossible in mv3
 		const errors = [];
 		try {
-			if (lr_common.copyUsingEvent(text)) {
+			if (typeof document !== "undefined" && lr_common.copyUsingEvent(text)) {
 				return true;
 			}
 		} catch (ex) {
@@ -129,7 +132,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				"lr_clipboard._lrClipboardCopyFromBackground: failed to copy using command and event: %o", ex);
 			errors.push(ex);
 		}
-		if (navigator.clipboard && navigator.clipboard.writeText) {
+		if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
 			// It seems that result value is unspecified.
 			// On failure the promise is rejected.
 			/* Does not work in chromium-87, "write-clipboard" or "writeClipboard" permissions
@@ -157,8 +160,10 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		const message = "Background clipboard operation failed";
 		if (errors.length > 1) {
 			throw new LrAggregateError(errors, message);
+		} else if (errors.length !== 0) {
+			throw new LrError(message, { cause: errors[0] });
 		}
-		throw new LrError(message, { cause: errors[0] });
+		return false;
 	}
 
 	async function _lrClipboardBackground(capture, options) {
@@ -174,6 +179,9 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		if (result && content) {
 			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
 			result = await _lrClipboardCopyFromBackground(text);
+			if (!result) {
+				return false;
+			}
 		} else if (method === "clipboard") {
 			result = false;
 		}
@@ -182,27 +190,74 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			// if "Always ask" is configured for particular scheme:
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=1745931
 			if (!lr_common.isGecko()) {
-				// Chromium-95 silently swallows assignment to background `window.location`
-				// and crashes on appending `<iframe>` with external handler `src`.
-				// https://crbug.com/1280940
+				// `offscreen` document is useless for launching external URI handler.
+				// - URI with external scheme can not be specified
+				//   when an offscreen document is created.
+				//   Only extension files are allowed.
+				// - Appending an `<iframe>` with external URI protocol
+				//   in `src` to the `offscreen` document does not work.
+				//   Chromium-111 crashed, Chromium-128 just spit a message into stderr:
+				//
+				//        ERROR:external_protocol_handler.cc(262)] Skipping ExternalProtocolDialog,
+				//        escaped_url=..., initiating_origin=chrome-extension://..., web_contents?1, browser?0
+				//
+				//   <https://issues.chromium.org/40894977>
+				//   <https://crbug.com/1418868>
+				// - Attempts to change `window.location` of an `offscreen`
+				//   document are ignored.
+				// Background page of mv2 extensions does not allow it as well
+				// - Chromium-95 silently swallows assignment to background `window.location`
+				// - Appending an `<iframe>` with external protocol handler in `src`
+				//   caused crash in Chromium-95
+				//   and leads to a stderr message in Chromium-128
+				//   <https://crbug.com/1280940>
 
-				// `tabs.update` method does not allow error detection, moreover:
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=1745008
+				// `tabs.update` method does not allow error detection.
+				// Be careful with Firefox:
+				// https://bugzilla.mozilla.org/1745008 WONTFIX
 				// tabs.update with custom scheme URL may replace privileged page with error.
-				if (!options || !options.tab || !(options.tab.id >= 0)) {
-				    throw new Error("_lrClipboardBackground: invalid tab.id");
+
+				// Ensure that current tab is used.
+				const tab = await lr_action.getActiveTab();
+				if (!(tab.id >= 0)) {
+				    throw new Error("_lrClipboardBackground: failed to get active tab");
 				}
-				await bapi.tabs.update(options.tab.id, { url: projection.url });
-			} else if (projection.options && projection.options.detectUnconfigured) {
-				// Firefox silently ignores attempt if previous launch was recent enough.
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=1744018
-				// External scheme handler launched by an add-on can be blocked despite user action
-				await lr_org_protocol.launchThroughIframe(projection.url);
+				await bapi.tabs.update(tab.id, { url: projection.url });
+			} else if (typeof window !== "undefined") {
+				// Firefox
+				if (projection.options && projection.options.detectUnconfigured) {
+					// Firefox silently ignores attempt if previous launch was recent enough.
+					// https://bugzilla.mozilla.org/show_bug.cgi?id=1744018
+					// External scheme handler launched by an add-on can be blocked despite user action
+					await lr_org_protocol.launchThroughIframe(projection.url);
+				} else {
+					// Background page is never focused, so error detection
+					// using `blur` event does not work.
+					// It does not wake up popup blocker at least.
+					window.location = projection.url;
+				}
 			} else {
-				// Background page is never focused, so error detection
-				// using `blur` event does not work.
-				// It does not wake up popup blocker at least.
-				window.location = projection.url;
+				// Should not happen. Even Firefox-115 still does not support
+				// service workers for mv3 extensions.
+
+				// There is a little sense to use `tabs.create` since the extension
+				// preview tab is more informative. Firefox-115 does not allow
+				// error detection: `tab.url` is always `about:blank`, its title
+				// is the passed `url`, these fields are unavailable when the `tabs`
+				// permission is not granted. Execution of content scripts is not
+				// allowed in `about:blank` tabs (unless they are created using `window.open`).
+				// The created tab persists after an external handler is invoked
+				// even the user chooses to open external URI.
+				//
+				// In Chrome-114 the created tab disappears when the user clicks "open",
+				// but remains in the case of "cancel".
+				// `scripts.execureScript` hangs if called when the popup prompt is shown
+				// to the user. An exception (non-existing tab) is thrown only when
+				// the tab is closed.
+				//
+				// Tab can not be programmatically closed because the prompt will disappear,
+				// there is no event when user confirmed executing of external application.
+				throw new Error("Internal error: can not launch org-protocol handler from background script");
 			}
 		}
 		if (!result) {
@@ -472,10 +527,12 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		});
 		lr_settings.registerOption({
 			name: "export.methods.orgProtocol.allowBackground",
-			defaultValue: false,
+			defaultValue: !lr_common.isGecko(),
 			version: "0.3",
 			title: "Launch handler from add-on background page",
 			description: [
+				"It should be safe to have this option enabled in Chrome.",
+				"",
 				"Allows to launch org-protocol handler without running a script",
 				"in content of the current tab.",
 				"To make this work in Firefox, specific handler should be configured,",
