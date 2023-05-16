@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 03:09 -->
+<!-- 2024-10-26 Sat 03:24 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark Help</title>
@@ -78,7 +78,7 @@ or C-c C-j, org-goto (maybe with prefix argument as well).
 
 <p>
 <a href="https://orgmode.org/manual/Capture.html#Capture">Capture templates (web)</a>
-or <code>M-: (info "(org) Capture")</code> is the next step for Org mode users.
+(<code>M-: (info "(org) Capture")</code>) is the next step for Org mode users.
 You could start with a very simple template having "plain" type
 </p>
 <pre class="example" id="capture-plain">
@@ -151,9 +151,10 @@ Emacs init file should have something like the following:
      :empty-lines 1)
 ))))
 </pre>
+
 <p>
 Certainly Emacs server should be running: <code>M-x server-start</code>
-and org-protocol should be loaded: <code>M-: (require 'org-protocol)</code>.
+and org-protocol should be loaded: <code>M-: (<code>require 'org-protocol</code>)</code>.
 Keep capture type in Emacs consistent with
 "Template type configured in org-capture-templates"
 add-on setting. Another option you may find useful
@@ -211,7 +212,7 @@ Related Firefox bugs:
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 03:09</p>
+<p class="date">Created: 2024-10-26 Sat 03:24</p>
 </div>
 </body>
 </html>

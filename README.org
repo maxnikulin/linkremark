@@ -2,6 +2,14 @@
 #+PROPERTY: header-args :eval never-export :exports code :results silent
 #+TITLE: LinkRemark — notes for web pages augmented by metadata
 
+#+begin_comment
+Due to limitation of GitHub Org renderer
+- Do not use =verbatim= or ~code~ text in link description
+- use =\quot= entity to avoid curly quotes in link description
+  where verbatim text can not be used. =#+options: ':nil=
+  does not affect GitHub rendering.
+#+end_comment
+
 Install [[file:icons/lr-32.png]] LinkRemark:
 - [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox add-on at addons.mozilla.org]],
 - [[https://chrome.google.com/webstore/detail/mgmcoaemjnaehlliifkgljdnbpedihoe][Extension in Chrome Web Store]].
@@ -102,7 +110,7 @@ or [[help:org-goto][C-c C-j, org-goto]] (maybe with prefix argument as well).
 
 # Sorry, github renderer can not transform info: to hyperlinks
 [[https://orgmode.org/manual/Capture.html#Capture][Capture templates (web)]]
-or [[info:org#Capture][info "(org) Capture"]] is the next step for Org mode users.
+([[info:org#Capture][info \quot(org) Capture\quot]]) is the next step for Org mode users.
 You could start with a very simple template having "plain" type
 #+name: capture-plain
 #+begin_example emacs-lisp
@@ -164,8 +172,11 @@ Emacs init file should have something like the following:
        :empty-lines 1)
   ))))
 #+end_example
+# - org-ruby does not recognize markers at the borders of link description.
+# - It does not allow to disable smart quotes,
+# - There is no entity for apostrophe.
 Certainly Emacs server should be running: [[elisp:(server-start)][M-x server-start]]
-and org-protocol should be loaded: [[elisp:(require 'org-protocol)][M-: (require 'org-protocol)]].
+and org-protocol should be loaded: [[elisp:(require 'org-protocol)][M-: (=require 'org-protocol=)]].
 Keep capture type in Emacs consistent with
 "Template type configured in org-capture-templates"
 add-on setting. Another option you may find useful
@@ -223,11 +234,11 @@ of internal communication between LinkRemark and bURL is stabilized already.
 [[https://github.com/maxnikulin/burl][README file for bURL]]
 describes how to install and to configure the native application
 (unsure if it is clear enough). Key points:
-- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html][Server]] ([[info:emacs#Emacs Server][info "(emacs) Emacs Server"]])
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html][Server]] ([[info:emacs#Emacs Server][info \quot(emacs) Emacs Server\quot]])
   is running in Emacs unless it is enough to just see locations of same
   URL in your notes. Otherwise neither clicks on found mentions
   nor org-protocol capture would work.
-- [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info "(org) Protocols"]])
+- [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info \quot(org) Protocols\quot]])
   is loaded and a template is configured
   to enable capture feature. Alternatively use clipboard and
   [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
