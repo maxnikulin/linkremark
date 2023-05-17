@@ -12,6 +12,11 @@ importScripts(
 	"background/init_linkremark.js",
 );
 try {
+	importScripts("background/lr_force_sw_activate.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
 	importScripts("common/bapi.js");
 } catch (ex) {
 	Promise.reject(ex);
