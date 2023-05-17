@@ -18,7 +18,7 @@
 "use strict";
 
 class LrRpcStore {
-	// addons,mozilla.org validator error:
+	// addons.mozilla.org validator error:
 	//     JavaScript syntax error (Parsing as module error:
 	//     Unexpected token = at line: 21 and column: 20)
 	//     (Parsing as script error: Unexpected token = at line: 21 and column: 20)
