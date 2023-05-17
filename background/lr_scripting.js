@@ -120,7 +120,7 @@ var lr_scripting = lr_util.namespace(lr_scripting, function lr_scripting() {
 		throw new Error("Unexpected script result");
 	};
 
-	lr_scripting.executeScript = async function executeScript(target, file) {
+	lr_scripting.executeScript = async function executeScript(target, fileOrFunc, args) {
 		const { tabId, frameId, ...others } = target;
 		try {
 			const unknown = Object.keys(others);
@@ -132,10 +132,32 @@ var lr_scripting = lr_util.namespace(lr_scripting, function lr_scripting() {
 		} catch (ex) {
 			console.warn("lr_scripting.executeScript: invalid target:", ex);
 		}
-		const apiResultArray = await bapi.scripting.executeScript({
-			target: { tabId, frameIds: [ frameId ], allFrames: false },
-			files: [ file ]
-		});
+		const code = {};
+		if (typeof fileOrFunc === "string") {
+			code.files = [ fileOrFunc ];
+		} else if (lr_util.isFunction(fileOrFunc) || lr_util.isAsyncFunction(fileOrFunc)) {
+			code.func = fileOrFunc;
+			code.args = args;
+		} else {
+			throw new TypeError("Neither script nor function");
+		}
+		let apiResultArray;
+		try {
+			apiResultArray = await bapi.scripting.executeScript({
+				target: { tabId, frameIds: [ frameId ], allFrames: false },
+				...code,
+			});
+		} catch (ex) {
+			if (!ex.stack) {
+				// Unsure if it may happen in Chrome due to
+				// https://crbug.com/1271527
+				// "Propagate errors from scripting.executeScript to InjectionResult"
+				// A potential issue is that Chrome adds `toString()`
+				// result to stack.
+				ex.stack = new Error().stack;
+			}
+			throw ex;
+		}
 		if (!Array.isArray(apiResultArray) || apiResultArray.length !== 1) {
 			console.warn("lr_scripting.executeScript: unexpected result", apiResultArray);
 			throw new Error("Unexpected content script result");
