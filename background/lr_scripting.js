@@ -120,7 +120,7 @@ var lr_scripting = lr_util.namespace(lr_scripting, function lr_scripting() {
 		throw new Error("Unexpected script result");
 	};
 
-	lr_scripting.executeScript = async function executeScript(target, fileOrFunc, args) {
+	lr_scripting.executeScript = async function executeScript(target, func, args) {
 		const { tabId, frameId, ...others } = target;
 		try {
 			const unknown = Object.keys(others);
@@ -132,20 +132,14 @@ var lr_scripting = lr_util.namespace(lr_scripting, function lr_scripting() {
 		} catch (ex) {
 			console.warn("lr_scripting.executeScript: invalid target:", ex);
 		}
-		const code = {};
-		if (typeof fileOrFunc === "string") {
-			code.files = [ fileOrFunc ];
-		} else if (lr_util.isFunction(fileOrFunc) || lr_util.isAsyncFunction(fileOrFunc)) {
-			code.func = fileOrFunc;
-			code.args = args;
-		} else {
-			throw new TypeError("Neither script nor function");
+		if (!lr_util.isFunction(func) && !lr_util.isAsyncFunction(func)) {
+			throw new TypeError("Not a function");
 		}
 		let apiResultArray;
 		try {
 			apiResultArray = await bapi.scripting.executeScript({
 				target: { tabId, frameIds: [ frameId ], allFrames: false },
-				...code,
+				func, args,
 			});
 		} catch (ex) {
 			if (!ex.stack) {
