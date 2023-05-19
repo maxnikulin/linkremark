@@ -18,7 +18,7 @@
 "use strict";
 
 var lr_common = Object.assign(lr_common || new function lr_common() {}, {
-	errorToObject(obj) {
+	errorToObject: /* recursive */ function lrErrorToObject(obj) {
 		if (obj == null) {
 			return null;
 		}
@@ -53,9 +53,9 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		const cause = obj.cause;
 		if (cause != null) {
 			try {
-				error.cause = lr_common.errorToObject(cause);
+				error.cause = lrErrorToObject(cause);
 			} catch {
-				console.error("lr_common.errorToObject: cause error: %o", ex);
+				console.error("lrErrorToObject: cause error: %o", ex);
 				children.push(String(cause));
 			}
 		}
@@ -65,14 +65,14 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 			try {
 				for (const a of aggregate) {
 					try {
-						children.push(lr_common.errorToObject(a));
+						children.push(lrErrorToObject(a));
 					} catch (ex) {
-						console.error("lr_common.errorToObject: aggregate error: %o", ex);
+						console.error("lrErrorToObject: aggregate error: %o", ex);
 						children.push(String(a));
 					}
 				}
 			} catch (ex) {
-				console.error("lr_common.errorToObject: aggregate error: %o", ex);
+				console.error("lrErrorToObject: aggregate error: %o", ex);
 			}
 			if (children.length > 0) {
 				error.errors = children
