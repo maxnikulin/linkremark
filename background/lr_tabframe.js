@@ -645,7 +645,7 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 		}
 	} catch (ex) {
 		console.error(
-			"lrGatherTabInfo: click target: continue despite the error %s %0", ex, ex);
+			"lrGatherTabInfo: click target: continue despite the error %s %o", ex, ex);
 	}
 
 	return chain;
