@@ -176,6 +176,36 @@ try {
 } catch (ex) {
 	Promise.reject(ex);
 }
+try {
+	importScripts("content_scripts/lrc_image.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("content_scripts/lrc_link.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("content_scripts/lrc_meta.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("content_scripts/lrc_microdata.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("content_scripts/lrc_relations.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
+try {
+	importScripts("content_scripts/lrc_selection.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
 importScripts(
 	"background/main_linkremark.js",
 )

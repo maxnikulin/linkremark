@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2023 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -17,7 +17,9 @@
 
 "use strict";
 
-(async function lrc_image() {
+var lr_content_scripts = lr_content_scripts || {};
+
+lr_content_scripts.lrcImage = function lrcImage(elementId) {
 	const DEFAILT_SIZE_LIMIT = 1000;
 	const TEXT_SIZE_LIMIT = 4000;
 	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
@@ -75,26 +77,12 @@
 		}
 	}
 
-	async function lrSendMessage(method, params) {
-		const msg = {method, params};
-		const response = await browser.runtime.sendMessage(msg);
-		if (response != null && response.result !== undefined) {
-			return response.result;
-		} else if (response != null && response.error) {
-			throw response.error;
-		}
-		throw new Error ("Invalid response object");
-	}
-
-	async function getTargetElement(errorCb) {
+	function getTargetElement(elementId, errorCb) {
 		try {
 			const bapi = typeof browser !== "undefined" ? browser : chrome;
-			const menus =  bapi && (bapi.menus || bapi.contextMenus);
-			if (menus && menus.getTargetElement) {
-				const targetElementId = await lrSendMessage("store.getTargetElement", []);
-				if (targetElementId != null) {
-					return menus.getTargetElement(targetElementId);
-				}
+			const menus =  bapi?.menus ?? bapi?.contextMenus;
+			if (elementId != null && menus?.getTargetElement !== undefined) {
+				return menus.getTargetElement(elementId);
 			}
 		} catch (ex) {
 			if (errorCb) {
@@ -109,7 +97,7 @@
 		// console.debug(document.activeElement, document.querySelectorAll(":focus"));
 		return document.activeElement;
 	}
-	
+
 	function getUrl(node, attr) {
 		const hrefAttr = node.getAttribute(attr);
 		if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:")) {
@@ -127,7 +115,7 @@
 		}
 	}
 
-	async function lrcImageProperties() {
+	function lrcImageProperties(elementId) {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -137,7 +125,9 @@
 			});
 		}
 
-		const img = await getTargetElement(error => pushWarning(error, 'lr.image.getTargetElement'));
+		const img = getTargetElement(
+			elementId,
+			error => pushWarning(error, 'lr.image.getTargetElement'));
 		if (img == null || img.nodeName != 'IMG') {
 			// Maybe it is worth checking CSS background-url property
 			throw new Error(`target element is not an image: ${img && img.nodeName}`);
@@ -159,9 +149,9 @@
 	}
 
 	try {
-		return { result: await lrcImageProperties() };
+		return { result: lrcImageProperties(elementId) };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_image.js: should not reach end of the function" };
-})();
+};

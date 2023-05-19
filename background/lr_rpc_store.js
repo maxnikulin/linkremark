@@ -24,7 +24,6 @@ class LrRpcStore {
 	//     (Parsing as script error: Unexpected token = at line: 21 and column: 20)
 	// static NO_CAPTURE = "NO_CAPTURE";
 	constructor() {
-		this.handleTargetElement = this.getTargetElement.bind(this);
 		this.handleResult = this.getResult.bind(this);
 		this.handlePutPreviewError = this.putPreviewError.bind(this);
 		this.clear();
@@ -41,26 +40,6 @@ class LrRpcStore {
 	};
 	clear() {
 		this.execInfo = LrRpcStore.NO_CAPTURE;
-		this.targetElement = null;
-	};
-	putTargetElement(object) {
-		this.targetElement = object;
-	};
-	getTargetElement(_, port) {
-		if (this.targetElement == null || this.targetElement.targetElementId == null) {
-			console.warn("LrRpcStore: targetElement requested despite no Id is stored");
-		};
-
-		if (this.targetElement == null) {
-			return null;
-		}
-		const { tabId, frameId } = this.targetElement;
-		if (port.tab.id !== tabId || port.frameId !== frameId) {
-			console.error("LrRpcStore: stored for %o requested from %o",
-				{ tabId, frameId }, { tabId: port.tab.id, frameId: port.frameId });
-			throw new Error("Target element requested from wrong frame");
-		}
-		return this.targetElement.targetElementId;
 	};
 	getPreviewError() { return this._previewError };
 	putPreviewError(error) { this._previewError = error; return true };

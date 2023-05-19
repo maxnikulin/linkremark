@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2023 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -17,7 +17,9 @@
 
 "use strict";
 
-(async function lrc_link() {
+var lr_content_scripts = lr_content_scripts || {};
+
+lr_content_scripts.lrcLink = function lrcLink(elementId) {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		if (obj instanceof Error) {
@@ -86,15 +88,12 @@
 		throw new Error ("Invalid response object");
 	}
 
-	async function getTargetElement(errorCb) {
+	function getTargetElement(elementId, errorCb) {
 		try {
 			const bapi = typeof browser !== "undefined" ? browser : chrome;
-			const menus =  bapi && (bapi.menus || bapi.contextMenus);
-			if (menus && menus.getTargetElement) {
-				const targetElementId = await lrSendMessage("store.getTargetElement", []);
-				if (targetElementId != null) {
-					return menus.getTargetElement(targetElementId);
-				}
+			const menus =  bapi?.menus ?? bapi?.contextMenus;
+			if (elementId != null && menus?.getTargetElement !== undefined) {
+				return menus.getTargetElement(elementId);
 			}
 		} catch (ex) {
 			if (errorCb) {
@@ -105,7 +104,7 @@
 		}
 		return document.activeElement;
 	}
-		
+
 	function getUrl(node, attr) {
 		const hrefAttr = node.getAttribute(attr);
 		if (!hrefAttr || hrefAttr === "#") {
@@ -150,7 +149,7 @@
 		return result && lrNormalize(result, TEXT_SIZE_LIMIT);
 	}
 
-	async function lrcLinkProperties() {
+	function lrcLinkProperties(elementId) {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -160,7 +159,7 @@
 			});
 		}
 
-		let link = await getTargetElement(error => pushWarning(error, 'lr.link.getTargetElement'));
+		let link = getTargetElement(elementId, error => pushWarning(error, 'lr.link.getTargetElement'));
 		// Original click target could be suitable if link text is too long
 		for (; link != null && link.nodeName != 'A' && link != document.body; link = link.parentNode)
 			;
@@ -189,9 +188,9 @@
 	}
 
 	try {
-		return { result: await lrcLinkProperties() };
+		return { result: lrcLinkProperties(elementId) };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_link.js: should not reach end of the function" };
-})();
+};

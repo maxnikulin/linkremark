@@ -236,9 +236,13 @@ async function lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor) {
 }
 
 /**
- * Set `wrappedFrame` `property` to result or error of `file` execution
+ * Set `wrappedFrame` `property` to result or error of `func` execution
  */
-async function lrExecuteFrameScript(tab, wrappedFrame, file, property, executor) {
+async function lrExecuteFrameScript(tab, wrappedFrame, func, args, property, executor) {
+	if (typeof property !== "string") {
+		throw TypeError("Frame script propery is not a String");
+	}
+	const funcName = property;
 	try {
 		if (wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden) {
 			return;
@@ -250,27 +254,27 @@ async function lrExecuteFrameScript(tab, wrappedFrame, file, property, executor)
 		wrappedFrame[property] = await executor.step(
 			{
 				timeout: lr_tabframe.scriptTimeout,
-				file
+				funcName
 			},
 			lr_scripting.executeScript,
 			{
 				tabId: tab.id,
 				frameId: wrappedFrame?.frame?.frameId,
 			},
-			file
+			func, args,
 		);
 	} catch (ex) {
 		const error = lr_util.errorToObject(ex);
 		wrappedFrame[property] = { error };
 		if (!(await lrCheckFrameScriptsForbidden(tab, wrappedFrame, executor))) {
 			executor.addError(ex);
-			console.error('lrExecuteFrameScript', lrFormatFrameError(tab, wrappedFrame), file, error);
+			console.error('lrExecuteFrameScript', lrFormatFrameError(tab, wrappedFrame), funcName, error);
 		}
 	}
 	try {
 		const warnings = wrappedFrame[property]?.warnings;
 		if (warnings) {
-			const prefix = `lrExecuteFrameScript ${lrFormatFrameError(tab, wrappedFrame)} ${file}`;
+			const prefix = `lrExecuteFrameScript ${lrFormatFrameError(tab, wrappedFrame)} ${funcName}`;
 			for (const w of warnings) {
 				console.warn(prefix, w);
 			}
@@ -356,18 +360,6 @@ async function lrCaptureSingleTab({frameTab, windowTab, target}, executor) {
 	if (!windowTab.url && !frameTab.url && !(target && target.pageUrl)) {
 		throw new Error("Permission for a tab denied");
 	}
-	executor.step({ result: true }, function setTargetElement() {
-		// Unavailable in Chrome
-		if (target == null) {
-			return "No target";
-		}
-		const { tabId, frameId, targetElementId } = target;
-		if (!(targetElementId != null && tabId >= 0)) {
-			return "No targetElementId or tabId";
-		}
-		gLrRpcStore.putTargetElement({tabId, frameId, targetElementId});
-		return true
-	});
 	const frameChain = await executor.step(
 		{ result: true },
 		lrGatherTabInfo, frameTab, target, windowTab);
@@ -436,7 +428,7 @@ async function lrExecRelationsScript(tab, frames, executor) {
 		await Promise.all(Array.from(
 			frames,
 			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, "/content_scripts/lrc_relations.js", "relations", executor)
+				tab, wrappedFrame, lr_content_scripts.lrcRelations, null, "relations", executor)
 		));
 	} catch (ex) {
 		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
@@ -535,9 +527,9 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 
 	try {
 		const scripts = [
-			[ "/content_scripts/lrc_selection.js", "selection" ],
-			[ "/content_scripts/lrc_meta.js", "meta" ],
-			[ "/content_scripts/lrc_microdata.js", "microdata" ],
+			[ lr_content_scripts.lrcSelection, null, "selection" ],
+			[ lr_content_scripts.lrcMeta, null, "meta" ],
+			[ lr_content_scripts.lrcMicrodata, null, "microdata" ],
 		];
 
 		const metaPromises = [];
@@ -554,19 +546,27 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 	try {
 		const wrappedFrame = chain.find(f => f.frame && f.frame.frameId === (clickData && clickData.frameId));
 		if (tab && tab.id >= 0) {
-			if (!(wrappedFrame && wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden)) {
-				let script, target;
-				if (clickData && clickData.captureObject === 'image') {
-					script = "/content_scripts/lrc_image.js";
+			if (clickData != null && !wrappedFrame?.summary?.scripts_forbidden) {
+				const { captureObject, targetElementId } = clickData;
+				let func, target;
+				if (captureObject === 'image') {
+					func = lr_content_scripts.lrcImage;
 					target = 'image';
-				} else if (clickData && clickData.captureObject === 'link') {
-					script = "/content_scripts/lrc_link.js";
+				} else if (captureObject === 'link') {
+					func = lr_content_scripts.lrcLink;
 					target = "link";
 				}
 				if (target != null) {
+					// Formally `args` value must be JSON-serializable.
+					// Chromium-113 throws `TypeError` for `args: [undefined]`.
+					// "Error in invocation of
+					// scripting.executeScript(scripting.ScriptInjection injection, optional function callback):
+					// Error at parameter 'injection': Error at property 'args': Error at index 0:
+					// Value is unserializable."
+					const args = targetElementId !== undefined ? [ targetElementId ] : undefined;
 					await executor.step(
 						{ timeout: lr_tabframe.scriptTimeout },
-						lrExecuteFrameScript, tab, wrappedFrame, script, target);
+						lrExecuteFrameScript, tab, wrappedFrame, func, args, target);
 				}
 			}
 		} else if (tab && clickData) {

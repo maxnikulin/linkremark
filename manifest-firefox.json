@@ -82,6 +82,12 @@
 			"background/lr_action.js",
 			"background/lr_schema_org_product.js",
 			"content_scripts/lrc_clipboard.js",
+			"content_scripts/lrc_image.js",
+			"content_scripts/lrc_link.js",
+			"content_scripts/lrc_meta.js",
+			"content_scripts/lrc_microdata.js",
+			"content_scripts/lrc_relations.js",
+			"content_scripts/lrc_selection.js",
 			"background/main_linkremark.js"
 		]
 	},

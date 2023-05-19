@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2023 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,8 +47,9 @@
 
 "use strict";
 
-(function lrc_relations() {
+var lr_content_scripts = lr_content_scripts || {};
 
+lr_content_scripts.lrcRelations = function lrcRelations() {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		console.error(obj);
@@ -261,4 +262,4 @@
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_relations.js: should not reach end of the function" };
-})();
+};

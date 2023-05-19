@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2020-2021 Max Nikulin
+   Copyright (C) 2020-2023 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -48,7 +48,9 @@
 
 "use strict";
 
-(function lrc_meta() {
+var lr_content_scripts = lr_content_scripts || {};
+
+lr_content_scripts.lrcMeta = function lrcMeta() {
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -414,4 +416,4 @@
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_meta.js: should not reach end of the function" };
-})();
+};

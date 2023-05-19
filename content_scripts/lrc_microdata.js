@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2021 Max Nikulin
+   Copyright (C) 2021-2023 Max Nikulin
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
  */
 "use strict";
 
-(function lrc_microdata(){
+var lr_content_scripts = lr_content_scripts || {};
+
+lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 	const LR_DISCARD = Symbol("LrDiscard");
 	const LR_PROPERTY_COUNT = Symbol("LrPropertyCount");
 	const LR_PROPERTY_COUNT_LIMIT = 16;
@@ -355,4 +357,4 @@
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_microdata.js: should not reach end of the function" };
-})();
+};
