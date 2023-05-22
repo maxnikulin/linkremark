@@ -19,7 +19,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcLink = function lrcLink(elementId) {
+lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		if (obj instanceof Error) {
@@ -54,12 +54,8 @@ lr_content_scripts.lrcLink = function lrcLink(elementId) {
 		}
 	}
 
-	const DEFAILT_SIZE_LIMIT = 1000;
-	const TEXT_SIZE_LIMIT = 4000;
-	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
-
 	function lrNormalize(value, sizeLimit) {
-		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
 		if (value == null || t === "boolean" || t === "number") {
 			return { value };
@@ -146,7 +142,7 @@ lr_content_scripts.lrcLink = function lrcLink(elementId) {
 		}
 		// Allow long enough text if it is link innerText,
 		// otherwise only short context from text around is allowed.
-		return result && lrNormalize(result, TEXT_SIZE_LIMIT);
+		return result && lrNormalize(result, limits.TEXT);
 	}
 
 	function lrcLinkProperties(elementId) {

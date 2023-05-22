@@ -49,7 +49,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcRelations = function lrcRelations() {
+lr_content_scripts.lrcRelations = function lrcRelations(limits) {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		console.error(obj);
@@ -84,10 +84,8 @@ lr_content_scripts.lrcRelations = function lrcRelations() {
 		}
 	}
 
-	const DEFAILT_SIZE_LIMIT = 1000;
-
 	function lrNormalize(value, sizeLimit) {
-		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
 		let error;
 		if (value == null || t === "boolean" || t === "number") {

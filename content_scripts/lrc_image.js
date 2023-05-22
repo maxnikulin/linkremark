@@ -19,13 +19,9 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcImage = function lrcImage(elementId) {
-	const DEFAILT_SIZE_LIMIT = 1000;
-	const TEXT_SIZE_LIMIT = 4000;
-	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
-
+lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
 	function lrNormalize(value, sizeLimit) {
-		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
 		if (value == null || t === "boolean" || t === "number") {
 			return { value };

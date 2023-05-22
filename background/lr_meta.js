@@ -19,12 +19,20 @@
 
 var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	var lr_meta = this;
-	const DEFAILT_SIZE_LIMIT = 1000;
-	const TEXT_SIZE_LIMIT = 4000;
-	const JSON_SIZE_LIMIT = 8*TEXT_SIZE_LIMIT;
+	const STRING_SIZE_LIMIT = 1000;
+	const limits = lr_meta.limits = {
+		STRING: STRING_SIZE_LIMIT,
+		TEXT: 4*STRING_SIZE_LIMIT,
+		JSON: 4*8*STRING_SIZE_LIMIT,
+		SELECTION_FRAGMENT_COUNT: 128,
+		JSON_FRAGMENT_COUNT: 4,
+		MICRODATA_PROPERTY_COUNT: 16,
+		MICRODATA_OTHER_COUNT: 16,
+		MICRODATA_TOTAL_COUNT: 1024,
+	};
 	// selection, 10x10 table
-	const FRAGMENT_COUNT_LIMIT = 128;
-	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
+	console.assert(limits.TEXT >= limits.STRING, "Text and string length limits should be consistent");
+	console.assert(limits.JSON >= limits.TEXT, "JSON and text length limits should be consistent");
 	this.DOI_Prefixes = {
 		// canonical resolvers
 		"dx.doi.org": { prefix: "", url: false },
@@ -124,7 +132,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		return false;
 	}
 
-	function doSanitizeLength(valueError, limit = DEFAILT_SIZE_LIMIT) {
+	function doSanitizeLength(valueError, limit = limits.STRING) {
 		let { value, ...error } = valueError;
 		const t = typeof value;
 		if (value == null || t === "number" || t === "boolean") {
@@ -159,7 +167,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	}
 
 	/// Actually a generator
-	function sanitizeText(valueError, limit = TEXT_SIZE_LIMIT) {
+	function sanitizeText(valueError, limit = limits.TEXT) {
 		return sanitizeLength(valueError, limit);
 	}
 
@@ -323,7 +331,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 			return;
 		}
 		const result = [];
-		let available = TEXT_SIZE_LIMIT;
+		let available = limits.TEXT;
 		let error = arrayError;
 
 		function reduceError(current, update) {
@@ -334,7 +342,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		}
 
 		for (const fragment of fragmentArray) {
-			if (!(result.length < FRAGMENT_COUNT_LIMIT)) {
+			if (!(result.length < limits.SELECTION_FRAGMENT_COUNT)) {
 				error = reduceError(error, { name: "LrOverflowError", size: fragmentArray.length });
 				break;
 			}
@@ -358,7 +366,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 				available -= value.length;
 				continue;
 			}
-			if (available < DEFAILT_SIZE_LIMIT) {
+			if (available < limits.STRING) {
 				const err = { name: "LrOverflowError", size: value.length };
 				result.push({ value: "", error: err });
 				error = reduceError(error, err);
@@ -375,7 +383,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 		const { value, ...error } = valueError;
 		try {
 			const length = JSON.stringify(value).length;
-			if (!(length < 2*TEXT_SIZE_LIMIT)) {
+			if (!(length < 2*limits.TEXT)) {
 				yield { ...error, error: {
 					name: "LrOverflowError",
 					size: value.length,
@@ -391,7 +399,7 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	function *sanitizeSchemaOrg(valueError) {
 		const { value, ...other } = valueError;
 		if (typeof value === "string") {
-			const { value, ...other } = doSanitizeLength(valueError, JSON_SIZE_LIMIT);
+			const { value, ...other } = doSanitizeLength(valueError, limits.JSON);
 			if (other.error != null) {
 				yield other;
 				return;
@@ -456,7 +464,6 @@ var lr_meta = lr_util.namespace(lr_meta, function lr_meta() {
 	}
 
 	Object.assign(this, {
-		DEFAILT_SIZE_LIMIT, TEXT_SIZE_LIMIT,
 		testKey,
 		doSanitizeLength, matchDOI, doSanitizeUrl,
 		sanitizeLength, sanitizeText, sanitizeUrl,

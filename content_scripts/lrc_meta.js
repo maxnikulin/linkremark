@@ -50,7 +50,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcMeta = function lrcMeta() {
+lr_content_scripts.lrcMeta = function lrcMeta(limits) {
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -97,13 +97,8 @@ lr_content_scripts.lrcMeta = function lrcMeta() {
 		return self;
 	}
 
-	const DEFAILT_SIZE_LIMIT = 1000;
-	const TEXT_SIZE_LIMIT = 4000;
-	const JSON_LD_COUNT_LIMIT = 4;
-	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
-
 	function lrNormalize(value, sizeLimit) {
-		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
 		if (value == null || t === "boolean" || t === "number") {
 			return { value };
@@ -171,7 +166,7 @@ lr_content_scripts.lrcMeta = function lrcMeta() {
 			const attrs = {};
 			for (const attribute of ['type', 'rel', 'media', 'hreflang', 'title']) {
 				const attrValue = link.getAttribute(attribute);
-				if (attrValue && attrValue.length < DEFAILT_SIZE_LIMIT) {
+				if (attrValue && attrValue.length < limits.STRING) {
 					attrs[attribute] = attrValue;
 				}
 			}
@@ -252,13 +247,13 @@ lr_content_scripts.lrcMeta = function lrcMeta() {
 		}
 		let i = 0;
 		for ( ; i < scriptList.length ; ++i) {
-			if (i >= JSON_LD_COUNT_LIMIT) {
+			if (!(i < limits.JSON_FRAGMENT_COUNT)) {
 				// TODO different errors for long script and count limit
 				result.push({ ...template, error: new LrOverflowError(scriptList.length) });
 				break;
 			}
 			const value = scriptList[i].innerText;
-			if (value.length < 8*TEXT_SIZE_LIMIT) {
+			if (value.length < limits.JSON) {
 				result.push({ ...template, value });
 			} else {
 				result.push({ ...template, error: new LrOverflowError(value.length) });
@@ -304,7 +299,7 @@ lr_content_scripts.lrcMeta = function lrcMeta() {
 			["doi", { name: "url", url: false }],
 		]);
 		const sizeLimitMap = new Map([
-			['description', TEXT_SIZE_LIMIT],
+			['description', limits.TEXT],
 		]);
 		const countLimitMap = new Map(Object.entries({
 			doi: 5,

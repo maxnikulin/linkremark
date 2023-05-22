@@ -428,7 +428,7 @@ async function lrExecRelationsScript(tab, frames, executor) {
 		await Promise.all(Array.from(
 			frames,
 			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, lr_content_scripts.lrcRelations, null, "relations", executor)
+				tab, wrappedFrame, lr_content_scripts.lrcRelations, [ lr_meta.limits ], "relations", executor)
 		));
 	} catch (ex) {
 		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
@@ -527,9 +527,9 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 
 	try {
 		const scripts = [
-			[ lr_content_scripts.lrcSelection, null, "selection" ],
-			[ lr_content_scripts.lrcMeta, null, "meta" ],
-			[ lr_content_scripts.lrcMicrodata, null, "microdata" ],
+			[ lr_content_scripts.lrcSelection, [ lr_meta.limits ], "selection" ],
+			[ lr_content_scripts.lrcMeta, [ lr_meta.limits ], "meta" ],
+			[ lr_content_scripts.lrcMicrodata, [ lr_meta.limits ], "microdata" ],
 		];
 
 		const metaPromises = [];
@@ -563,7 +563,7 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 					// scripting.executeScript(scripting.ScriptInjection injection, optional function callback):
 					// Error at parameter 'injection': Error at property 'args': Error at index 0:
 					// Value is unserializable."
-					const args = targetElementId !== undefined ? [ targetElementId ] : undefined;
+					const args = [ targetElementId ?? null, lr_meta.limits ];
 					await executor.step(
 						{ timeout: lr_tabframe.scriptTimeout },
 						lrExecuteFrameScript, tab, wrappedFrame, func, args, target);

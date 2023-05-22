@@ -33,7 +33,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcSelection = function lrcSelection() {
+lr_content_scripts.lrcSelection = function lrcSelection(limits) {
 	const config = {
 		selection: "byRangesOrWhole",
 	};
@@ -83,13 +83,8 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 		return self;
 	}
 
-	const DEFAILT_SIZE_LIMIT = 1000;
-	const TEXT_SIZE_LIMIT = 4000;
-	const FRAGMENT_COUNT_LIMIT = 128;
-	console.assert(TEXT_SIZE_LIMIT >= DEFAILT_SIZE_LIMIT, "text length limits should be consistent");
-
 	function lrNormalize(value, sizeLimit) {
-		sizeLimit = sizeLimit || DEFAILT_SIZE_LIMIT;
+		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
 		let error;
 		if (value == null || t === "boolean" || t === "number") {
@@ -151,7 +146,7 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 	 */
 	function pushSelectionByRanges(selection, result) {
 		const rangeArray = [];
-		let available = TEXT_SIZE_LIMIT;
+		let available = limits.TEXT;
 		for (let i = 0; i < selection.rangeCount; ++i) {
 			rangeArray.push(selection.getRangeAt(i));
 		}
@@ -194,7 +189,7 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 					continue;
 				}
 				++count;
-				if (count > FRAGMENT_COUNT_LIMIT) {
+				if (!(count <= limits.SELECTION_FRAGMENT_COUNT)) {
 					pushResult({ error: {
 						name: "LrFragmentCountOverflow",
 						size: rangeArray.length,
@@ -216,7 +211,7 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 
 				if (text.length > available) {
 					const error = new LrOverflowError(text.length);
-					if (available >  DEFAILT_SIZE_LIMIT) {
+					if (!(available <=  limits.STRING)) {
 						pushResult({ error, value: text.substring(text, available) });
 					} else {
 						pushResult(error);
@@ -261,7 +256,7 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 		lrPushProperty(result, lrGetSelection, {
 			key: "window.getSelection.text",
 			property: "selection",
-			sizeLimit: TEXT_SIZE_LIMIT,
+			sizeLimit: limits.TEXT,
 		});
 	}
 

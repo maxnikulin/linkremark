@@ -27,13 +27,10 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
+lr_content_scripts.lrcMicrodata = function lrcMicrodata(limits) {
 	const LR_DISCARD = Symbol("LrDiscard");
 	const LR_PROPERTY_COUNT = Symbol("LrPropertyCount");
-	const LR_PROPERTY_COUNT_LIMIT = 16;
 	const LR_OTHER_PROPERTIES = Symbol("LrOtherProperties");
-	const LR_OTHER_PROPERTIES_LIMIT = 16;
-	const LR_TOTAL_LIMIT = 1024;
 
 	/** Make Error instance fields available to backend scripts */
 	function lrToObject(obj) {
@@ -116,7 +113,7 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 
 	class LrCounter {
 		constructor(limit) {
-			this.limit = limit > 0 ? limit : LR_TOTAL_LIMIT;
+			this.limit = limit > 0 ? limit : limits.MICRODATA_TOTAL_COUNT;
 		}
 		allowed() {
 			return this.limit-- > 0;
@@ -124,14 +121,14 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 	}
 
 	class LrLimitedMultiMap extends LrCsMultiMap {
-		constructor(limits, counter) {
+		constructor(lim, counter) {
 			super();
 			this.limits = new Map([
-				[LR_PROPERTY_COUNT, LR_PROPERTY_COUNT_LIMIT],
-				[LR_OTHER_PROPERTIES, LR_OTHER_PROPERTIES_LIMIT],
+				[LR_PROPERTY_COUNT, limits.MICRODATA_PROPERTY_COUNT],
+				[LR_OTHER_PROPERTIES, limits.MICRODATA_OTHER_COUNT],
 			]);
-			if (limits) {
-				for (const [k, v] of Object.entries(limits)){
+			if (lim) {
+				for (const [k, v] of Object.entries(lim)){
 					this.limits.set(k, v);
 				}
 			}
@@ -160,7 +157,7 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 			return super.set(key, value);
 		}
 		_addSkipped(key) {
-			if (this.skippedCount < LR_PROPERTY_COUNT_LIMIT) {
+			if (this.skippedCount < limits.MICRODATA_PROPERTY_COUNT) {
 				super.set("@skipped", key);
 			}
 			++this.skippedCount;
@@ -216,7 +213,7 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 		const DOM_DEPTH_LIMIT = 128;
 		const MICRODATA_DEPTH_LIMIT = 16;
 
-		const counter = new LrCounter(LR_TOTAL_LIMIT);
+		const counter = new LrCounter(limits.MICRODATA_TOTAL_COUNT);
 		function makeProp() {
 			return new LrLimitedMultiMap(null, counter);
 		}
