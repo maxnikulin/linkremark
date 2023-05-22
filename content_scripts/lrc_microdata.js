@@ -144,7 +144,7 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 			}
 			if (this.has(key)) {
 				const count = this.get(key).size;
-				const limit = this.limits.get(key) || this.limits.get(LR_OTHER_PROPERTIES_LIMIT);
+				const limit = this.limits.get(key) || this.limits.get(LR_OTHER_PROPERTIES);
 				const allow = limit == null || count < limit;
 				if (!allow) {
 					this._addSkipped(key);
