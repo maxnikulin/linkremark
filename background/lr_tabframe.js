@@ -424,40 +424,43 @@ async function lrExecRelationsScript(tab, frames, executor) {
 		frames = Array.from(frames);
 	}
 
-	try {
-		await Promise.all(Array.from(
-			frames,
-			wrappedFrame => lrExecuteFrameScript(
-				tab, wrappedFrame, lr_content_scripts.lrcRelations, [ lr_meta.limits ], "relations", executor)
-		));
-	} catch (ex) {
-		console.error("lrExecRelationsScript: continue despite the error %s %o", ex, ex);
-	}
+	await executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		async function _lrExecRelationsScriptFrames(tab, frames, executor) {
+			return await Promise.allSettled(Array.from(
+				frames,
+				wrappedFrame => lrExecuteFrameScript(
+					tab, wrappedFrame, lr_content_scripts.lrcRelations,
+					[ lr_meta.limits ], "relations", executor)
+			));
+		},
+		tab, frames /*, implicit executor */);
 	for (const wrappedFrame of frames) {
-		try {
-			const relations = wrappedFrame.relations && wrappedFrame.relations.result;
-			if (!relations) {
-				continue;
-			}
-			const summary = wrappedFrame.summary = wrappedFrame.summary || {};
-			for (const { property, key, value } of relations) {
-				if (property !== "frame_relations") {
-					continue;
+		executor.step(
+			{ errorAction: lr_executor.ERROR_IS_WARNING },
+			function _lrExecRelationsScriptProps(wrappedFrame) {
+				const relations = wrappedFrame.relations && wrappedFrame.relations.result;
+				if (!relations) {
+					return;
 				}
-				switch (key) {
-					case "document.hasFocus":
-						summary.hasFocus = value;
-						break;
-					case "document.activeElement.nodeName":
-						summary.activeElementNode = value;
-						break;
-					default:
-						break;
+				const summary = wrappedFrame.summary = wrappedFrame.summary || {};
+				for (const { property, key, value } of relations) {
+					if (property !== "frame_relations") {
+						continue;
+					}
+					switch (key) {
+						case "document.hasFocus":
+							summary.hasFocus = value;
+							break;
+						case "document.activeElement.nodeName":
+							summary.activeElementNode = value;
+							break;
+						default:
+							break;
+					}
 				}
-			}
-		} catch (ex) {
-			console.error("lrExecRelationsScript: %o: continue despite the error %s %o", wrappedFrame, ex, ex);
-		}
+			},
+			wrappedFrame);
 	}
 }
 
@@ -525,75 +528,69 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 		},
 		chain);
 
-	try {
-		const scripts = [
-			[ lr_content_scripts.lrcSelection, [ lr_meta.limits ], "selection" ],
-			[ lr_content_scripts.lrcMeta, [ lr_meta.limits ], "meta" ],
-			[ lr_content_scripts.lrcMicrodata, [ lr_meta.limits ], "microdata" ],
-		];
+	await executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		async function _lrGetFrameMetadata(activeTab, chain, executor) {
+			const scripts = [
+				[ lr_content_scripts.lrcSelection, [ lr_meta.limits ], "selection" ],
+				[ lr_content_scripts.lrcMeta, [ lr_meta.limits ], "meta" ],
+				[ lr_content_scripts.lrcMicrodata, [ lr_meta.limits ], "microdata" ],
+			];
 
-		const metaPromises = [];
-		for (const wrappedFrame of chain) {
-			metaPromises.push(...scripts.map(script =>
-				executor.step(lrExecuteFrameScript, activeTab, wrappedFrame, ...script)));
-		}
-		await Promise.all(metaPromises);
-	} catch (ex) {
-		// FIXME handle abort
-		console.error(
-			"lrGatherTabInfo: meta, capture, or microdata: continue despite the error %s %o", ex, ex);
-	}
-	try {
-		const wrappedFrame = chain.find(f => f.frame && f.frame.frameId === (clickData && clickData.frameId));
-		if (tab && tab.id >= 0) {
-			if (clickData != null && !wrappedFrame?.summary?.scripts_forbidden) {
-				const { captureObject, targetElementId } = clickData;
-				let func, target;
-				if (captureObject === 'image') {
-					func = lr_content_scripts.lrcImage;
-					target = 'image';
-				} else if (captureObject === 'link') {
-					func = lr_content_scripts.lrcLink;
-					target = "link";
-				}
-				if (target != null) {
-					// Formally `args` value must be JSON-serializable.
-					// Chromium-113 throws `TypeError` for `args: [undefined]`.
-					// "Error in invocation of
-					// scripting.executeScript(scripting.ScriptInjection injection, optional function callback):
-					// Error at parameter 'injection': Error at property 'args': Error at index 0:
-					// Value is unserializable."
-					const args = [ targetElementId ?? null, lr_meta.limits ];
-					await executor.step(
-						{ timeout: lr_tabframe.scriptTimeout },
-						lrExecuteFrameScript, tab, wrappedFrame, func, args, target);
-				}
+			const metaPromises = [];
+			for (const wrappedFrame of chain) {
+				metaPromises.push(...scripts.map(script =>
+					executor.step(lrExecuteFrameScript, activeTab, wrappedFrame, ...script)));
 			}
-		} else if (tab && clickData) {
-			const frameInfo = {
-				frame: {
-					frameId: clickData.frameId,
-					tabId: tab.id,
-					url: tab.url,
-					parentFrameId: -1,
-					synthetic: "LinkRemark foreign frame",
-				},
-				tab: {
-					id: tab.id,
-					url: tab.url,
-					title: tab.title,
-					favIconUrl: tab.favIconUrl,
-				},
-				clickData,
-			};
-			chain.unshift(frameInfo);
-		}
-	} catch (ex) {
-		console.error(
-			"lrGatherTabInfo: click target: continue despite the error %s %o", ex, ex);
-	}
+			await Promise.allSettled(metaPromises);
+		},
+		activeTab, chain /*, implicit executor */);
+
+	await executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		lrGetClickObject, tab, clickData, chain /*, implicit executor */);
 
 	return chain;
+}
+
+async function lrGetClickObject(tab, clickData, chain, executor) {
+	const wrappedFrame = chain.find(f => f.frame && f.frame.frameId === (clickData && clickData.frameId));
+	if (tab && tab.id >= 0) {
+		if (clickData != null && !wrappedFrame?.summary?.scripts_forbidden) {
+			const { captureObject, targetElementId } = clickData;
+			let func, target;
+			if (captureObject === 'image') {
+				func = lr_content_scripts.lrcImage;
+				target = 'image';
+			} else if (captureObject === 'link') {
+				func = lr_content_scripts.lrcLink;
+				target = "link";
+			}
+			if (target != null) {
+				const args = [ targetElementId ?? null, lr_meta.limits ];
+				await executor.step(
+					lrExecuteFrameScript, tab, wrappedFrame, func, args, target);
+			}
+		}
+	} else if (tab && clickData) {
+		const frameInfo = {
+			frame: {
+				frameId: clickData.frameId,
+				tabId: tab.id,
+				url: tab.url,
+				parentFrameId: -1,
+				synthetic: "LinkRemark foreign frame",
+			},
+			tab: {
+				id: tab.id,
+				url: tab.url,
+				title: tab.title,
+				favIconUrl: tab.favIconUrl,
+			},
+			clickData,
+		};
+		chain.unshift(frameInfo);
+	}
 }
 
 function lrCaptureObjectMapTabGroupUrls(obj) {
