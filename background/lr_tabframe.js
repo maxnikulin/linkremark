@@ -325,44 +325,6 @@ function lrFrameChainOrTopFrame(frameMap) {
 	return [frameMap.get(0)];
 }
 
-async function lrAsyncReportStep(func, collector, props=null) {
-	try {
-		const result = await func();
-		if (collector != null && (props && props.result != null ? props.result : false)) {
-			collector.push({ step: "" + (func && func.name), result });
-		}
-		return result;
-	} catch (ex) {
-		if (collector != null && (props && props.error != null ? props.error : true)) {
-			collector.push({ step: "" + (func && func.name), error: lr_util.errorToObject(ex)});
-		}
-		if (collector != null && (props && props.catchException != null ? props.catchException : false)) {
-			console.error(`LR: ${func && func.name}`, ex);
-		} else {
-			throw ex;
-		}
-	}
-}
-
-function lrReportStep(func, collector, props=null) {
-	try {
-		const result = func();
-		if (collector != null && (props && props.result != null ? props.result : false)) {
-			collector.push({ step: "" + (func && func.name), result });
-		}
-		return result;
-	} catch (ex) {
-		if (collector != null && (props && props.error != null ? props.error : true)) {
-			collector.push({ step: "" + (func && func.name), error: lr_util.errorToObject(ex)});
-		}
-		if (collector != null && (props && props.catchException != null ? props.catchException : false)) {
-			console.error(`LR: ${func && func.name}`, ex);
-		} else {
-			throw ex;
-		}
-	}
-}
-
 async function lrCaptureTabGroup(tabTargetArray, executor) {
 	const promises = executor.step(function launchTabGroupCaptures(executor) {
 		return tabTargetArray.map(tabTarget => {
