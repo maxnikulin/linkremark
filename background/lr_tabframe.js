@@ -550,6 +550,24 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 		{ errorAction: lr_executor.ERROR_IS_WARNING },
 		lrGetClickObject, tab, clickData, chain /*, implicit executor */);
 
+	executor.step(
+		{ errorAction: lr_executor.ERROR_IS_WARNING },
+		function lrCheckScriptErrors(chain, executor) {
+			for (const wrappedFrame of chain) {
+				if (wrappedFrame?.summary?.scripts_forbidden) {
+					continue;
+				}
+				for (const field of ["relations", "selection", "meta", "microdata", "image", "link"]) {
+					const error = wrappedFrame[field]?.error;
+					if (error != null) {
+						executor.addError(new LrWarning(
+							"Content script error: " + field,
+							{ cause: lr_common.objectToError(error) }));
+					}
+				}
+			}
+		},
+		chain /*, impicit executor */);
 	return chain;
 }
 
