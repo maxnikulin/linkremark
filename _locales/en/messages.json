@@ -18,5 +18,9 @@
 	"cmdPageRemark": {
 		"message": "Remark for this page",
 		"description": "browserAction (action for mv3) and command name to prepare a note for current tab"
+	},
+	"menuSettingsFirefox": {
+		"message": "Extension Pre&ferences",
+		"description": "Firefox action menu entry for add-on preferences. Chrome has it as \"Options\"."
 	}
 }

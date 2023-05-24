@@ -239,6 +239,12 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				id: "LR_TAB_GROUP",
 				title: "Remark for tab group",
 			},
+			lr_common.isGecko() && {
+				contexts: [ actionContext ],
+				enabled: true,
+				id: "LR_SETTINGS",
+				title: bapi.i18n.getMessage("menuSettingsFirefox"),
+			},
 			{
 				contexts: [ actionContext ],
 				enabled: true,

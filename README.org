@@ -109,7 +109,8 @@ Optionally select some text and choose an option from context menu (right click,
 =[Menu]= or =[Shift+F10]= keys).
 Unless you are going to capture a particular link,
 you can click on the extension icon in browser toolbar ("browser action")
-or may configure a shortcut on the add-ons page.[fn:1]
+or may configure a shortcut on the add-ons page[fn:1]
+(Firefox: "Manage Extension Shrotcuts" in the gear menu).
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
@@ -142,8 +143,7 @@ so likely you wish to change "plain" (Plain text) to "entry" (Org entry) type
 in Emacs configuration and to change template to
 : "* %(org-get-x-clipboard 'CLIPBOARD)"
 Please, update "Template type configured in org-capture-templates"
-in add-on settings as well (may be opened from preview page,
-or from browser add-ons page[fn:1].
+in add-on settings[fn:3].
 
 There is an option to avoid preview page for successful captures:
 disable "Open preview tab with capture result for clipboard".
@@ -156,11 +156,11 @@ may be more useful than Worg page).
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
-through a native messaging application as a safer option.[fn:3]
+through a native messaging application as a safer option.[fn:4]
 LinkRemark repository contains a simple variant in
 [[file:examples/backend-python/lr_emacsclient.py][examples/backend-python/lr_emacsclient.py]]
 Run it with =-h= option for a brief guide. To enable it,
-you should do something like[fn:4] (Linux, Firefox)
+you should do something like[fn:5] (Linux, Firefox)
 #+name: firefox-native-messaging-host
 #+begin_example
   mkdir ~/.mozilla/native-messaging-hosts
@@ -239,7 +239,7 @@ describes how to install and to configure the native application
 bURL may create configuration files for your. To enable native backend
 for particular user of Firefox on Linux assuming that =burl_backend=
 binary is copied to =~/.local/bin=, run a command
-similar[fn:4] to the following one:
+similar[fn:5] to the following one:
 
 #+begin_example
   mkdir ~/.mozilla/native-messaging-hosts
@@ -259,7 +259,7 @@ It should create =burl_wrapper= shell script and =burl.json= file
 =~/.mozilla/native-messaging-hosts/= (its basename is the identifier
 of the native application).
 
-Open LinkRemark settings page[fn:1]. Set "Name of native messaging backend
+Open LinkRemark settings page[fn:3]. Set "Name of native messaging backend
 application" in the "Browser native messaging communication channel" section
 to the id of configured native app (e.g. =burl=
 or =io.github.maxnikulin.burl=). Grant the permission for
@@ -347,8 +347,8 @@ to make this permission optional.
 
 *** Optional permissions
 
-Open browser extensions preferences[fn:1] to manage this set of permissions.
-Switches are available on add-on custom settings page and in browser settings UI.
+Open extensions preferences[fn:3] to grant or revoke permissions
+from this set. Firefox has permissions tab in the add-on manager[fn:1].
 They may be requested on demand to successfully complete requested action
 taking into account current settings.
 
@@ -411,9 +411,9 @@ version, see [[file:LICENSE.txt][LICENSE.txt]].
 
 ** Footnotes
 
-[fn:1] "Manage extension" or "Preferences" in context menu (right click)
-for the add-on's browser action
-button or through generic browser menu,
+[fn:1] "Manage extension" in context menu (right click)
+for the add-on's action in the browser toolbar
+or through generic browser menu,
 e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
 
@@ -421,7 +421,11 @@ or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
 first time in X clipboard. Workaround is yank =C-y=, undo =C-/=
 (required once per Emacs session), and =C-c C-x C-y= to paste subtree.
 
-[fn:3] There is a problem with browsers distributed
+[fn:3] "Extension preferences" (Firefox) or "Options" (Chrome)
+in the context menu for the extension entry in the browser toolbar.
+Alternatively click on the "Settings" link on an add-on preview or help page.
+
+[fn:4] There is a problem with browsers distributed
 as snap or flatpack. Such applications works with
 additional level of isolation in respect to system files,
 so external application can not be invoked even through
@@ -433,7 +437,7 @@ Related Firefox bugs:
 - [[https://bugzilla.mozilla.org/show_bug.cgi?id=1661935][Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org]],
 - [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
 
-[fn:4] See also
+[fn:5] See also
 [[https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md][User Data Directory]]
 in Chromium docs for location of profile directory.
 

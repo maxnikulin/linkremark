@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 07:33 -->
+<!-- 2024-10-26 Sat 07:42 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark Help</title>
@@ -61,7 +61,8 @@ Optionally select some text and choose an option from context menu (right click,
 <code>[Menu]</code> or <code>[Shift+F10]</code> keys).
 Unless you are going to capture a particular link,
 you can click on the extension icon in browser toolbar ("browser action")
-or may configure a shortcut on the add-ons page.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
+or may configure a shortcut on the add-ons page<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
+(Firefox: "Manage Extension Shrotcuts" in the gear menu).
 </p>
 
 <p>
@@ -103,8 +104,7 @@ in Emacs configuration and to change template to
 
 <p>
 Please, update "Template type configured in org-capture-templates"
-in add-on settings as well (may be opened from preview page,
-or from browser add-ons page<sup><a id="fnr.1.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>.
+in add-on settings<sup><a id="fnr.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>.
 </p>
 
 <p>
@@ -121,11 +121,11 @@ may be more useful than Worg page).
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
-through a native messaging application as a safer option.<sup><a id="fnr.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>
+through a native messaging application as a safer option.<sup><a id="fnr.4" class="footref" href="#fn.4" role="doc-backlink">4</a></sup>
 LinkRemark repository contains a simple variant in
 <a rel="nofollow noreferrer" href="https://github.com/maxnikulin/linkremark/blob/master/examples/backend-python/lr_emacsclient.py">examples/backend-python/lr_emacsclient.py</a>
 Run it with <code>-h</code> option for a brief guide. To enable it,
-you should do something like<sup><a id="fnr.4" class="footref" href="#fn.4" role="doc-backlink">4</a></sup> (Linux, Firefox)
+you should do something like<sup><a id="fnr.5" class="footref" href="#fn.5" role="doc-backlink">5</a></sup> (Linux, Firefox)
 </p>
 <pre class="example" id="firefox-native-messaging-host">
 mkdir ~/.mozilla/native-messaging-hosts
@@ -177,9 +177,9 @@ by Sacha Chua.
 <div id="text-footnotes">
 
 <div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
-"Manage extension" or "Preferences" in context menu (right click)
-for the add-on's browser action
-button or through generic browser menu,
+"Manage extension" in context menu (right click)
+for the add-on's action in the browser toolbar
+or through generic browser menu,
 e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, <code>[Ctrl+Shift+A]</code>.
 </p></div></div>
@@ -191,6 +191,12 @@ first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-/</
 </p></div></div>
 
 <div class="footdef"><sup><a id="fn.3" class="footnum" href="#fnr.3" role="doc-backlink">3</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+"Extension preferences" (Firefox) or "Options" (Chrome)
+in the context menu for the extension entry in the browser toolbar.
+Alternatively click on the "Settings" link on an add-on preview or help page.
+</p></div></div>
+
+<div class="footdef"><sup><a id="fn.4" class="footnum" href="#fnr.4" role="doc-backlink">4</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 There is a problem with browsers distributed
 as snap or flatpack. Such applications works with
 additional level of isolation in respect to system files,
@@ -206,7 +212,7 @@ Related Firefox bugs:
 <li><a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1621763">Bug 1621763: (flatpak) native messaging support missing</a>.</li>
 </ul></div></div>
 
-<div class="footdef"><sup><a id="fn.4" class="footnum" href="#fnr.4" role="doc-backlink">4</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+<div class="footdef"><sup><a id="fn.5" class="footnum" href="#fnr.5" role="doc-backlink">5</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 See also
 <a href="https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md">User Data Directory</a>
 in Chromium docs for location of profile directory.
@@ -216,7 +222,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 07:33</p>
+<p class="date">Created: 2024-10-26 Sat 07:42</p>
 </div>
 </body>
 </html>
