@@ -13,8 +13,8 @@ commands:
       mac: Command+Shift+L
 permissions:
 - menus
-- <all_urls>
 optional_permissions:
+- <all_urls>
 - clipboardWrite
 background:
   scripts:

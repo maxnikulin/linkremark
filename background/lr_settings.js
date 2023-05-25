@@ -40,7 +40,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 		}
 		if (details.name.startsWith("permissions.")) {
 			const perm = details.name.substring(12);
-			const field = details.host ? "optional_host_permissions" : "optional_permissions";
+			const isHost = details.host && chrome.runtime.getManifest().manifest_version === 3;
+			const field = isHost ? "optional_host_permissions" : "optional_permissions";
 			const optional = bapi.runtime.getManifest()[field];
 			if (!optional || !(optional.indexOf(perm) >= 0)) {
 				console.log(

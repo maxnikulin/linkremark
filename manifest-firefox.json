@@ -24,12 +24,12 @@
 		"activeTab",
 		"contextMenus",
 		"webNavigation",
-		"menus",
-		"<all_urls>"
+		"menus"
 	],
 	"optional_permissions": [
 		"nativeMessaging",
 		"tabs",
+		"<all_urls>",
 		"clipboardWrite"
 	],
 	"manifest_version": 2,
