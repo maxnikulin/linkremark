@@ -490,8 +490,19 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 				lr_action._singleTabActionDo, clickData, tab, null, executor);
 		}
 
+		if (!lr_settings.isReady()) {
+			/* User action context is lost in Firefox causing rejection
+			 * of `permissions.request`
+			 * https://bugzilla.mozilla.org/1398833
+			 * "chrome.permissions.request needs to be called directly from input handler,
+			 * making it impossible to check for permissions first"
+			 */
+			await lr_settings.wait();
+		}
 		const permissionObject = { permissions: [ "tabs"] };
-		const hasTabPermissionPromise = bapi.permissions.request(permissionObject);
+		const hasTabPermissionPromise = lr_settings.getOption("misc.permissionsOnDemand")
+			? bapi.permissions.request(permissionObject)
+			: bapi.permissions.contains(permissionObject);
 
 		// User actions in response to permissions request or switching tab
 		// may affect selection, so store current list of tabs to be captured.

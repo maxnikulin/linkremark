@@ -359,6 +359,10 @@ permissions. Firefox has permissions tab in the add-on manager[fn:1].
 They may be requested on demand to successfully complete requested action
 taking into account current settings.
 
+Add-on preferences has the "Request permissions on demand" options
+that controls whether necessary permissions are requested
+when an extension action is invoked. It is enabled by default.
+
 *** Access your data for all websites (=<all_urls>=)
 :PROPERTIES:
 :CUSTOM_ID: access-your-data-for-all-websites-allurls
