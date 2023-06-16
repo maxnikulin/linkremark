@@ -154,4 +154,5 @@ lr_content_scripts.lrcImage = function lrcImage(elementId) {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_image.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_image_func.js
 };

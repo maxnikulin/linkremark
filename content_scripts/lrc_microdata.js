@@ -357,4 +357,5 @@ lr_content_scripts.lrcMicrodata = function lrcMicrodata() {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_microdata.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_microdata_func.js
 };

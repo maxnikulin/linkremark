@@ -328,4 +328,5 @@ lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 		}
 	}
 	return { error: "LR internal error: lrc_clipboard.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_clipboard_func.js
 };

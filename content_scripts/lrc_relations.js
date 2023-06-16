@@ -262,4 +262,5 @@ lr_content_scripts.lrcRelations = function lrcRelations() {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_relations.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_relations_func.js
 };

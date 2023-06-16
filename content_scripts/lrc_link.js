@@ -193,4 +193,5 @@ lr_content_scripts.lrcLink = function lrcLink(elementId) {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_link.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_link_func.js
 };

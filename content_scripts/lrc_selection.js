@@ -326,4 +326,5 @@ lr_content_scripts.lrcSelection = function lrcSelection() {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_selection.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_selection_func.js
 };

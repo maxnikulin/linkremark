@@ -416,4 +416,5 @@ lr_content_scripts.lrcMeta = function lrcMeta() {
 		return { error: lrToObject(ex) };
 	}
 	return { error: "LR internal error: lrc_meta.js: should not reach end of the function" };
+	//# sourceURL=content_scripts/lrc_meta_func.js
 };
