@@ -54,7 +54,10 @@ background:
   - content_scripts/lrc_relations.js
   - content_scripts/lrc_selection.js
   - background/main_linkremark.js
-applications:
+# Was `applications` earlier. The new name is not supported by Chrome,
+# but it is accepted by Safari (with `safari` subkey).
+# The old name causes a warning during submission to addons.mozilla.org
+browser_specific_settings:
   gecko:
     id: linkremark@maxnikulin.github.io
     strict_min_version: '102.0'

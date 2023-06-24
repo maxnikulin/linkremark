@@ -91,7 +91,7 @@
 			"background/main_linkremark.js"
 		]
 	},
-	"applications": {
+	"browser_specific_settings": {
 		"gecko": {
 			"id": "linkremark@maxnikulin.github.io",
 			"strict_min_version": "102.0"
