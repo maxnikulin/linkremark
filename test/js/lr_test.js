@@ -54,36 +54,36 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 		};
 	}
 
-	this.run = function(...args) {
+	this.run = async function(...args) {
 		if (args.length === 0) {
 			args = this.suites;
 		}
 		const collector = new LrTestCollector();
 		for (const obj of args) {
-			this.runObject(obj, collector);
+			await this.runObject(obj, collector);
 		}
 		collector.report();
 	};
 
-	this.runObject = function(obj, collector) {
+	this.runObject = async function(obj, collector) {
 		const suite = this.suiteName(obj);
 		collector.suiteStart(suite);
 		for (const [prop, value] of Object.entries(obj)) {
 			if (!prop.startsWith("test_")) {
 				continue;
 			}
-			this.runMaybeParametrized(obj, value, collector);
+			await this.runMaybeParametrized(obj, value, collector);
 		}
 		collector.suiteDone(suite);
 	};
 
-	this.runMaybeParametrized = function(obj, method, collector) {
+	this.runMaybeParametrized = async function(obj, method, collector) {
 		if (lr_util.isGeneratorFunction(method)) {
 			for (const test of method()) {
-				this.runMaybeParametrized(obj, test, collector);
+				await this.runMaybeParametrized(obj, test, collector);
 			}
 		} else {
-			return this.runCase(obj, method, collector);
+			return await this.runCase(obj, method, collector);
 		}
 	};
 
@@ -92,11 +92,11 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 		return "" + ((proto && proto.constructor && proto.constructor.name) || proto || obj);
 	};
 
-	this.runCase = function(obj, meth, collector) {
+	this.runCase = async function(obj, meth, collector) {
 		const name = this.suiteName(obj) + '.' + meth.name;
 		try {
 			collector.start(name);
-			meth.call(obj);
+			await meth.call(obj);
 			collector.pass(name);
 		} catch (ex) {
 			console.error("%s: %o", name, ex);
