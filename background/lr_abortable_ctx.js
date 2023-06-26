@@ -65,18 +65,18 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 		_deferred = new Set();
 		_destructors = new Set();
 		constructor(signal) {
-			if (signal == undefined) {
-				return;
+			if (signal != undefined) {
+				this.addAbortSignal(signal);
 			}
-			const { aborted } = signal;
-			if (aborted) {
-				throw signal.reason;
-			}
-			this.addAbortSignal(signal);
 		}
 		/** Returns a function to remove event listener
 		 */
 		addAbortSignal(signal) {
+			if (signal.aborted) {
+				const { reason } = signal;
+				this._onAbort(reason);
+				throw reason;
+			}
 			return this.addEventTarget(signal, "abort", this.getAbortReason);
 		}
 		addEventTarget(target, eventName, getReason, params) {
@@ -143,12 +143,22 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 			}
 		}
 		_abortListener(getReason, ev) {
-			this.aborted = true;
 			let reason;
 			try {
 				reason = getReason?.(ev);
 			} catch (ex) {
 				reason = ex;
+			}
+			this._onAbort(reason);
+		}
+		_onAbort(reason) {
+			if (!this.aborted) {
+				this.aborted = true;
+				this.reason = reason;
+			} else {
+				console.assert(this._deferred?.size === 0, "All deferred should be rejected");
+				console.assert(this.reason !== undefined, "Abort reason should be set");
+				this.reason = this.reason ?? reason;
 			}
 			if (reason == null) {
 				reason = new Error("Aborted for unspecified reason");
@@ -165,8 +175,9 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 		}
 		_removeListener(target, eventName, params) {
 			const { listener, remover } = params;
-			target.removeEventListener(eventName, listener, params.params);
-			this._destructors.delete(remover);
+			if (this._destructors.delete(remover)) {
+				target.removeEventListener(eventName, listener, params.params);
+			}
 		}
 		getAbortReason(ev) {
 			return ev?.target?.reason;
@@ -174,7 +185,7 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 		_destroy() {
 			try {
 				if (!this.aborted) {
-					this._abortListener(x => x, new Error("Abortable context destroyed"));
+					this._onAbort(new Error("Abortable context destroyed"));
 				}
 			} catch (ex) {
 				this._warn(ex);
