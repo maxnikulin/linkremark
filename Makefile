@@ -53,7 +53,8 @@ SW_TEST_SRC += \
 	test/js/lr_test_format_org.js \
 	test/js/lr_test_meta.js \
 	test/js/lr_test_microdata.js \
-	test/js/lr_test_schema_org_product.js
+	test/js/lr_test_schema_org_product.js \
+	test/js/lr_test_abortable_ctx.js
 
 SW_INIT = background/init_linkremark.js
 SW_MAIN = background/main_linkremark.js

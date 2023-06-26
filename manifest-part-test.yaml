@@ -11,3 +11,6 @@ background:
   - test/js/lr_test_meta.js
   - test/js/lr_test_microdata.js
   - test/js/lr_test_schema_org_product.js
+  # Currently used by offscreen clipboard only
+  - background/lr_abortable_ctx.js
+  - test/js/lr_test_abortable_ctx.js
