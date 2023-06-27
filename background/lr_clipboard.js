@@ -372,11 +372,45 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		throw new LrError("Clipboard and org-protocol export failed", { cause: errors[0] });
 	}
 
+	/** If user activation for DOM API propagates to the add-on background page
+	 *
+	 * Works in Firefox-113, but not in Firefox-102 ESR.
+	 *
+	 * Without the `clipboardWrite` permission `navigator.clipboard.writeText(text)`
+	 * and `document.execCommand("copy") work in Firefox-113 within 5 seconds
+	 * after `menus.onClicked`, `commands.onCommand`, or `browserAction.onClicked`
+	 * events are fired. In Firefox-102 `writeText` throws
+	 * `DOMException: Clipboard write was blocked due to lack of user activation.`
+	 * and `execCommand` returns `false` causing the following warning in console
+	 *
+	 *     document.execCommand(‘cut’/‘copy’) was denied because it was not called from inside a short running user-generated event handler.
+	 *
+	 * https://bugzilla.mozilla.org/1835585
+	 *
+	 * `navigator.userActivation` is not supported by Firefox.
+	 *
+	 * Waiting till accepting of the `tabs` permission requests may cause
+	 * copy to clipboard failure, but it should not be a regular case,
+	 * so it is not reasonable to request `clipboardWrite` when another permission
+	 * is requested.
+	 *
+	 * https://bugzilla.mozilla.org/1838845
+	 * "Accepting permissions.request does not refresh user
+	 * activation for DOM API navigator.clipboard"
+	 */
+	function lrHasDOMUserActivationInBackground() {
+		// Appeared in Firefox-112
+		return lr_common.isGecko() && navigator.getAutoplayPolicy !== undefined;
+	}
+
 	function initSync() {
 		lr_export.registerMethod({
 			method: "clipboard",
 			handler: lrCopyToClipboard,
 			permissions: function lrClipboardPermissions(settings) {
+				if (lrHasDOMUserActivationInBackground()) {
+					return null;
+				}
 				const allOptional = chrome.runtime.getManifest().optional_permissions;
 				const optional = allOptional?.filter(
 					p => p === "offscreen" || p === "clipboardWrite");
@@ -390,7 +424,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			permissions: function lrOrgProtocolPermissions(settings) {
 				const usePreview = settings.getOption("export.methods.orgProtocol.usePreview");
 				const clipboardForBody = settings.getOption("export.methods.orgProtocol.clipboardForBody");
-				if (usePreview || !clipboardForBody) {
+				if (usePreview || !clipboardForBody || lrHasDOMUserActivationInBackground()) {
 					return null;
 				}
 				const allOptional = chrome.runtime.getManifest().optional_permissions;
@@ -412,7 +446,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			title: "Open preview tab with capture result for clipboard",
 			description: [
 				"Uncheck to copy without extra action on the preview page",
-				"(in Firefox it requires clipboard permission).",
+				"(in Firefox-102 ESR it requires clipboard permission).",
 				"If some problem with capture is detected, preview tab is still shown.",
 				"In Chrome preview tab is required to capture privileged pages,",
 				"but it may be promptly closed.",
@@ -425,12 +459,13 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			version: "0.2",
 			title: 'Permission: Input data to the clipboard ("clipboardWrite")',
 			description: [
-				"Allow to copy capture result to clipboard without",
-				"additional click on preview page.",
-				"In Firefox clipboard may work unreliably",
-				"when this permission is not granted.",
-				"In Chrome \"offscreen\" permission is required in addition to this one.",
-				"",
+				"Allows to reliably copy capture result to clipboard without a preview tab.",
+				"Firefox since version approximately 112 should work",
+				"without this permission almost always.",
+				"It is better to grant the permission to Firefox-102 ESR",
+				"and to Chrome if you prefer to avoid opening a preview tab.",
+				"In Chrome the \"offscreen\" permission is required in addition to this one.",
+				"\n",
 				"Unfortunately this permission allows overwriting",
 				"clippboard content any time.",
 				"You can use native-messaging or org-protocol method",
