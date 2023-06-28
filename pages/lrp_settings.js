@@ -72,7 +72,8 @@ function getDescriptionParagraphs(property) {
 		return [];
 	}
 	if (Array.isArray(text)) {
-		text = text.join(" ");
+		text = text.reduce(
+			(a, b) => (b === "" || b === "\n") ? ( a + "\n" + b) : (a + " " + b));
 	}
 	const paragraphs = text.split("\n");
 	return paragraphs.map(p => E("p", null, p));
