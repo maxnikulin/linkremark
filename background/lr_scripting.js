@@ -137,6 +137,34 @@ var lr_scripting = lr_util.namespace(lr_scripting, function lr_scripting() {
 		}
 		let apiResultArray;
 		try {
+			if (!lr_common.isGecko() && Array.isArray(args)) {
+				// https://crbug.com/1448489
+				// 'Extensions: scripting.executeScript({args:[undefined]}) throws "Value is unserializable"'
+				//
+				// Formally `args` value must be JSON-serializable. Actually
+				// Chromium-113 throws `TypeError` when the array contains `undefined`
+				// elements:
+				//
+				//     Error in invocation of
+				//     scripting.executeScript(scripting.ScriptInjection injection, optional function callback):
+				//     Error at parameter 'injection': Error at property 'args': Error at index 0:
+				//     Value is unserializable.
+				//
+				// Chrome processes arguments individually, so effect is similar to
+				//
+				//     JSON.parse(JSON.stringify(undefined)) // => SyntaxError
+				//
+				// while
+				//
+				//     JSON.parse(JSON.stringify([undefined])) // => [null]
+				//
+				// Firefox is not affected.
+				args = args.map(x => x !== undefined ? x : null);
+			}
+		} catch (ex) {
+			Promise.reject(ex);
+		}
+		try {
 			apiResultArray = await bapi.scripting.executeScript({
 				target: { tabId, frameIds: [ frameId ], allFrames: false },
 				func, args,
