@@ -19,8 +19,12 @@
 
 var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	errorToObject: /* recursive */ function lrErrorToObject(obj) {
+		// Firefox-102 ESR uses JSON serialization for exceptions
+		// thrown by content scripts and returned by `scripting.executeScript`
+		// as `InjectionResult.error`. It is necessary to transform
+		// `stack` however.
 		if (obj == null) {
-			return null;
+			return obj;
 		}
 		var error = {};
 		if (typeof obj.message === 'string') {
@@ -35,20 +39,21 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 			error.name = p && p.constructor && p.constructor.name ||
 				Object.prototype.toString.call(obj);
 		}
-		for (let prop of ["code", "stack", "fileName", "lineNumber", "columnNumber"]) {
+		const { stack } = obj;
+		if (typeof stack === "string" && stack !== "") {
+			// Make `stack` readable in `JSON.stringify()` dump.
+			const lines = stack.trim().split("\n");
+			error.stack = lines.length > 1 ? lines : stack;
+		}
+		for (let prop of ["code", "fileName", "lineNumber", "columnNumber"]) {
 			const value = obj[prop];
 			if (value == null) {
 				continue;
 			}
-			if (typeof value !== "string") {
-				// FIXME added to preserve `Number`, actually may cause problems
-				// due to failure of structured clone.
+			const type = typeof value;
+			if (type === "string" || type === "number") {
 				error[prop] = value;
-				continue;
 			}
-			// Make `stack` readable in `JSON.stringify()` dump.
-			const lines = value.trim().split("\n");
-			error[prop] = lines.length > 1 ? lines : value;
 		}
 		const cause = obj.cause;
 		if (cause != null) {
@@ -84,6 +89,7 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		if (obj == null) {
 			return obj;
 		} else if (typeof obj === "string") {
+			// Fallback error serialization.
 			return new Error(obj);
 		}
 		const retval = Array.isArray(obj.errors) ? new AggregateError([]) : new Error();
