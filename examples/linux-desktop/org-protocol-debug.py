@@ -18,19 +18,23 @@ Alternatively
                  subdir of $XDG_DATA_HOME or $XDG_DATA_DIRS, e.g.
                  ~/.local/share/applications/org-protocol-debug.desktop
                  Do not forget to register it:
-                     xdg-settings set default-url-scheme-handler org-protocol org-protocol-debug.desktop"""
+                     xdg-settings set default-url-scheme-handler \
+org-protocol org-protocol-debug.desktop"""
 
 DESKTOP = """[Desktop Entry]
 Name=org-protocol debug
 Comment=Troubleshooting of org-protocol desktop integration
 Icon=emacs
 # Do not add quotes around %u, reason: undefined behavior by spec
+# <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>
 Exec={0} %u
 Type=Application
 Terminal=false
 Categories=Utility;TextEditor;Debugger
 Keywords=Emacs, Org mode
-MimeType=x-scheme-handler/org-protocol"""
+# Trailing semicolon is required due to
+# <https://gitlab.freedesktop.org/xdg/xdg-utils/-/issues/222>
+MimeType=x-scheme-handler/org-protocol;"""
 
 WARNING_NETLOC = '''WARNING: It is safer to use either single or triple slash
 after org-protocol: to avoid handling of subprotocol as netloc
@@ -209,7 +213,7 @@ def main():
                         "scheme", "username", "password", "netloc",
                         "path", "params", "fragment"]:
                     val = getattr(parsed, par, None)
-                    if par == "path" and ((not val) or not val.startswith('/')):
+                    if par == "path" and not (val and val.startswith('/')):
                         details.append(WARNING_PATH)
                     if val:
                         details.append(f'{par} = {val!r}')
