@@ -137,7 +137,6 @@ function bapiChrome(chrome) {
 			onStartup: asis,
 			reload: asis,
 			sendMessage: asis,
-			getPlatformInfo: asis,
 			openOptionsPage: asis,
 			onMessage: promisifyEventWithResponse,
 		},

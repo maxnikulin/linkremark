@@ -24,7 +24,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	this.formatMap = new Map();
 	this.methodMap = new Map();
 
-	async function initAsync() {
+	function initSync() {
 		lr_settings.registerGroup({
 			name: "export",
 			title: "Communication Channel",
@@ -32,7 +32,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 		});
 		lr_settings.registerOption({
 			name: "export.method",
-			defaultValue: "clipboard",
+			defaultValue: "clipboard", // TODO might be unavailable
 			version: "0.1",
 			title: "Method how to pass capture to desktop environment",
 			description: () => {
@@ -44,10 +44,6 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 			},
 			parent: "export",
 		});
-	};
-
-
-	function initSync() {
 		lr_export.registerFormat({
 			format: "org",
 			version: "0.2",
@@ -339,7 +335,6 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 		formatMessage,
 		getAvailableFormats,
 		getAvailableMethods,
-		initAsync,
 		initSync,
 		process,
 		processMessage,

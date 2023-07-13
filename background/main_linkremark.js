@@ -69,12 +69,7 @@ function lrMainSync(initAsync) {
 	gLrAddonRpc = new LrAddonRpc(lrAsyncInitPromise);
 	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);
 	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
-	return initAsyncResult.catch(e => { throw e; });
-}
 
-async function lrMainAsync() {
-	await lr_settings.wait();
-	await lr_export.initAsync();
 	gLrAddonRpc.register("store.getResult", gLrRpcStore.handleResult);
 	gLrAddonRpc.register("store.getCapture", gLrRpcStore.handleCapture);
 	gLrAddonRpc.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
@@ -90,6 +85,16 @@ async function lrMainAsync() {
 	lr_settings.register(gLrAddonRpc);
 	try {
 		lr_actionlock.register(gLrAddonRpc);
+	} catch (ex) {
+		Promise.reject(ex);
+	}
+
+	return initAsyncResult.catch(e => { throw e; });
+}
+
+async function lrMainAsync() {
+	try {
+		await lr_settings.wait();
 	} catch (ex) {
 		Promise.reject(ex);
 	}

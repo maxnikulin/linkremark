@@ -124,9 +124,7 @@ var lr_util = function() {
 		return new func() || default_object;
 	};
 
-	var platformInfo = {};
-	/* lr_util is too basic for initAsync function */
-	var platformInfoPromise = bapi.runtime.getPlatformInfo().then(value => platformInfo = value);
+	var platformInfo = { newline: /^win/i.test(navigator.platform) ? "\r\n" : "\n" };
 
 	/*
 	 * It is better to avoid control characters since they
@@ -147,17 +145,14 @@ var lr_util = function() {
 		// 4. U+FEFF BYTE ORDER MARK that is likely trash in HTML files
 		//    been a space character does not occupy any space in Emacs.
 		//    Maybe there are more similar characters.
-		//
-		// There is a small chance that platformInfo is not available yet.
-		const nl = platformInfo.os !== "win" ? "\n" : "\r\n";
 		return text.replace(/\t/g, '        ').
-			replace(/\r\n|\r|\n/g, nl).
+			replace(/\r\n|\r|\n/g, platformInfo.newline).
 			replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F\uFEFF]/g, "\uFFFD");
 	}
 
 	Object.assign(this, {
 		toString, isDate,
-		replaceSpecial, platformInfo, platformInfoPromise,
+		replaceSpecial, platformInfo,
 	});
 
 	return this;
