@@ -116,8 +116,20 @@ def dialog_kdialog(title, text):
     if not executable:
         return
 
+    def kdialog_escape(txt):
+        """Prevent "Unrecognized escape sequence \\x"
+
+        It may happen for non-breaking space %C2%A0
+        converted to \\xa0 by ``str.__repr__()``.
+        I have not found a kdialog option disabling interpretation
+        of escape characters."""
+        return txt and txt.replace('\\', '\\\\')
+
     # --textbox requires file name
-    command = ["kdialog", "--title", title, "--msgbox", text]
+    command = [
+        "kdialog", "--title", kdialog_escape(title),
+        "--msgbox", kdialog_escape(text)
+    ]
     res = run(command, check=False)
     # Cancel is 2, invalid option is 1
     if res.returncode not in (0, 2):
