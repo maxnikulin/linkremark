@@ -1,16 +1,24 @@
 
-#+PROPERTY: header-args :eval never-export :exports code :results silent
 #+TITLE: LinkRemark — notes for web pages augmented by metadata
+# - Disable subscript/superscripts since org-ruby ignores
+#   markers around whole link description.
+# - Enable footnotes. For various issues see
+#   <https://github.com/wallyqs/org-ruby/issues/2>
+#+OPTIONS: ^:nil f:t
+#+PROPERTY: header-args :eval never-export :exports code :results silent
 
 #+begin_comment
 Due to limitation of GitHub Org renderer
-- Do not use =verbatim= or ~code~ text in link description
+- Do not use =verbatim= or ~code~ text in link description, see
+  <https://github.com/wallyqs/org-ruby/issues/85>
 - use =\quot= entity to avoid curly quotes in link description
   where verbatim text can not be used. =#+options: ':nil=
   does not affect GitHub rendering.
 - Do not use first level headings to avoid multiple =<h1>= tags
   created by org-ruby, see
   <https://github.com/wallyqs/org-ruby/issues/88>
+- Links between definitions and references do not work, see
+  <https://github.com/wallyqs/org-ruby/issues/32>
 #+end_comment
 
 Install [[file:icons/lr-32.png]] LinkRemark:
@@ -101,12 +109,12 @@ Optionally select some text and choose an option from context menu (right click,
 =[Menu]= or =[Shift+F10]= keys).
 Unless you are going to capture a particular link,
 you can click on the extension icon in browser toolbar ("browser action")
-or may configure a shortcut on the add-ons page.[fn:addons]
+or may configure a shortcut on the add-ons page.[fn:1]
 
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
 so you just can paste it to a text editor.
-Emacs Org mode has a convenient command [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].[fn:pastesubtree]
+Emacs Org mode has a convenient command [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].[fn:2]
 A hint: to navigate to the parent heading before pasting
 you can use [[help:org-refile][C-u C-c C-w, org-refile]]
 or [[help:org-goto][C-c C-j, org-goto]] (maybe with prefix argument as well).
@@ -135,7 +143,7 @@ in Emacs configuration and to change template to
 : "* %(org-get-x-clipboard 'CLIPBOARD)"
 Please, update "Template type configured in org-capture-templates"
 in add-on settings as well (may be opened from preview page,
-or from browser add-ons page[fn:addons].
+or from browser add-ons page[fn:1].
 
 There is an option to avoid preview page for successful captures:
 disable "Open preview tab with capture result for clipboard".
@@ -148,7 +156,7 @@ may be more useful than Worg page).
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
-through a native messaging application as a safer option.[fn:snap]
+through a native messaging application as a safer option.[fn:3]
 LinkRemark repository contains a simple variant in
 [[file:examples/backend-python/lr_emacsclient.py]]
 Run it with =-h= option for a brief guide. To enable it,
@@ -194,29 +202,6 @@ If you are not familiar with Org Mode capture feature,
 you could find description of workflow in blogs, e.g.
 [[https://sachachua.com/blog/2015/02/learn-take-notes-efficiently-org-mode/][Learn how to take notes more efficiently in Org Mode]]
 by Sacha Chua.
-
-[fn:addons] "Manage extension" or "Preferences" in context menu (right click)
-for the add-on's browser action
-button or through generic browser menu,
-e.g. Firefox: "Add-ons and Themes" from hamburger menu
-or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
-
-[fn:pastesubtree] There is some bug and subtree is not recognized
-first time in X clipboard. Workaround is yank =C-y=, undo =C-/=
-(required once per Emacs session), and =C-c C-x C-y= to paste subtree.
-
-[fn:snap] There is a problem with browsers distributed
-as snap or flatpack. Such applications works with
-additional level of isolation in respect to system files,
-so external application can not be invoked even through
-native messaging API. Chromium in Ubuntu is shipped as
-snap package only since Ubuntu-20.04 LTS focal, for Firefox snap is made
-default option in Ubuntu-21.10 impish, but Firefox is still
-can be installed as a deb package using apt.
-Related Firefox bugs:
-- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1661935][Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org]],
-- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
-
 
 ** Checking if an URL is already in your notes
 
@@ -269,7 +254,7 @@ It should create =burl_wrapper= shell script and =burl.json= file
 [[file:~/.mozilla/native-messaging-hosts/]] (its basename is the identifier
 of the native application).
 
-Open LinkRemark settings page[fn:addons]. Set "Name of native messaging backend
+Open LinkRemark settings page[fn:1]. Set "Name of native messaging backend
 application" in the "Browser native messaging communication channel" section
 to the id of configured native app (e.g. =burl=
 or =io.github.maxnikulin.burl=). Grant permission for
@@ -363,7 +348,7 @@ to make this permission optional.
 
 *** Optional permissions
 
-Open browser extensions preferences[fn:addons] to manage this set of permissions.
+Open browser extensions preferences[fn:1] to manage this set of permissions.
 Switches are available on add-on custom settings page and in browser settings UI.
 They may be requested on demand to successfully complete requested action
 taking into account current settings.
@@ -424,5 +409,29 @@ just try =journalctl --user --follow=.
 
 LinkRemark is published under [[https://www.gnu.org/licenses/gpl-3.0.html][the GNU GPLv3 license]] or any later
 version. See the [[file:LICENSE.txt]] file in this directory.
+
+** Footnotes
+
+[fn:1] "Manage extension" or "Preferences" in context menu (right click)
+for the add-on's browser action
+button or through generic browser menu,
+e.g. Firefox: "Add-ons and Themes" from hamburger menu
+or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
+
+[fn:2] There is some bug and subtree is not recognized
+first time in X clipboard. Workaround is yank =C-y=, undo =C-/=
+(required once per Emacs session), and =C-c C-x C-y= to paste subtree.
+
+[fn:3] There is a problem with browsers distributed
+as snap or flatpack. Such applications works with
+additional level of isolation in respect to system files,
+so external application can not be invoked even through
+native messaging API. Chromium in Ubuntu is shipped as
+snap package only since Ubuntu-20.04 LTS focal, for Firefox snap is made
+default option in Ubuntu-21.10 impish, but Firefox is still
+can be installed as a deb package using apt.
+Related Firefox bugs:
+- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1661935][Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org]],
+- [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
 
 # LocalWords: LinkRemark bURL backend JSON
