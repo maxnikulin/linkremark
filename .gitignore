@@ -4,3 +4,4 @@ manifest-firefox-test.json
 manifest-chrome-test.json
 manifest-chrome-dist.json
 local.mk
+README.html

@@ -31,6 +31,10 @@ ICONS_SRC += icons/lr-64.png icons/lr-128.png
 EMACS = LC_ALL=en_US.UTF-8 TZ=Z LANGUAGE=en emacs
 EMACS_FLAGS = --batch --no-init-file
 
+ORG_RUBY = org-ruby
+ORG_RUBY_FLAGS = -t html
+ORG_RUBY_HEADER = printf '<!DOCTYPE html>\n<style>body { width: 66ex; margin: auto; }</style>'
+
 # E.g. to redefine directory to load Org
 #     EMACS_FLAGS += --directory ~/src/org-mode/lisp
 -include local.mk
@@ -78,6 +82,7 @@ test:
 
 clean:
 	$(RM) manifest.json
+	$(RM) README.html
 
 firefox-dist: firefox
 	set -e ; \
@@ -103,4 +108,12 @@ chrome-dist: manifest-chrome-dist.json $(HELP_PAGE)
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
-.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test chrome-dist
+# Writing to a build directory causes an issue with the image
+# included from `doc/`. `<base href="../">` makes `<a href"#...">`
+# links invalid. An alternative is a symlink to `doc` from
+# the build directory.
+test-readme:
+	$(ORG_RUBY_HEADER) >README.html
+	$(ORG_RUBY) $(ORG_RUBY_FLAGS) README.org >>README.html
+
+.PHONY: clean crome firefox test firefox-dist firefox-test chrome-test chrome-dist test-readme
