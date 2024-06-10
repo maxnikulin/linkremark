@@ -94,6 +94,6 @@ native application helper for checking your notes for known URLs.</p>
        (lambda (path desc format)
 	   (format "<code>%s</code>" desc)))
       (goto-char (point-min))
-      (re-search-forward "^\* Usage$")
+      (re-search-forward "^\** Usage$")
       (org-export-to-file 'html output-file
 			  async subtree visible-only body-only ext-plist))))

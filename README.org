@@ -8,13 +8,16 @@ Due to limitation of GitHub Org renderer
 - use =\quot= entity to avoid curly quotes in link description
   where verbatim text can not be used. =#+options: ':nil=
   does not affect GitHub rendering.
+- Do not use first level headings to avoid multiple =<h1>= tags
+  created by org-ruby, see
+  <https://github.com/wallyqs/org-ruby/issues/88>
 #+end_comment
 
 Install [[file:icons/lr-32.png]] LinkRemark:
 - [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox add-on at addons.mozilla.org]],
 - [[https://chrome.google.com/webstore/detail/mgmcoaemjnaehlliifkgljdnbpedihoe][Extension in Chrome Web Store]].
 
-* Introduction
+** Introduction
 
 LinkRemark is a browser extension that allows to save some context
 while capturing notes using [[https://orgmode.org][Org mode]] for [[https://www.gnu.org/software/emacs/][GNU Emacs]].
@@ -40,7 +43,7 @@ Be ready to edit created notes. Almost every site has its own
 peculiarities, so you will have to manually add some info
 and to remove some redundant entries.
 
-* Example of link capture
+** Example of link capture
 
 #+begin_src org
   ,* Link: Karl Voit: UOMF: Managing web bookmarks with Org Mode
@@ -70,7 +73,7 @@ and to remove some redundant entries.
   - referrer :: [[https://www.google.com/]]
 #+end_src
 
-* Install
+** Install
 
 You can install LinkRemark from browser extension catalogues, see
 [[https://addons.mozilla.org/firefox/addon/linkremark/][addons.mozilla.org for Firefox]]
@@ -88,7 +91,7 @@ For everyday use you might wish to configure native application
 helper or desktop-wide org-protocol handler instead of
 clipboard to pass captures to your notes.
 
-* Usage
+** Usage
   :PROPERTIES:
   :EXPORT_TITLE: LinkRemark Help
   :CUSTOM_ID: usage
@@ -215,7 +218,7 @@ Related Firefox bugs:
 - [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
 
 
-* Checking if an URL is already in your notes
+** Checking if an URL is already in your notes
 
 This is a new feature in LinkRemark-0.2, it was not included in 0.1 version.
 Please, consider current implementation
@@ -281,7 +284,7 @@ You can set "Method how to pass capture to desktop environment" to
 "native-messaging", however it is not required. You can continue
 with clipboard or org-protocol desktop-wide handler.
 
-* Alternatives
+** Alternatives
 
 There are some projects that allows to capture URL + page title +
 selection text or URL + text link. It is not enough for me.
@@ -304,15 +307,15 @@ It is suitable if web browser of your choice is Emacs or Qute Browser.
 Unlike this extension, it supports custom handlers for particular
 websites, and has recipes for scientific papers and BibTeX format.
 
-* Permissions
+** Permissions
 
 You could find more information what every requested
 permission means on the following page from the Mozilla Support site:
 [[https://support.mozilla.org/kb/permission-request-messages-explained][Permission request messages explained]].
 
-** Requested on Install
+*** Requested on Install
 
-*** Access your data for all websites (=<all_urls>=)
+**** Access your data for all websites (=<all_urls>=)
 
 Chrome: "Read and change all your data on all websites".
 
@@ -328,7 +331,7 @@ consider making it optional one.
 It is a bug, if this extension attempts to inspect content
 of some tab without explicit user action.
 
-*** Exchange messages with other programs (=nativeMessaging=)
+**** Exchange messages with other programs (=nativeMessaging=)
 
 Chrome: "Communicate with cooperating native applications", optional.
 
@@ -348,7 +351,7 @@ Extension can not launch any application till it is explicitly added
 to a configuration file (manifest) by the user, so do not worry,
 extensions can not run arbitrary binaries with no cooperation from users.
 
-*** Access browser activity during navigation (=webNavigation=)
+**** Access browser activity during navigation (=webNavigation=)
 
 Chrome: "Read your browsing history".
 
@@ -358,14 +361,14 @@ and capture is invoked using keyboard shortcut.
 Maybe I will add a less reliable fallback in future
 to make this permission optional.
 
-** Optional permissions
+*** Optional permissions
 
 Open browser extensions preferences[fn:addons] to manage this set of permissions.
 Switches are available on add-on custom settings page and in browser settings UI.
 They may be requested on demand to successfully complete requested action
 taking into account current settings.
 
-*** Access browser tabs (=tabs=)
+**** Access browser tabs (=tabs=)
 
 Additional feature is available in Firefox only.
 When granted, it is possible to capture a group of tabs.
@@ -374,7 +377,7 @@ and open context menu (right click) for a header of selected tab.
 
 Requested on demand when not granted.
 
-*** Input data to the clipboard (=clipboardWrite=)
+**** Input data to the clipboard (=clipboardWrite=)
 
 In Chrome it is called "Modify data you copy and paste",
 but due to better tracking of user action context
@@ -400,7 +403,7 @@ Sorry for this inconvenience.
 This permission may be revoked as soon as you configure native application
 or desktop-wide org-protocol handler.
 
-* Troubleshooting
+** Troubleshooting
 
 1. Try to open Debug Info (Preview) extension page through context menu for
    the extension button in tool bar (extension browser action)
@@ -417,7 +420,7 @@ docs. It is worth checking errors reported to the browser console
 (=Ctrl+Shift+J= in Firefox). To read messages from Chrome on Linux, start it from a terminal or maybe
 just try =journalctl --user --follow=.
 
-* License
+** License
 
 LinkRemark is published under [[https://www.gnu.org/licenses/gpl-3.0.html][the GNU GPLv3 license]] or any later
 version. See the [[file:LICENSE.txt]] file in this directory.
