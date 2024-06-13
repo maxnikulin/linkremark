@@ -557,7 +557,7 @@ in the context menu for the extension entry in the browser toolbar.
 Alternatively click on the "Settings" link on an add-on preview or help page.
 
 [fn:4] There is a problem with browsers distributed
-as snap or flatpack. Such applications works with
+as snap or flatpak. Such applications works with
 additional level of isolation in respect to system files,
 so external application can not be invoked even through
 native messaging API. Chromium in Ubuntu is shipped as
