@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 08:03 -->
+<!-- 2024-10-26 Sat 08:04 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -332,7 +332,7 @@ nor org-protocol capture would work.</li>
 <li><a href="https://orgmode.org/manual/Protocols.html">org-protocol</a> (<code>info "(org) Protocols"</code>)
 is loaded and a template is configured
 to enable capture feature. Alternatively use clipboard and
-C-c C-x C-y, org-paste-subtree.</li>
+C-c C-x C-y, org-paste-subtree.<sup><a id="fnr.2.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup></li>
 <li>Native application is enabled in browser for LinkRemark extension.
 On Linux a JSON file should be created.</li>
 <li>List of files to search for URLs is provided to bURL.
@@ -643,8 +643,9 @@ or from "Tools" in menu bar, <code>[Ctrl+Shift+A]</code>.
 </p></div></div>
 
 <div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
-There is some bug and subtree is not recognized
-first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-/</code>
+Prior to Org-9.6 (Emacs-29) there was a bug
+preventing clipboard content recognized as a valid subtree.
+Workaround is yank <code>C-y</code>, undo <code>C-/</code>
 (required once per Emacs session), and <code>C-c C-x C-y</code> to paste subtree.
 </p></div></div>
 
@@ -680,7 +681,7 @@ in Chromium docs for location of profile directory.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 08:03</p>
+<p class="date">Created: 2024-10-26 Sat 08:04</p>
 </div>
 </body>
 </html>

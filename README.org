@@ -277,7 +277,7 @@ describes how to install and to configure the native application
 - [[https://orgmode.org/manual/Protocols.html][org-protocol]] ([[info:org#Protocols][info \quot(org) Protocols\quot]])
   is loaded and a template is configured
   to enable capture feature. Alternatively use clipboard and
-  [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].
+  [[help:org-paste-subtree][C-c C-x C-y, org-paste-subtree]].[fn:2]
 - Native application is enabled in browser for LinkRemark extension.
   On Linux a JSON file should be created.
 - List of files to search for URLs is provided to bURL.
@@ -547,8 +547,9 @@ or through generic browser menu,
 e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
 
-[fn:2] There is some bug and subtree is not recognized
-first time in X clipboard. Workaround is yank =C-y=, undo =C-/=
+[fn:2] Prior to Org-9.6 (Emacs-29) there was a bug
+preventing clipboard content recognized as a valid subtree.
+Workaround is yank =C-y=, undo =C-/=
 (required once per Emacs session), and =C-c C-x C-y= to paste subtree.
 
 [fn:3] "Extension preferences" (Firefox) or "Options" (Chrome)
