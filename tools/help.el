@@ -92,7 +92,7 @@ for up to date version.</p>
 	 (let* ((parts (split-string path "#\\|::"))
 		(manual (car parts))
 		(node (or (nth 1 parts) "Top")))
-	   (format "<code>M-: (info \"(%s) %s\")</code>" manual node))))
+	   (format "<code>info \"(%s) %s\"</code>" manual node))))
       (org-link-set-parameters
        "elisp"
        :export
