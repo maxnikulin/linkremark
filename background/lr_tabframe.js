@@ -517,7 +517,18 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 		{ errorAction: lr_executor.ERROR_IS_WARNING },
 		function lrCheckFramePermissionsErrors(chain) {
 			let count = 0;
+			let first = true;
 			for (const wrappedFrame of chain) {
+				if (first) {
+					first = false;
+					const node = wrappedFrame?.summary?.activeElementNode?.toUpperCase?.();
+					if (node && ["IFRAME", "FRAME", "OBJECT", "EMBED"].indexOf(node) >= 0) {
+						// In the case of navigation `frame.src` does not match
+						// frame URL in `webNavigation.getAllFrames` result.
+						++count;
+						continue;
+					}
+				}
 				if (wrappedFrame.summary && wrappedFrame.summary.scripts_forbidden) {
 					++count;
 				}
