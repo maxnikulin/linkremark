@@ -1069,7 +1069,15 @@ const gLrPreviewLog = {
 }
 
 function lrPreviewLogException(store, data) {
-	console.error("lrPreviewLogException: %o", data);
+	// `console.error` adds a rather useless message
+	//     lrPreviewLogException: %o [object Object]
+	//  to collected errors in extension properties
+	//  e.g. in the case of inaccessible frame.
+	if (data?.error instanceof Error) {
+		Promise.reject(data.error);
+	} else {
+		console.log("lrPreviewLogException: %o", data);
+	}
 	try {
 		const { message, error, id, debugInfo } = data || {
 			message: "Internal error",
