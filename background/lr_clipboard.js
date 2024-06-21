@@ -366,7 +366,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 				errors.push(ex);
 			}
 		}
-		if (errors.length > 0) {
+		if (errors.length > 1) {
 			throw new LrAggregateError(errors, "Clipboard and org-protocol export failed");
 		}
 		throw new LrError("Clipboard and org-protocol export failed", { cause: errors[0] });
