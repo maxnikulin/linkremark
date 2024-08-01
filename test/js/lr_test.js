@@ -220,6 +220,53 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 		}
 	};
 
+	lr_test.assertThrows = function assertThrows(expect, func, ...params) {
+		function _name() {
+			return func.name || String(func).substring(0, 40);
+		}
+		function _lr_test_assertThrows_assertException(ex) {
+			if (expect instanceof Error) {
+				if (expect === ex) {
+					return;
+				}
+			} else {
+				try {
+					if (expect instanceof ex) {
+						return;
+					}
+				} catch (ex) {
+					const msg = `Assert throws: invalid expect ${expect} for ${_name()} ${params}`;
+					throw new TypeError(msg, { cause: ex });
+				}
+			}
+			const msg = `Assert throws ${expect} != ${ex} for ${_name()} ${params}`;
+			throw new LrAssertionError(msg);
+		}
+		async function _lr_test_assertThrowsAsync() {
+			try {
+				await func();
+			} catch(ex) {
+				return _lr_test_assertThrows_assertException(ex);
+			}
+			const msg = `Assert throws ${expect} failed for ${_name()} ${params}`;
+			throw new LrAssertionError(msg);
+		}
+
+		if (lr_util.isAsyncFunction(func)) {
+			return _lr_test_assertThrowsAsync();
+		} else if (!lr_util.isFunction(func)) {
+			const msg = `Assert throws: not a function ${_name()} ${params}`;
+			throw new TypeError(msg);
+		}
+		try {
+			func();
+		} catch (ex) {
+			return _lr_test_assertThrows_assertException(ex);
+		}
+		const msg = `Assert throws ${expect} failed for ${_name()} ${params}`;
+		throw new LrAssertionError(msg);
+	};
+
 	this.suites = [];
 
 	function withExecutor(func, ...args) {
