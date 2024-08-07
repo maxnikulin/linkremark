@@ -351,25 +351,47 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			_lrClipboardBackground, _lrClipboardContentScript, _lrClipboardUsePreview
 		]) {
 			try {
+				const failed = { /* Unique object */ };
 				const result = await executor.step(
 					{ timeout: lr_tabframe.scriptTimeout },
-					method, capture, options
+					async function(executor) {
+						try {
+							return await method(capture, options, executor);
+						} catch (ex) {
+							// IGNORE_ERROR will log traces,
+							// but here it is necessary only if all methods fail.
+							console.debug(method?.name, String(ex));
+							errors.push(ex);
+							return failed;
+						}
+					}
 				);
-				if (result) {
+				if (result === failed) {
+					continue;
+				} else if (result) {
+					if (errors.length > 0) {
+						console.debug(method?.name, "succeess");
+						errors.splice(0);
+					}
 					return { ...retvalDefault, ...result };
 				} else {
 					console.log(`lr_clipboard: ${method.name} has not succeeded`);
 				}
 			} catch (ex) {
-				executor.addError(ex);
-				console.error(method && method.name, ex);
+				console.debug(method?.name, String(ex));
 				errors.push(ex);
 			}
 		}
 		if (errors.length > 1) {
+			// Console message for AggregateError does not include children.
+			for (const e of errors) {
+				Promise.reject(e);
+			}
 			throw new LrAggregateError(errors, "Clipboard and org-protocol export failed");
+		} else if (errors.length === 1) {
+			throw new LrError("Clipboard and org-protocol export failed", { cause: errors[0] });
 		}
-		throw new LrError("Clipboard and org-protocol export failed", { cause: errors[0] });
+		throw new Error("All methods for clipboard and org-protocol failed. Internal error.");
 	}
 
 	/** If user activation for DOM API propagates to the add-on background page
