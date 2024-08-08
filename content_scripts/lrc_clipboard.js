@@ -70,7 +70,6 @@
 	}
 
 	function lrCopyUsingEvent(text) {
-		let status = null;
 		// FIXME Sync with `common/lr_common.js`
 		// Document may install copy event interceptor earlier.
 		let listenerInvoked = false;
