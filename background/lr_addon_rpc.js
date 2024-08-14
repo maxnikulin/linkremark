@@ -24,6 +24,7 @@ class LrRpcError extends Error {
 class LrAddonRpc {
 	constructor(initPromise) {
 		this.initPromise = initPromise;
+		// { callback, skipInit }
 		this.methods = new Map();
 		this.subscriptionHandlers = new Map();
 		this.subscribed = new WeakMap();
@@ -42,7 +43,8 @@ class LrAddonRpc {
 		if (!override && this.methods.has(name)) {
 			throw new Error(`LrAddonRpc: ${name} already registered, you could force override`);
 		}
-		this.methods.set(name, { callback });
+		const skipInit = !!properties?.skipInit;
+		this.methods.set(name, { callback, skipInit });
 	};
 	async process(request, port) {
 		const id = request && request.id;
@@ -60,7 +62,7 @@ class LrAddonRpc {
 		}
 	};
 
-	async do_process(request, port) {
+	do_process(request, port) {
 		// Likely redundant check since `runtime.onExternalMessage` listener
 		// should be explicitly added to receive messages from other extensions.
 		if (port.id !== bapi.runtime.id) {
@@ -89,12 +91,13 @@ class LrAddonRpc {
 		if (unknown.length > 0) {
 			throw new LrRpcError(`Unknown request fields: ${unknown}`);
 		}
-		await this.initPromise;
 		const callback = this.methods.get(method);
 		if (!callback) {
 			throw new LrRpcError(`Unknown method: ${method}`);
 		}
-		return callback.callback(params, port);
+		return callback.skipInit || this.initPromise == null
+			? callback.callback(params, port)
+			: this.initPromise.then(callback.callback.bind(null, params, port));
 	};
 
 	registerSubscription(name, handler) {
