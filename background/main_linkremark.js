@@ -78,7 +78,9 @@ function lrMainSync(initAsync) {
 	}
 	gLrRpcStore = new LrRpcStore();
 	gLrAddonRpc = new LrAddonRpc(lrAsyncInitPromise);
-	bapi.runtime.onMessage.addListener(gLrAddonRpc.listener);
+	// Not `bapi` since direct callback is required
+	// and single call site does not deserve a polyfill.
+	chrome.runtime.onMessage.addListener(gLrAddonRpc.listener);
 	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
 
 	gLrAddonRpc.register("store.getResult", gLrRpcStore.handleResult);

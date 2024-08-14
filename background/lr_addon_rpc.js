@@ -46,20 +46,21 @@ class LrAddonRpc {
 		const skipInit = !!properties?.skipInit;
 		this.methods.set(name, { callback, skipInit });
 	};
-	async process(request, port) {
-		const id = request && request.id;
+	process(request, port, sendResponse) {
+		const id = request?.id;
 		try {
-			// Unconditional async-await could add some overhead,
-			// hope, it is negligible, so does not deserve more complicated code.
-			const result = await this.do_process(request, port);
-			if (result != null && result._type === "ExecInfo") {
-				return { id, ...result };
+			const result = this.do_process(request, port);
+			// Unsure if `lr_util.isFunction` is safer here.
+			if (typeof result?.then === "function") {
+				result.then(this._onResult.bind(null, sendResponse, id))
+					.catch(this._onException.bind(null, sendResponse, id, request, port));
+				return true;
 			}
-			return { id, result };
-		} catch (error) {
-			console.error("LrAddonRpc: %o when processing %o %o", error, request, port);
-			return { id, error: String(error && error.message || error), }
+			this._onResult(sendResponse, id, result);
+		} catch (ex) {
+			this._onException(sendResponse, id, request, port, ex);
 		}
+		return false;
 	};
 
 	do_process(request, port) {
@@ -136,4 +137,13 @@ class LrAddonRpc {
 		}
 		this.subscribed.delete(port);
 	}
+
+	_onResult(sendResponse, id, result) {
+		sendResponse(result?._type === "ExecInfo" ? { id, ...result } : { id, result });
+	};
+
+	_onException(sendResponse, id, request, port, ex) {
+		console.error("LrAddonRpc: %o when processing %o %o", ex, request, port);
+		sendResponse({ id, error: String(ex?.message ?? ex) });
+	};
 }
