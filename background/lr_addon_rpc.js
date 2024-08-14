@@ -65,31 +65,15 @@ class LrAddonRpc {
 	do_process(request, port) {
 		// Likely redundant check since `runtime.onExternalMessage` listener
 		// should be explicitly added to receive messages from other extensions.
-		if (port.id !== bapi.runtime.id) {
-			throw new LrRpcError(`Foreign message from ${port && port.id} rejected`);
+		if (port?.id !== chrome.runtime.id) {
+			throw new LrRpcError(`Foreign message from ${String(port?.id)} rejected`);
 		}
-		if (!request) {
-			throw new Error("LrAddonRpc: bad request");
+		if (request === null || typeof request !== "object") {
+			throw new Error(`LrAddonRpc: bad request ${JSON.stringify(request)}`);
 		}
-		let method, params, id;
-		const unknown = [];
-		for (let [property, value] of Object.entries(request)) {
-			switch (property) {
-				case "method":
-					method = value;
-					break;
-				case "params":
-					params = value;
-					break;
-				case "id":
-					id = value;
-					break;
-				default:
-					unknown.push([property, value]);
-			}
-		}
-		if (unknown.length > 0) {
-			throw new LrRpcError(`Unknown request fields: ${unknown}`);
+		const { method, params, id: _id, ...unknown } = request;
+		if (Object.keys(unknown).length !== 0) {
+			throw new LrRpcError(`Unknown request fields: ${JSON.stringify(unknown)}`);
 		}
 		const callback = this.methods.get(method);
 		if (!callback) {
