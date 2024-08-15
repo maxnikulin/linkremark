@@ -27,15 +27,19 @@
 
 (function lrc_clipboard() {
 	/**
-	 * Error instances could not be passed through `sendMessage()` to backend
+	 * Error instances could not be passed to background script
+	 * due to JSON serialization in Chrome and various bugs in Firefox.
 	 *
-	 * If cursor is in developer tools console, clicking on browser action
-	 * button can raise object that is not `instance of Error` despite it has
-	 * `Error` in prototype chain (maybe it is form other `window`). Firefox-89.
+	 * In Firefox (tested v89, v114) content scripts `globalThis !== window`,
+	 * so for `DOMException` caused by `navigator.clipboard.writeText`
+	 * `instanceof Error` gives false while `instanceof window.Error`
+	 * is true.  An exception may be thrown due to lack of focus
+	 * (e.g. location bar is focused) or user action context
+	 * (too long delay since last mouse click or keyboard event).
 	 * */
 	function lrToObject(obj) {
 		console.error(obj);
-		if (obj instanceof Error || obj instanceof DOMException) {
+		if (obj instanceof Error || obj instanceof window.Error) {
 			var error = Object.create(null);
 			if (obj.message != null) {
 				error.message = obj.message;
