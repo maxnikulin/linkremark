@@ -26,6 +26,8 @@
 "use strict";
 
 (function lrc_clipboard() {
+	const CLIPBOARD_TIMEOUT = 330;
+
 	/**
 	 * Error instances could not be passed to background script
 	 * due to JSON serialization in Chrome and various bugs in Firefox.
@@ -71,6 +73,38 @@
 		} else {
 			return obj;
 		}
+	}
+
+	// Duplicate: lpr_preview.js, similar: lr_settings.js
+	/* async */ function withTimeout(promise, timeout) {
+		if (!(timeout >= 0)) {
+			console.error("Invalid timeout", timeout);
+			return promise;
+		}
+		const deferred = {
+			resolve(reason) {
+				this._resolve?.(reason);
+				this.destroy?.();
+			},
+			reject(ex) {
+				this._reject?.(ex ?? new Error("Aborted"));
+				this.destroy?.();
+			},
+			destroy() {
+				if (this._timeoutId !== undefined) {
+					clearTimeout(this._timeoutId);
+				}
+				this._timeoutId = this._reject = this._resolve
+					= this.destroy = undefined;
+			}
+		};
+		const bound_reject = deferred.reject.bind(deferred);
+		promise.then(deferred.resolve.bind(deferred), bound_reject);
+		return new Promise((resolve, reject) => {
+			deferred._resolve = resolve;
+			deferred._reject = reject;
+			deferred._timeoutId = setTimeout(bound_reject, timeout);
+		});
 	}
 
 	function lrCopyUsingEvent(text) {
@@ -219,7 +253,7 @@
 			// console.log("lrClipboardWrite permission", permission);
 			try {
 				if (navigator.clipboard && navigator.clipboard.writeText) {
-					await navigator.clipboard.writeText(text);
+					await withTimeout(navigator.clipboard.writeText(text), CLIPBOARD_TIMEOUT);
 					return true;
 				} else {
 					warnings.push(lrToObject(new Error("navigator.clipboard API is disabled")));
@@ -230,10 +264,22 @@
 				// Fixed in Firefox-85
 				if (ex === undefined) {
 					ex = new Error("navigator.clipboard.writeText not allowed");
+				} else {
+					// Firefox `DOMException` does not allow `ex.message = ...`:
+					//     TypeError: setting getter-only property "message"
+					Object.defineProperty(ex, "message", {
+						value: "navigator.clipboard: " + ex.message,
+						configurable: true,
+						writable: true,
+						enumerable: true,
+					});
 				}
 				warnings.push(lrToObject(ex));
 			}
-			return lrCopyUsingEvent(text);
+			// Does not help e.g. in the case of `alert` in a copy event listener.
+			// If `alert` is called earlier then content script execution is postponed.
+			return await withTimeout(
+				(async () => lrCopyUsingEvent(text))(), CLIPBOARD_TIMEOUT);
 		}
 
 		async function lrPostResultFromContentScript() {
