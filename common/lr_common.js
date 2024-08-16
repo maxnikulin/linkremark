@@ -133,14 +133,16 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 				status = true;
 			} catch (ex) {
 				cause = ex;
-				// Not `console.error` since "Document is not focusing" might happen.
-				console.log("lr_common.copyUsingEvent: error: %o", ex);
+				console.error("lr_common.copyUsingEvent: error: %o", ex);
 			}
 		}
 		window.addEventListener("copy", lr_oncopy, true);
 		try {
 			if (!document.execCommand("copy") || !status) {
 				throw new LrError("Copy using command and event failed", { cause });
+			}
+			if (cause !== undefined) {
+				console.error("lr_common.copyUsingEvent: success despite exception");
 			}
 			return true;
 		} finally {
