@@ -27,6 +27,10 @@
 
 (function lrc_clipboard() {
 	const CLIPBOARD_TIMEOUT = 330;
+	// In Firefox-115 ESR `document.execCommand("copy")` may propagate
+	// to other documents. Chromium-127 is not affected.
+	const ACTIVE_NODES = [ "FRAME", "IFRAME", "EMBED", "OBJECT" ];
+	let warnings = [];
 
 	/**
 	 * Error instances could not be passed to background script
@@ -107,25 +111,90 @@
 		});
 	}
 
+	function lrIsGecko() {
+		return chrome.runtime.getURL("/").startsWith("moz-extension:/");
+	}
+
+	function lrcSaveSelection(log) {
+		const ranges = [];
+		try {
+			const selection = window.getSelection();
+			const { rangeCount } = selection;
+			for (let i = 0; i < rangeCount; ++i) {
+				ranges.push(selection.getRangeAt(i).cloneRange());
+			}
+		} catch(ex) {
+			Promise.reject(ex);
+			log?.push?.(lrToObject(ex));
+		}
+		return function lrRestoreSelection(ranges, active, log) {
+			try {
+				const selection = window.getSelection();
+				selection.removeAllRanges();
+				for (const r of ranges) {
+					selection.addRange(r);
+				}
+			} catch(ex) {
+				Promise.reject(ex);
+				log?.push?.(lrToObject(ex));
+			}
+			try{
+				active?.focus?.();
+			} catch(ex) {
+				Promise.reject(ex);
+				log?.push?.(lrToObject(ex));
+			}
+		}.bind(null, ranges, document.activeElement, log);
+	}
+
+	function lrcMakeTempInput(text, log) {
+		try {
+			const input = document.createElement("textarea");
+			input.setAttribute("aria-hidden", "true");
+			// Huge negative left and top are not used.
+			// Perhaps they might cause accidental scroll.
+			input.style.heigth = "0px";
+			input.style.overflow = "hidden";
+			input.style.position = "absolute";
+			input.value = text;
+			document.body.appendChild(input);
+			input.select();
+			return document.body.removeChild.bind(document.body, input);
+		} catch (ex) {
+			Promise.reject(ex);
+			log?.push?.(lrToObject(ex));
+		}
+	}
+
 	function lrCopyUsingEvent(text) {
-		// FIXME Sync with `common/lr_common.js`
 		// Document may install copy event interceptor earlier.
 		let listenerInvoked = false;
-		function lrc_oncopy(event) {
-			document.removeEventListener("copy", lrc_oncopy, true);
-			event.stopImmediatePropagation();
-			event.preventDefault();
-			event.clipboardData.clearData();
-			event.clipboardData.setData("text/plain", text);
-			listenerInvoked = true;
-		}
-		document.addEventListener("copy", lrc_oncopy, true);
+		const listener = function lrc_oncopy(text, log, event) {
+			try {
+				event.stopImmediatePropagation();
+				event.preventDefault();
+				event.clipboardData.clearData();
+				event.clipboardData.setData("text/plain", text);
+				listenerInvoked = true;
+			} catch (ex) {
+				Promise.reject(ex);
+				log?.push?.(lrToObject(ex));
+			}
+		}.bind(null, text, warnings);
+		const listenerOptions = { capture: true };
+		window.addEventListener("copy", listener, { once: true, ...listenerOptions });
 
+		const active = document.activeElement?.nodeName?.toUpperCase?.();
+		const needsInput = lrIsGecko() && ACTIVE_NODES.indexOf(active) >= 0;
+		const restoreSelection = needsInput ? lrcSaveSelection(warnings) : undefined;
+		const removeInput = needsInput ? lrcMakeTempInput(text, warnings) : undefined;
 		let result;
 		try {
 			result = document.execCommand("copy");
 		} finally {
-			document.removeEventListener("copy", lrc_oncopy, true);
+			window.removeEventListener("copy", listener, listenerOptions);
+			removeInput?.();
+			restoreSelection?.();
 		}
 		if (!result) {
 			throw new Error("Copy using command and event listener failed");
@@ -135,7 +204,6 @@
 		return result;
 	}
 
-	let warnings = [];
 	const result = { warnings };
 	try {
 		function lrRandomId() {
