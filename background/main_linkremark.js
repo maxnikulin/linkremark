@@ -67,7 +67,6 @@ async function lrMainAsync() {
 	gLrAddonRpc.register("store.getCapture", gLrRpcStore.handleCapture);
 	gLrAddonRpc.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
 	gLrAddonRpc.register("store.putPreviewError", gLrRpcStore.handlePutPreviewError);
-	gLrAddonRpc.register("polyfill.closeTab", lr_rpc_commands.closeTab);
 	gLrAddonRpc.register("nativeMessaging.hello", lr_native_export.hello);
 	gLrAddonRpc.register("nativeMessaging.mentions", lr_native_export.mentionsEndpoint);
 	gLrAddonRpc.register("nativeMessaging.visit", lr_native_export.visitEndpoint);

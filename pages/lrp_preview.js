@@ -61,17 +61,10 @@ async function lrCopyToClipboard(text) {
 	throw new Error("Copy to clipboard failed");
 }
 
-// TODO progress log
 async function lrCloseWindow(timeout) {
 	await lrPromiseTimeout(timeout >= 0 ? timeout : 1000);
-	try {
-		window.close();
-	} catch (ex) {
-		console.error("lrCloseWindow: window.close: %o", ex);
-	}
-	await lrPromiseTimeout(100);
-	await lrSendMessage("polyfill.closeTab");
-	await lrPromiseTimeout(200);
+	window.close();
+	await lrPromiseTimeout(25);
 	throw new Error("Unable to close the window");
 }
 
