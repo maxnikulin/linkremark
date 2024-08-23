@@ -1298,6 +1298,51 @@ function lrInitEventSources() {
 	return { permissionEvents, stateStore };
 }
 
+// Force switch to the opener tab on preview close (Firefox-only)
+//
+// Browser tends to switch to next tab instead because:
+// - activation of an unrelated tab cleared `openerTabId`
+//   of all tabs,
+// - there are multiple tabs with `openerTabId` identical
+//   to the property of the captured tab
+//   (multiple links opened from the same page).
+// The trick does not work in Firefox-115 ESR when page development tools
+// pane is focused.
+async function lrSetSuccessorTabId() {
+	// Firefox-specific, Chromium-127 does not support `successorTabId`.
+	// The following can not be used as a workaround for Chrome:
+	// - switching tab to `openerTabId` in `beforeunload` listener
+	//   since it may happen in response to page reload.
+	// - overriding and restoring `openerTabId` for all tabs in response to
+	//   `document` `visibilitychange` event since it is not fired
+	//   on tab detaching.
+	// I am against waking up this extension on every `tabs.onActivate`,
+	// `tabs.onDetach`, etc. events.
+	if (bapi.tabs.moveInSuccession === undefined) {
+		return;
+	}
+	const { id, openerTabId, successorTabId, windowId }
+		= await bapi.tabs.getCurrent?.() || {};
+	// Try to not interfere with extensions that manages next tab after closing.
+	if (!(id >= 0 && openerTabId >= 0 && successorTabId === bapi.tabs.TAB_ID_NONE)) {
+		return;
+	}
+	let openerTab;
+	try {
+		openerTab = await bapi.tabs.get(openerTabId);
+		if (!(openerTab?.id >= 0)) {
+			return;
+		}
+	} catch (_ex) {
+		// The tab has been closed.
+		return;
+	}
+	if (windowId !== openerTab.windowId) {
+		return;
+	}
+	await bapi.tabs.moveInSuccession?.([id], openerTabId);
+}
+
 async function lrPreviewMain(eventSources) {
 	gLrPreview = lrInitEventSources();
 	const store = gLrPreview.stateStore;
@@ -1369,6 +1414,11 @@ async function lrPreviewMain(eventSources) {
 		lrPreviewLogException(store, { message: "A problem with the capture", error });
 	}
 
+	try {
+		await lrSetSuccessorTabId();
+	} catch (error) {
+		Promise.reject(error);
+	}
 	return eventSources;
 }
 

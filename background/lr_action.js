@@ -668,6 +668,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			if (!tab?.incognito) {
 				return (await bapi.tabs.create({
 					url: url.toString(),
+					// See also: `lrSetSuccessorTabId` in `pages/lrp_preview.js`.
 					openerTabId: tab && tab.id >= 0 ? tab.id : undefined,
 					windowId: tab && tab.windowId >= 0 ? tab.windowId : undefined,
 					// Not necessary in Firefox-95 but Chromium-95 adds the tab at the end otherwise.
