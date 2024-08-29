@@ -47,66 +47,13 @@ function bapiChrome(chrome) {
 	const asis = Symbol("asis");
 	const targetMap = new WeakMap();
 
-	class EventWithSendResponse {
-		constructor(origEvent) {
-			this.origEvent = origEvent;
-		};
-		addListener(mozillaStyleListener) {
-			if (!this.listenerMap) {
-				this.listenerMap = new WeakMap();
-			}
-			var callMozillaStyleListener = mozillaStyleListener;
-			function chromeStyleListener(message, sender, sendResponse) {
-				var result = callMozillaStyleListener(message, sender, sendResponse);
-				if (result && result.then) {
-					result.then(function onResolve(message) { sendResponse(message); })
-						.catch(err => console.error(err));
-					return true;
-				}
-				return result;
-			}
-			this.listenerMap.set(mozillaStyleListener, chromeStyleListener);
-			this.origEvent.addListener(chromeStyleListener);
-		};
-
-		hasListener(mozillaStyleListener) {
-			return this.listenerMap &&
-				this.origEvent.hasListener(this.listenerMap.get(mozillaStyleListener));
-		};
-
-		removeListener(mozillaStyleListener) {
-			if (this.listenerMap) {
-				this.origEvent.removeListener(this.listenerMap.get(mozillaStyleListener));
-				this.listenerMap.delete(mozillaStyleListener);
-			}
-		};
-	};
-
-	function promisifyEventWithResponse(target, prop) {
-		return new EventWithSendResponse(Reflect.get(target, prop));
-	};
-
 	var methods = {
 		browserAction: "action",
 		commands: asis,
 		contextMenus: asis,
 		i18n: asis,
 		permissions: asis,
-		runtime: {
-			lastError: asis,
-			connect: asis,
-			connectNative: asis,
-			getManifest: asis,
-			id: asis,
-			getURL: asis,
-			onConnect: asis,
-			onInstalled: asis,
-			onStartup: asis,
-			reload: asis,
-			sendMessage: asis,
-			openOptionsPage: asis,
-			onMessage: promisifyEventWithResponse,
-		},
+		runtime: asis,
 		// `chrome.scripting.executeScript` returns `undefined` in Firefox mv2 extensions
 		// so it is impossible to use `chrome` directly instead of `bapi`.
 		scripting: {
