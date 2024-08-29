@@ -47,65 +47,6 @@ function bapiChrome(chrome) {
 	const asis = Symbol("asis");
 	const targetMap = new WeakMap();
 
-	function promisify(target, property) {
-		const method = Reflect.get(target, property);
-		const name = method.name || "promisifyWrapper";
-		const obj = {[name]: function(...args) {
-			var error = new Error();
-			// Unsure if _target is guarantied to survive
-			// after permission revocation and grant again.
-			const src = targetMap.get(this) || this;
-			return new Promise(function(resolve, reject) {
-				try {
-					method.call(src, ...args, function _bapiChrome_promisifyCallback(result) {
-						try {
-							const { lastError } = chrome.runtime;
-							if (lastError === undefined /* Chrome */ || lastError === null /* Firefox */) {
-								resolve(result);
-								return;
-							} else if (typeof lastError.message === "string") {
-								// Chrome
-								const { message, ...other } = lastError;
-								error.message = message;
-								reject(error);
-								const unexpected = Object.keys(other);
-								if (unexpected.length !== 0) {
-									console.warn(
-										"bapiChrome: unexpected lastError",
-										JSON.stringify(others));
-								}
-							} else if (lastError instanceof Error) {
-								// Firefox, so should not happen.
-								for (const field of ["stack", "fileName", "columnName", "lineNumber"]) {
-									if (!lastError[field] && error[field]) {
-										lastError[field] = error[field];
-									}
-								}
-								reject(lastError);
-							} else if (typeof lastError === "string") {
-								error.message = lastError;
-								reject(error);
-								console.warn("bapiChrome: lastError is string", lastError);
-							} else {
-								error.message = String(lastError);
-								reject(error);
-								console.warn("bapiChrome: unknown lastError", lastError);
-							}
-						} catch (ex) {
-							console.warn("bapiChrome", ex);
-							reject(ex);
-						}
-					});
-				} catch (e) {
-					reject(e);
-				}
-			});
-		} };
-		const func = obj[name];
-		Object.defineProperty(func, "name", { value: name, configurable: true });
-		return func;
-	}
-
 	class EventWithSendResponse {
 		constructor(origEvent) {
 			this.origEvent = origEvent;

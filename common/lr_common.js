@@ -112,6 +112,57 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 		}
 		return retval;
 	},
+	lastErrorAsError(error) {
+		function withMessage(message) {
+			try {
+				if (error != null) {
+					error.message = message;
+					return error;
+				}
+			} catch (ex) {
+				Promise.reject(ex);
+			}
+			return new Error(message);
+		}
+
+		try {
+			const { lastError } = chrome.runtime;
+			if (lastError === undefined /* Chrome */ || lastError === null /* Firefox */) {
+				return lastError;
+			} else if (typeof lastError.message === "string") {
+				// Chrome
+				const { message, ...other } = lastError;
+				try {
+					if (Object.keys(other).length !== 0) {
+						console.warn(
+							"lr_common: unexpected lastError",
+							JSON.stringify(lastError));
+					}
+				} catch (ex) {
+					Promise.reject(ex);
+				}
+				return withMessage(message);
+			} else if (lastError instanceof Error) {
+				if (error != null) {
+					for (const field of ["stack", "fileName", "columnName", "lineNumber"]) {
+						if (!lastError[field] && error[field]) {
+							lastError[field] = error[field];
+						}
+					}
+				}
+				return lastError;
+			} else if (typeof lastError === "string") {
+				error.message = lastError;
+				console.warn("lr_common: lastError is string", lastError);
+				return withMessage(lastError);
+			} else {
+				console.warn("lr_common: unknown lastError", lastError);
+				return withMessage(String(lastError));
+			}
+		} catch (ex) {
+			return ex;
+		}
+	},
 	isWarning(obj) {
 		return obj != null && String(obj.name).endsWith("Warning");
 	},
