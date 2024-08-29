@@ -362,12 +362,11 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 			return continuation();
 		}
 		try {
-			values = values?.settings;
-			// TODO extract lastError from bapi.
-			const { lastError } = chrome.runtime;
-			if (lastError != null) {
-				throw new Error(lastError.message || String(lastError));
+			const error = lr_common.lastErrorAsError();
+			if (error) {
+				throw error;
 			}
+			values = values?.settings;
 			if (lr_settings.isReady()) {
 				console.warn("LR: settings already loaded");
 				return;
