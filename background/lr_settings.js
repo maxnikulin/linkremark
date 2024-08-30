@@ -487,6 +487,9 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 	};
 
 	// TODO Separate into model part and async part actual updating the storage.
+	// TODO Add retries as a workaround for rare issues
+	// - <https://issues.chromium.org/344767727>
+	// - <https://issues.chromium.org/344654368>
 	lr_settings.update = async function update(params) {
 		await this.wait();
 		const [obj, replace] = params;
