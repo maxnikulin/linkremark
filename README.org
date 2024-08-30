@@ -523,6 +523,9 @@ or desktop-wide handler for =org-protocol:= URI scheme.
    It could be opened using "Inspect" link from the =about:debugging#/runtime/this-firefox=
    page for Firefox. In Chrome menu choose "More tools", "Extensions" and click on the link
    followed "Inspect views" on the add-on card.
+3. In Chrome have a look into
+   =chrome://extensions/?errors=mgmcoaemjnaehlliifkgljdnbpedihoe=
+   (error collection should be enabled for the extension).
 
 For native messaging backend problems see the related section in Mozilla
 [[https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging#Troubleshooting][developer guide]]
