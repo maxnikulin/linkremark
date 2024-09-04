@@ -126,12 +126,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 					}
 				}
 				if (this._running) {
-					if (this._pending) {
-						if (this._subscription != null) {
-							this._subscription.notify({ id: this._pending.id, status: "cancelled" });
-						}
-						this._pending.reject(new LrActionLockCancelledError("Another action requested"));
-					}
+					this._rejectPending("Another action requested");
 					const id = String(lr_common.getId());
 					const retval = new Promise((resolve, reject) => this._pending = { resolve, reject, title, id });
 					if (this._subscription != null) {
@@ -261,11 +256,11 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			return result;
 		}
 
-		_rejectPending() {
+		_rejectPending(message = undefined) {
 			if (this._pending === undefined) {
 				return;
 			}
-			this._pending.reject(new LrActionLockCancelledError("Cancelled"));
+			this._pending.reject(new LrActionLockCancelledError(String(message || "Cancelled")));
 			if (this._subscription != null) {
 				this._subscription.notify({ id: this._pending.id, status: "cancelled" });
 			}
