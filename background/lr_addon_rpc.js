@@ -52,11 +52,11 @@ class LrAddonRpc {
 			const result = this.do_process(request, port);
 			// Unsure if `lr_util.isFunction` is safer here.
 			if (typeof result?.then === "function") {
-				result.then(this._onResult.bind(null, sendResponse, id))
+				result.then(this._onResult.bind(null, sendResponse, id, request))
 					.catch(this._onException.bind(null, sendResponse, id, request, port));
 				return true;
 			}
-			this._onResult(sendResponse, id, result);
+			this._onResult(sendResponse, id, request, result);
 		} catch (ex) {
 			this._onException(sendResponse, id, request, port, ex);
 		}
@@ -138,8 +138,16 @@ class LrAddonRpc {
 		this.subscribed.delete(port);
 	}
 
-	_onResult(sendResponse, id, result) {
+	_onResult(sendResponse, id, request, result) {
 		sendResponse(result?._type === "ExecInfo" ? { id, ...result } : { id, result });
+		try {
+			if (result === undefined) {
+				const { method, ...other } = request;
+				console.error(`LrAddonRpc: undefined result for ${method}`, other);
+			}
+		} catch (ex) {
+			Promise.reject(ex);
+		}
 	};
 
 	_onException(sendResponse, id, request, port, ex) {
