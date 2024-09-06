@@ -28,20 +28,32 @@ var gLrbaBgConnection;
 const lrbaIdPrefix = "status-";
 
 function lrbaAddError(ex, title) {
-	console.error("lrba: %o: %o", title, ex);
 	try {
+		const message = ex?.message;
+		const text = String(message || ex);
+		if (typeof message === "string") {
+			// Firefox `DOMException` does not allow `ex.message = ...`:
+			//     TypeError: setting getter-only property "message"
+			Object.defineProperty(ex, "message", {
+				value: `lrba: ${String(title)}: ${message}`,
+				configurable: true,
+				writable: true,
+				enumerable: true,
+			});
+		}
+		Promise.reject(ex);
 		const log = byId("log");
 		const children = [];
 		if (title != null && title != "") {
 			children.push(String(title));
 		}
 		if (ex != null && ex != "") {
-			children.push(String(ex.message || ex));
+			children.push(text);
 		}
 		const li = E('li', { className: "status-error" }, children.join(": ") || "Internal error");
 		log.insertBefore(li, log.firstChild);
 	} catch (ex) {
-		console.error("lrba: add error entry: %o", ex);
+		Promise.reject(ex);
 	}
 }
 
