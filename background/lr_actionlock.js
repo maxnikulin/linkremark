@@ -226,21 +226,26 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		/* starting a new capture. */
 		reset() {
 			console.warn("lr_actionlock.queue.reset");
+			let retval = "";
 			try {
 				/* await */ bapi.browserAction.setPopup({ popup: "" });
 			} catch (ex) {
+				retval = "Failed to disable popup";
 				console.error("LrActionLockQueue.reset: disable popup: %o", ex);
 			}
 			try {
 				this._rejectPending();
 			} catch (ex) {
+				retval = "Failed to cancel pending capture";
 				console.error("LrActionLockQueue.reset: cancel pending: %o", ex);
 			}
 			try {
 				this._abortRunning();
 			} catch (ex) {
-				console.error("LrActionLockQueue.reset: cancel pending: %o", ex);
+				retval = "Failed to abort active capture";
+				console.error("LrActionLockQueue.reset: abort running: %o", ex);
 			}
+			return retval;
 		}
 
 		status() {

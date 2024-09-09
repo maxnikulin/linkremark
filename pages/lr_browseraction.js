@@ -147,20 +147,33 @@ function lrbaOnDisconnect(port) {
 	port.onDisconnect.removeListener(lrbaOnDisconnect);
 }
 
-async function lrbaSendMessage(method) {
+async function lrbaCapture() {
 	try {
-		await lr_common.sendMessage(method);
+		if (true !== await lr_common.sendMessage("action.captureTab")) {
+			throw new Error("Unknown result");
+		}
 	} catch (ex) {
-		lrbaAddError(ex, method);
+		lrbaAddError(ex, "Capture");
+	}
+}
+
+async function lrbaResetLock() {
+	try {
+		const result = await lr_common.sendMessage("lock.reset");
+		if (typeof result !== "string") {
+			throw new Error("Unknown result");
+		} else if (result !== "") {
+			throw new Error(result);
+		}
+	} catch (ex) {
+		lrbaAddError(ex, "Reset");
 	}
 }
 
 async function lrbaMain() {
 	try {
-		byId("resetCaptures").addEventListener(
-			"click", () => lrbaSendMessage("lock.reset"), false);
-		byId("startCapture").addEventListener(
-			"click", () => lrbaSendMessage("action.captureTab"), false);
+		byId("resetCaptures").addEventListener("click", lrbaResetLock, false);
+		byId("startCapture").addEventListener("click", lrbaCapture, false);
 	} catch (ex) {
 		lrbaAddError(ex, "Init buttons");
 	}

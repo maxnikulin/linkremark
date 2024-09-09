@@ -754,6 +754,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		// - suppresses permissions requests,
 		// - opening popup when aquiring lock.
 		await lr_action._run(lr_action._singleTabAction, null, null, { fromBrowserActionPopup: true });
+		return true;
 	}
 
 	Object.assign(this, {
