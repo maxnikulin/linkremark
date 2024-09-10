@@ -247,23 +247,28 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 
 		step(maybeDescr, ...funcAndArgs) {
 			const [descr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
+			this.debugInfo.push(descr);
+			try {
+				const lock = this._getTop()._lockResolved;
+				if (lock && lock.signal && lock.signal.aborted) {
+					throw lock.signal.reason ?? new Error("Aborted");
+				}
+				args.push(this);
+			} catch (ex) {
+				this._onException(descr, ex);
+			}
+
 			if (lr_util.isAsyncFunction(func)) {
 				return this._asyncStep(descr, func, ...args);
-			}
-			this.debugInfo.push(descr);
-			const saveResult = descr.result;
-			if (saveResult) {
-				descr.result = null;
 			}
 			try {
 				if (!lr_util.isFunction(func)) {
 					throw new TypeError("LrExecutor.step: not a function");
 				}
-				const lock = this._getTop._lockResolved;
-				if (lock && lock.signal && lock.signal.aborted) {
-					throw new Error("Aborted");
+				const saveResult = descr.result;
+				if (saveResult) {
+					descr.result = null;
 				}
-				args.push(this);
 				const result = func(...args);
 				if (saveResult) {
 					descr.result = result;
@@ -275,20 +280,15 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		}
 
 		async _asyncStep(descr, func, ...args) {
-			this.debugInfo.push(descr);
-			const saveResult = descr.result;
-			if (saveResult) {
-				descr.result = null;
-			}
 			try {
-				const lock = this._getTop()._lockResolved;
-				if (lock && lock.signal && lock.signal.aborted) {
-					throw new Error("Aborted");
+				const saveResult = descr.result;
+				if (saveResult) {
+					descr.result = null;
 				}
-				args.push(this);
 				const resultPromise = func(...args);
 				let result;
 				const timeout = descr.timeout
+				const lock = this._getTop()._lockResolved;
 				if ((lock && lock.abortPromise) || timeout > 0) {
 					const promises = [ resultPromise ];
 					if (lock && lock.abortPromise) {
