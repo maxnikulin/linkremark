@@ -20,7 +20,7 @@
 var lr_test_abortable_ctx = lr_util.namespace(lr_test_abortable_ctx, function lr_test_abortable_ctx() {
 	var lr_test_abortable_ctx = this;
 
-	lr_test_abortable_ctx.test_addAbortedSignal = async function addAbortedSignal() {
+	lr_test_abortable_ctx.test_addAbortedSignal = async function test_addAbortedSignal() {
 		await lr_abortable_ctx.runAbortable(null, async function _addAbortedSignal(ctx) {
 			const signal = AbortSignal.abort();
 			let error;
@@ -39,7 +39,17 @@ var lr_test_abortable_ctx = lr_util.namespace(lr_test_abortable_ctx, function lr
 				lr_test.assertEq(signal.reason, error, "Abort signal should be thrown");
 			}
 		});
-	}
+	};
+
+	lr_test_abortable_ctx.test_runAborted = async function test_runAborted() {
+		const signal = AbortSignal.abort();
+		lr_test.assertThrows(
+			signal.reason,
+			async function _test_runAborted() {
+				await lr_abortable_ctx.runAbortable(signal, async () => true);
+			});
+	};
+
 	lr_test.suites.push(this);
 	return this;
 });
