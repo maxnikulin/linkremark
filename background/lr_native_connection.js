@@ -27,7 +27,10 @@ class LrNativeConnectionDisconnected {
 }
 
 class LrNativeConnectionActive {
-	constructor(backend, proxy) {
+	constructor(backend, proxy, signal) {
+		if (signal?.aborted) {
+			throw signal.reason;
+		}
 		if (!("connectNative" in bapi.runtime)) {
 			throw new Error("No permission for native apps");
 		}
@@ -38,6 +41,16 @@ class LrNativeConnectionActive {
 		this.port.onDisconnect.addListener(this.onDisconnect);
 		this.onMessage = this.doOnMessage.bind(this);
 		this.port.onMessage.addListener(this.onMessage);
+		try {
+			if (signal != null) {
+				const onAbort = this._onAbort.bind(this);
+				signal.addEventListener("abort", onAbort, { once: true });
+				this._removeAbortListener = signal.removeEventListener.bind(
+					signal, "abort", onAbort);
+			}
+		} catch (ex) {
+			Promise.reject(ex);
+		}
 	};
 
 	/** `params` is wrapped into array
@@ -90,6 +103,11 @@ class LrNativeConnectionActive {
 			}
 			this.promiseMap.clear();
 		}
+		try {
+			this._removeAbortListener?.();
+		} catch (ex) {
+			Promise.reject(ex);
+		}
 	};
 
 	async doSend(message) {
@@ -131,14 +149,18 @@ class LrNativeConnectionActive {
 		this.disconnect((this.port && this.port.error) ||
 			(bapi.runtime.lastError && bapi.runtime.lastError.message));
 	};
+
+	_onAbort(ev) {
+		this.disconnect(ev?.target?.reason);
+	}
 }
 
 LrNativeConnectionActive.lastId = 0;
 LrNativeConnectionActive.getId = function() { return ++this.lastId; }
 
 class LrNativeConnection {
-	constructor(backend) {
-		this._state = new LrNativeConnectionActive(backend, this);
+	constructor(backend, signal) {
+		this._state = new LrNativeConnectionActive(backend, this, signal);
 	};
 	async send(method, params) {
 		return this._state.send(method, params);
@@ -149,74 +171,4 @@ class LrNativeConnection {
 	_disconnect() {
 		this._state = new LrNativeConnectionDisconnected();
 	};
-}
-
-class LrAbortableNativeConnection extends LrNativeConnection {
-	/**
-	 * TODO In addition to `abortPromise`, support fallback to
-	 * `signal` (`AbortSignal`) field of the object `lockPromise` is resolved to.
-	 */
-	constructor(backend, lockPromise) {
-		super(backend);
-		this._lock = lockPromise;
-	}
-
-	withTimeout(timeout) {
-		return Object.create(this, { _timeout: {
-			value: timeout,
-			enumerable: true,
-			writable: false,
-		} });
-	}
-
-	async send(method, params) {
-		const promises = [
-			super.send(method, params),
-			this._getAbortPromise(),
-		];
-		let timeoutId;
-		if (this._timeout >= 0) {
-			promises.push(new Promise((_, reject) => timeoutId = setTimeout(() => {
-				this.disconnect();
-				reject(new Error("Timeout"));
-				timeoutId = undefined;
-			}, this._timeout)));
-		}
-		const retval = Promise.race(promises);
-		if (timeoutId !== undefined) {
-			function cancelTimeout() {
-				if (timeoutId !== undefined) {
-					clearTimeout(timeoutId);
-				}
-			}
-			retval.then(cancelTimeout, cancelTimeout);
-		}
-		return retval;
-	}
-
-	async _getAbortPromise() {
-		if (this._abortPromise === undefined) {
-			try {
-				const lock = await this._lock;
-				if (lock != null) {
-					this._abortPromise = lock.abortPromise.catch(ex => {
-						this.disconnect(); throw ex;
-					});
-				}
-			} catch (ex) {
-				if (
-					typeof lr_actionlock !== undefined
-					&& ex instanceof lr_actionlock.LrActionLockCancelledError
-				) {
-					throw ex;
-				}
-				console.error("LrAbortableNativeConnection: %o", ex);
-			}
-		}
-		if (this._abortPromise === undefined) {
-			console.warn("LrAbortableNativeConnection.send: not cancellable");
-			this._abortPromise = new Promise((_resilve, _reject) => /* never */ undefined);
-		}
-		return this._abortPromise;
-	}
 }

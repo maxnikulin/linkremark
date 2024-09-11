@@ -28,63 +28,58 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	const permissions = [ "nativeMessaging" ];
 
 	async function hello(params) {
-		 return await lr_executor.run(
-			async function lrNativeAppHello(params, executor) {
-				const { connection, hello } = await connectionWithHello(params, executor);
-				connection.disconnect();
-				return hello;
-			},
-			params);
+		return await lr_executor.run(
+			withConnectionHello, params,
+			function lrNativeAppHello(params, properties, executor) {
+				return properties.hello;
+			});
 	}
 
 	async function lrSendToNative(capture, params, executor) {
 		const { error, tab, ...connectionParams } = params || {};
-		const { backend, connection, hello } = await executor.step(
-			async function getFormatNative(connectionParams, capture, executor) {
-				try {
-					return await connectionWithHello(connectionParams, executor);
-				} catch (ex) {
-					// Format to org if it is something wrong with the backend.
-					executor.step(
-						{ errorAction: lr_executor.IGNORE_ERROR },
-						function formatFallback(capture, executor) {
-							return lr_export.format(
-								capture,
-								{ format: "org", version: lr_export.ORG_PROTOCOL_VERSION, recursionLimit: 4 },
-								executor);
-						},
-						capture /*, executor implicit argument */);
-					throw ex;
-				}
-			},
-			connectionParams, capture /*, executor implicit argument */);
 		try {
-			if (!hello.format || !hello.version) {
-				throw new Error('Response to "hello" from native app must have "format" and "version" fields')
-			}
-			const {format, version, options} = hello;
-			console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
-			const data = executor.step(
-				function formatForNativeApp(capture, options, executor) {
-					return lr_export.format(capture, options, executor);
+			return await withConnectionHello(
+				connectionParams,
+				async function _lrSendToNative(params, properties, executor) {
+					const { backend, connection, hello } = properties;
+					if (!hello.format || !hello.version) {
+						throw new Error('Response to "hello" from native app must have "format" and "version" fields')
+					}
+					const {format, version, options} = hello;
+					console.debug("lrNativeMessaging: %s: hello: %o",  backend, hello);
+					const data = executor.step(
+						function formatForNativeApp(capture, options, executor) {
+							return lr_export.format(capture, options, executor);
+						},
+						capture, { ...hello, recursionLimit: 4 } /*, executor implicit argument */);
+					capture.transport.method = "native-messaging";
+					let result = await executor.step(
+						async function sendToNativeApp(object) {
+							return await connection.send("capture", object);
+						},
+						{data, error, format, version, options});
+					if (typeof result === 'boolean') {
+						result = { preview: !result }
+					}
+					return {
+						...result,
+						previewTab: tab,
+						previewParams: null,
+					};
 				},
-				capture, { ...hello, recursionLimit: 4 } /*, executor implicit argument */);
-			capture.transport.method = "native-messaging";
-			let result = await executor.step(
-				async function sendToNativeApp(object) {
-					return await connection.send("capture", object);
+				executor);
+		} catch (ex) {
+			// Format to org if it is something wrong with the backend.
+			executor.step(
+				{ errorAction: lr_executor.IGNORE_ERROR },
+				function formatFallback(capture, executor) {
+					return lr_export.format(
+						capture,
+						{ format: "org", version: lr_export.ORG_PROTOCOL_VERSION, recursionLimit: 4 },
+						executor);
 				},
-				{data, error, format, version, options});
-			if (typeof result === 'boolean') {
-				result = { preview: !result }
-			}
-			return {
-				...result,
-				previewTab: tab,
-				previewParams: null,
-			};
-		} finally {
-			connection.disconnect();
+				capture /*, executor implicit argument */);
+			throw ex;
 		}
 	}
 
@@ -103,12 +98,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		return await bapi.permissions.contains({ permissions });
 	}
 
-	/** Wrap the call with try-finally to ensure that connection is closed.
-	 *
-	 * There is no way to ensure resource release in JS. Even generators
-	 * may be destroyed without executing of `finally`.
-	 */
-	async function connectionWithHello(params, executor) {
+	async function withConnectionHello(params, func, executor) {
 		const timeout = (params && params.timeout) || TIMEOUT;
 		const backend = _getBackend(params);
 		if (!bapi.runtime.connectNative) {
@@ -126,12 +116,12 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			await new Promise(resolve => setTimeout(resolve, 100));
 			bapi.runtime.reload();
 		}
-		const connection = new LrAbortableNativeConnection(backend, executor && executor.lock);
+		const connection = new LrNativeConnection(backend, executor.lock?.signal);
 		try {
 			const hello = await executor.step(
-				{ result: true },
+				{ result: true, timeout },
 				async function nativeAppHello() {
-					return await connection.withTimeout(timeout).send("hello", {
+					return await connection.send("hello", {
 						formats: lr_export.getAvailableFormats(),
 						version: bapi.runtime.getManifest().version,
 					});
@@ -139,10 +129,9 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			if (!hello || typeof hello !== 'object') {
 				throw new Error('Response to "hello" is not an key-value Object');
 			}
-			return { backend, connection, hello };
-		} catch (ex) {
+			return await executor.step(func, params, { backend, connection, hello });
+		} finally {
 			connection.disconnect();
-			throw ex;
 		}
 	}
 
@@ -197,44 +186,44 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 		if (!await _hasPermissions()) {
 			return { response: "NO_PERMISSIONS" };
 		}
-		const { backend, connection, hello } = await connectionWithHello(params, executor);
-		try {
-			if (
-				!hello.capabilities || !hello.capabilities.indexOf
-				|| !(hello.capabilities.indexOf("urlMentions") >= 0)
-			) {
-				return { response: "UNSUPPORTED", hello };
-			}
-			const response = new Map();
-			let error;
-			for (const query of queryArray) {
-				try {
-					const { variants, id } = query;
-					const mentions = await connection.send("linkremark.urlMentions", { variants })
-					if (mentions && mentions.total > 0) {
-						response.set(id, mentions);
+		return await withConnectionHello(params,
+			async function _doQueryMentions(params, properties, executor) {
+				const { backend, connection, hello } = properties;
+				if (
+					!hello.capabilities || !hello.capabilities.indexOf
+					|| !(hello.capabilities.indexOf("urlMentions") >= 0)
+				) {
+					return { response: "UNSUPPORTED", hello };
+				}
+				const response = new Map();
+				let error;
+				for (const query of queryArray) {
+					try {
+						const { variants, id } = query;
+						const mentions = await connection.send("linkremark.urlMentions", { variants })
+						if (mentions && mentions.total > 0) {
+							response.set(id, mentions);
+						}
+					} catch (ex) {
+						if (error) {
+							// TODO report to executor
+							console.error("lr_native_export._queryMentions: error: %o %o", ex, variants);
+						} else {
+							error = ex;
+						}
 					}
-				} catch (ex) {
+				}
+				if (response.size === 0) {
 					if (error) {
-						// TODO report to executor
-						console.error("lr_native_export._queryMentions: error: %o %o", ex, variants);
-					} else {
-						error = ex;
+						throw error;
 					}
+					return { response: "NO_MENTIONS", hello };
+				} else if (error) {
+					console.error("lr_native_export._queryMentions: error: %o", ex);
 				}
-			}
-			if (response.size === 0) {
-				if (error) {
-					throw error;
-				}
-				return { response: "NO_MENTIONS", hello };
-			} else if (error) {
-				console.error("lr_native_export._queryMentions: error: %o", ex);
-			}
-			return { response, hello };
-		} finally {
-			connection.disconnect();
-		}
+				return { response, hello };
+			},
+			executor);
 	}
 
 	async function mentions(obj, params, executor) {
@@ -269,14 +258,11 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 
 	async function visitEndpoint(args) {
 		const [ query, params ] = args;
-		const timeout = params && params.timeout || lr_native_export.TIMEOUT;
 		const backend = _getBackend(params);
-		const connection = new LrNativeConnection(backend);
+		const timeout = AbortSignal.timeout(params.timeout ?? lr_native_export.TIMEOUT);
+		const connection = new LrNativeConnection(backend, timeout);
 		try {
-			return await Promise.race([
-				connection.send("linkremark.visit", query),
-				new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout)),
-			]);
+			return await connection.send("linkremark.visit", query);
 		} finally {
 			connection.disconnect();
 		}
@@ -333,7 +319,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 	Object.assign(this, {
 		LrNativeAppNotConfiguredError,
 		TIMEOUT,
-		hello, connectionWithHello, mentions, mentionsEndpoint, visitEndpoint,
+		hello, withConnectionHello, mentions, mentionsEndpoint, visitEndpoint,
 		initSync,
 		_queryMentions,
 	});
