@@ -220,6 +220,16 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		return [descr, func, args];
 	};
 
+	function _isCancelledError(error) {
+		const typ = lr_actionlock?.LrActionLockCancelledError;
+		try {
+			return typeof typ === "function" && error instanceof typ;
+		} catch (ex) {
+			Promise.reject(ex);
+		}
+		return false;
+	}
+
 	class LrExecutor {
 		constructor(params) {
 			const { notifier, parent } = params || {}
@@ -431,8 +441,8 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			if (!top.lock) {
 				// No async-await in this method to minimize impact of concurrent
 				// attempts to acquire lock for the same executor due to programming error.
-				top.lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
-				top.lock.then(lock => top._lockResolved = lock);
+				const lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
+				top.lock = lock.then(lock => top._lockResolved = lock);
 			} else {
 				top.addError(new LrWarning("Internal error with action locks"));
 			}
@@ -440,16 +450,14 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		}
 
 		async waitLock() {
+			const top = this._getTop();
 			try {
-				await this._getTop().lock;
+				await top.lock;
 			} catch (ex) {
-				if (
-					typeof lr_actionlock !== undefined
-					&& ex instanceof lr_actionlock.LrActionLockCancelledError
-				) {
+				if (_isCancelledError(ex)) {
 					throw ex;
 				} else {
-					executor.addError(new LrWarning("Action lock problem", { cause: ex }));
+					top.addError(new LrWarning("Action lock problem", { cause: ex }));
 				}
 			}
 		}
@@ -534,7 +542,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 					) {
 						totalError.errors.push(ex);
 						ex = totalError;
-					} else {
+					} else if (ex !== totalError) {
 						ex = totalError = new LrTmpAggregateError([ex, totalError]);
 					}
 				} else {
@@ -561,8 +569,15 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		function unlock(status, ex) {
 			try {
 				if (executor.lock) {
-					status = status || (ex && (lr_common.isWarning(ex) ? "warning" : "error"));
-					executor.lock.then(lock => lock.finished?.(status));
+					if (status == null && ex != null) {
+						if (_isCancelledError(ex)) {
+							status = "cancelled";
+						} else {
+							status = lr_common.isWarning(ex) ? "warning" : "error";
+						}
+					}
+					// Avoid "Uncaught (in promise)" message due lock acquisition failure.
+					executor.lock.then(lock => lock.finished?.(status), () => undefined);
 				}
 			} catch (ex) {
 				console.error("lr_executor.run.unlock: ignored error: %o", ex);
@@ -602,13 +617,6 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			} catch (callbackEx) {
 				ex = run_setTotalError(callbackEx);
 			}
-			try {
-				notifier.error(ex);
-			} catch (ignoredEx) {
-				console.error("lr_executor.run: ignored error: notify error: %o", ignoredEx);
-			}
-			unlock(undefined, ex);
-			return executor.execInfo;
 		}
 
 		try {
@@ -635,12 +643,13 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 					console.warn("Unsupported action status: %o", status);
 					notifier.error(new LrWarning("Unsupported action status"));
 			}
-			unlock(status);
 		} catch (ex) {
 			console.error("lr_executor.run: ignored error: notify completed: %o", ex);
-			unlock(undefined, ex);
+			run_setTotalError(ex);
+			status = undefined;
 		}
 
+		unlock(status, totalError);
 		return executor.execInfo;
 	};
 

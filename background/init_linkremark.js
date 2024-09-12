@@ -45,6 +45,7 @@ try {
 
 var bapi;
 var lr_action;
+var lr_actionlock;
 var lr_clipboard;
 var lr_export;
 var lr_native_export;

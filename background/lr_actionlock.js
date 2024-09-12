@@ -98,8 +98,9 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 
 		}
 		async abort() {
-			this._abortController.abort();
-			this._rejectAbortPromise(new LrActionLockCancelledError("Aborted"));
+			const error = new LrActionLockCancelledError("Aborted");
+			this._abortController.abort(error);
+			this._rejectAbortPromise(error);
 		}
 	}
 
@@ -278,7 +279,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			}
 			this._running.abort();
 			if (this._subscription != null) {
-				this._subscription.notify({ id: this._running.id, status: "cancelled" });
+				this._subscription.notify({ id: this._running.id, status: "aborted" });
 			}
 			this._running = undefined;
 		}
