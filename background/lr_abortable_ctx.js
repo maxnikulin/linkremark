@@ -124,7 +124,18 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 							deferred.reject(e);
 							this._warn(new Error("Abortable deferred is not destroyed"));
 						} else {
-							console.debug("Error discarded due to abort", e);
+							console.assert(
+								!this._deferred?.has(deferred),
+								"Deferred should be removed earlier");
+							let cause = e;
+							for (; cause !== undefined; cause = cause?.cause) {
+								if (this.reason === cause) {
+									break;
+								}
+							}
+							if (cause === undefined) {
+								console.debug("Error discarded due to abort", e);
+							}
 							return;
 						}
 					} else {
