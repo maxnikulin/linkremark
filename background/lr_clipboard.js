@@ -229,7 +229,7 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 		let result = method !== "org-protocol" || !!projection.url;
 		if (result && content) {
 			const text = typeof content === "string" ? content : JSON.stringify(content, null, "  ");
-			result = await _lrClipboardBgCopy(text, executor.lock?.signal);
+			result = await _lrClipboardBgCopy(text, executor.ctx.signal);
 			if (!result) {
 				return false;
 			}

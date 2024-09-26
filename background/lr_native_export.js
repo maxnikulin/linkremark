@@ -116,7 +116,7 @@ var lr_native_export = lr_util.namespace(lr_native_export, function lr_native_ex
 			await new Promise(resolve => setTimeout(resolve, 100));
 			bapi.runtime.reload();
 		}
-		const connection = new LrNativeConnection(backend, executor.lock?.signal);
+		const connection = new LrNativeConnection(backend, executor.ctx.signal);
 		try {
 			const hello = await executor.step(
 				{ result: true, timeout },

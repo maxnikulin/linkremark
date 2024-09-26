@@ -232,10 +232,11 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 
 	class LrExecutor {
 		constructor(params) {
-			const { notifier, parent } = params || {}
+			const { notifier, parent, ctx } = params || {}
 			this.notifier = notifier || new LrNullNotifier();
 			this.parent = parent;
 			this.debugInfo = [];
+			this.ctx = ctx ?? parent?.ctx;
 		}
 
 		get execInfo() {
@@ -255,14 +256,16 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			return this.execInfo.result = value;
 		}
 
-		step(maybeDescr, ...funcAndArgs) {
+		get step() {
+			this.ctx.throwIfAborted();
+			return this._step;
+		}
+
+		_step(maybeDescr, ...funcAndArgs) {
 			const [descr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 			this.debugInfo.push(descr);
 			try {
-				const lock = this._getTop()._lockResolved;
-				if (lock && lock.signal && lock.signal.aborted) {
-					throw lock.signal.reason ?? new Error("Aborted");
-				}
+				this.ctx.throwIfAborted();
 				args.push(this);
 			} catch (ex) {
 				this._onException(descr, ex);
@@ -295,25 +298,20 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 				if (saveResult) {
 					descr.result = null;
 				}
-				const resultPromise = func(...args);
+				const resultPromise = this.ctx.abortable(func(...args));
 				let result;
 				const timeout = descr.timeout
-				const lock = this._getTop()._lockResolved;
-				if ((lock && lock.abortPromise) || timeout > 0) {
-					const promises = [ resultPromise ];
-					if (lock && lock.abortPromise) {
-						promises.push(lock.abortPromise);
-					}
+				if (timeout > 0) {
 					let timeoutId;
-					if (timeout > 0) {
-						// Unconditionally created `Error` instance adds overhead
-						// but failure when happened may be cause by something really obscure,
-						// so real stack trace is valueable.
-						let rejectError = new Error("Timeout");
-						let rejectFunc;
-						promises.push(new Promise((_resolve, reject) => rejectFunc = reject));
-						timeoutId = setTimeout(() => rejectFunc(rejectError), timeout);
-					}
+					// Unconditionally created `Error` instance adds overhead
+					// but failure when happened may be cause by something really obscure,
+					// so real stack trace is valueable.
+					let rejectError = new Error("Timeout");
+					let rejectFunc;
+					const promises = [
+						resultPromise,
+						new Promise((_resolve, reject) => rejectFunc = reject)];
+					timeoutId = setTimeout(() => rejectFunc(rejectError), timeout);
 					try {
 						result = await Promise.race(promises);
 					} finally {
@@ -333,7 +331,12 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			}
 		}
 
-		child(maybeDescr, ...funcAndArgs) {
+		get child() {
+			this.ctx.throwIfAborted();
+			return this._child;
+		}
+
+		_child(maybeDescr, ...funcAndArgs) {
 			let [fullDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 			const { contextId, contextObject, ...descr } = fullDescr;
 			const notifier = this.notifier.makeNested({ id: contextId, object: contextObject });
@@ -434,32 +437,46 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 			}
 		}
 
-		/// Returns `Promise`. Its rejection should not be a fatal error.
-		acquireLock(title, fromBrowserActionPopup) {
-			const top = this._getTop();
-
-			if (!top.lock) {
-				// No async-await in this method to minimize impact of concurrent
-				// attempts to acquire lock for the same executor due to programming error.
-				const lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
-				top.lock = lock.then(lock => top._lockResolved = lock);
-			} else {
-				top.addError(new LrWarning("Internal error with action locks"));
-			}
-			return top.lock;
-		}
-
-		async waitLock() {
+		async _waitLock(title, fromBrowserActionPopup) {
 			const top = this._getTop();
 			try {
-				await top.lock;
+				top.lock = lr_actionlock.queue.acquire(title, fromBrowserActionPopup);
+				top.ctx.addAbortSignal(top.lock.signal);
+				await top.lock.ready;
 			} catch (ex) {
 				if (_isCancelledError(ex)) {
 					throw ex;
 				} else {
-					top.addError(new LrWarning("Action lock problem", { cause: ex }));
+					this.addError(new LrWarning("Action lock problem", { cause: ex }));
 				}
 			}
+			return false;
+		}
+		/* async */ acquireLock(title, fromBrowserActionPopup) {
+			const top = this._getTop();
+
+			try {
+				if (top._lockReady !== undefined) {
+					this.addError(new LrWarning("Internal error: action locks already requested"));
+				} else {
+					if (top.lock !== undefined) {
+						this.addError(new LrWarning("Internal error with action locks"));
+					} else {
+						top._lockReady = this._waitLock(title, fromBrowserActionPopup);
+					}
+				}
+			} catch (ex) {
+				Promise.reject(ex);
+			}
+			return top._lockReady;
+		}
+
+		waitLock() {
+			const promise = this._getTop()._lockReady;
+			if (promise === undefined) {
+				console.error("lr_executor: lock has not acquired");
+			}
+			return promise;
 		}
 
 		_onException(descr, ex) {
@@ -508,11 +525,15 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 		}
 	}
 
-	async function run(maybeDescr, ...funcAndArgs) {
+	/* async */ function run(...args) {
+		return lr_abortable_ctx.runAbortable(null, ctx => _run(ctx, ...args));
+	}
+
+	async function _run(ctx, maybeDescr, ...funcAndArgs) {
 		const [runDescr, func, args] = lr_executor._normArgs(maybeDescr, ...funcAndArgs);
 		let { notifier, oninit, oncompleted, onerror, implicitResult, ...callDescr } = runDescr;
 		notifier = notifier || new LrNullNotifier();
-		const executor = new LrExecutor({ notifier });
+		const executor = new LrExecutor({ notifier, ctx });
 
 		function run_maybeCallback(funcAndDescr, ...args) {
 			if (funcAndDescr == null) {
@@ -576,8 +597,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 							status = lr_common.isWarning(ex) ? "warning" : "error";
 						}
 					}
-					// Avoid "Uncaught (in promise)" message due lock acquisition failure.
-					executor.lock.then(lock => lock.finished?.(status), () => undefined);
+					executor.lock?.finished?.(status);
 				}
 			} catch (ex) {
 				console.error("lr_executor.run.unlock: ignored error: %o", ex);

@@ -273,8 +273,16 @@ var lr_test = lr_util.namespace(lr_test, function lr_test(){
 		if (!lr_util.isFunction(func)) {
 			throw new TypeError("func must be a synchronous function");
 		}
-		const executor = new lr_executor._internal.LrExecutor(
-			{ notifier: new lr_executor.LrNullNotifier() });
+		const executor = new lr_executor._internal.LrExecutor({
+			notifier: new lr_executor.LrNullNotifier(),
+			ctx: {
+				throwIfAborted() {},
+				abortable(promise) {
+					console.error("Async call of abortable context mock");
+					return promise;
+				},
+			},
+		});
 		try {
 			executor.execInfo.result = executor.step(func, ...args);
 		} catch (ex) {

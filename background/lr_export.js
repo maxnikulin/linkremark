@@ -196,18 +196,7 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 	async function processMessage([ capture, options ]) {
 		return await lr_executor.run(
 			async function exportRpcEndpoint(capture, options, executor) {
-				try {
-					await executor.acquireLock("Export");
-				} catch (ex) {
-					if (
-						typeof lr_actionlock !== undefined
-						&& ex instanceof lr_actionlock.LrActionLockCancelledError
-					) {
-						throw ex;
-					} else {
-						executor.addError(new LrWarning("Action lock problem", { cause: ex }));
-					}
-				}
+				await executor.acquireLock("Export");
 				if (capture == null) {
 					throw new Error("No capture data");
 				}
