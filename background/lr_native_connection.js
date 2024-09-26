@@ -97,8 +97,26 @@ class LrNativeConnectionActive {
 				error = "Port has been closed unexpectedly. Browser console might provide details";
 			}
 			for (const [id, value] of this.promiseMap.entries()) {
-				const reason = value.error || new Error();
-				reason.message = "" + error;
+				let reason = value.error;
+				try {
+					if (reason) {
+						if (error instanceof Error) {
+							reason.cause = error;
+							reason.message = error.message;
+						} else {
+							reason.message = String(error);
+						}
+					} else {
+						if (error instanceof Error) {
+							reason = error;
+						} else {
+							reason = new Error(String(error));
+						}
+					}
+				} catch (ex) {
+					Promise.reject(ex);
+					reason = new Error("Disconnect native application");
+				}
 				value.reject(reason);
 			}
 			this.promiseMap.clear();
@@ -166,6 +184,7 @@ class LrNativeConnection {
 		return this._state.send(method, params);
 	};
 	disconnect(error) {
+		error = error ?? new Error("Closing native connection");
 		return this._state.disconnect(error);
 	};
 	_disconnect() {
