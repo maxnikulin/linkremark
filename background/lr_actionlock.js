@@ -67,7 +67,14 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		++lr_actionlock._openPopupCount;
 		try {
 			lr_actionlock._bounceTime = Date.now() + lr_actionlock._openPopupSuppressTime;
-			return await bapi.browserAction.openPopup();
+			const openPromise = bapi.browserAction.openPopup();
+			if (openPromise?.then === undefined) {
+				// In Firefox mv2 `chrome.browserAction.openPopup`
+				// unlike `browser.browserAction.openPopup` returns `undefined`
+				// and does not allow to pass a callback.
+				console.warn("lr_actionlock: [browser]action.openPopup error may be hidden");
+			}
+			return await openPromise;
 		} finally {
 			--lr_actionlock._openPopupCount;
 			lr_actionlock._bounceTime = Date.now() + lr_actionlock._openPopupSuppressTime;
