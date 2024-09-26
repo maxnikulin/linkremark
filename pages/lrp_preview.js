@@ -107,9 +107,16 @@ async function lrNativeMessagingAction(dispatch, getState) {
 	const capture = lrCaptureForExport(state);
 	/*
 	 * Do not do it. At least in Firefox-92 it invokes `browserAction.onClicked`
-	 * listener if popup is disabled and protected by a flag in Chrome.
+	 * listener if popup is disabled.
 	 * To have a synchronous check whether a popup is set,
 	 * it is necessary to implement subscription for set popup events.
+	 *
+	 * Can not reproduce it with Firefox-115 ESR:
+	 *
+	 *     Error: No popup URL is set
+	 *
+	 * Perhaps I was confused by capture initiated by loading of the popup page.
+	 */
 	/*
 	try {
 		bapi.browserAction.openPopup();
