@@ -64,6 +64,9 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 		reason;
 		_deferred = new Set();
 		_destructors = new Set();
+		// for `signal` getter
+		_controller;
+
 		constructor(signal) {
 			if (signal != undefined) {
 				this.addAbortSignal(signal);
@@ -98,6 +101,13 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 				throw this.reason;
 			}
 			return this._abortable;
+		}
+		get signal() {
+			this.throwIfAborted();
+			if (this._controller === undefined) {
+				this._controller = new AbortController();
+			}
+			return this._controller.signal;
 		}
 		_abortable(thenable) {
 			// Evaluation of arguments may cause abort.
@@ -177,6 +187,17 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 			if (reason == null) {
 				reason = new Error("Aborted for unspecified reason");
 			}
+			// It might cause rejection of pending promises, so try it first.
+			try {
+				const controller = this._controller;
+				if (controller !== undefined) {
+					controller.abort(reason);
+					this._controller = undefined;
+				}
+			} catch (ex) {
+				this._warn(ex);
+			}
+
 			const deferredArray = [...this._deferred].reverse();
 			this._deferred.clear();
 			for (const deferred of deferredArray) {
