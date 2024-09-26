@@ -72,6 +72,7 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 		/** Returns a function to remove event listener
 		 */
 		addAbortSignal(signal) {
+			this.throwIfAborted();
 			if (signal.aborted) {
 				const { reason } = signal;
 				this._onAbort(reason);
@@ -99,6 +100,8 @@ var lr_abortable_ctx = lr_util.namespace(lr_abortable_ctx, function lr_abortable
 			return this._abortable;
 		}
 		_abortable(thenable) {
+			// Evaluation of arguments may cause abort.
+			this.throwIfAborted();
 			const deferred = new _PromiseDeferred();
 			this._deferred.add(deferred);
 			thenable.then(
