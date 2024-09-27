@@ -40,6 +40,11 @@ var lrResetLoadingState = lr_util.notFatal(function() {
 		const name = chrome.runtime.getManifest().short_name || "";
 		bapi.browserAction.setTitle({ title: name + " Error" }); // TODO i18n
 	}
+	try {
+		lrRemoveLoadErrorCount();
+	} catch (ex) {
+		Promise.reject(ex);
+	}
 });
 
 function lrMainSync() {

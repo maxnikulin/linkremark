@@ -24,18 +24,23 @@
 console.debug("LR: loading...");
 
 var gLrLoadErrorCount = 0;
+function lrIncrementLoadErrorCount() {
+	++gLrLoadErrorCount;
+}
+function lrRemoveLoadErrorCount() {
+	globalThis.removeEventListener("error", lrIncrementLoadErrorCount);
+	globalThis.removeEventListener("unhandledrejection", lrIncrementLoadErrorCount);
+}
 try {
 	/* It catches only errors in synchronous code run on add-on startup.
 	 * Errors from event listeners such as `browserAction.onClicked`
-	 * are invisible for this handler. */
-	self.addEventListener("error", function(...args) {
-		++gLrLoadErrorCount;
-	});
-	self.addEventListener("unhandledrejection", function(...args) {
-		++gLrLoadErrorCount;
-	});
+	 * are invisible for this handler (Chromium-129). */
+	globalThis.addEventListener("error", lrIncrementLoadErrorCount);
+	/* This handler is invoked for exceptions in `async` functions
+	 * passed to `addListener`. */
+	globalThis.addEventListener("unhandledrejection", lrIncrementLoadErrorCount);
 } catch (ex) {
-	console.error("LR error while trying to set error listener", ex);
+	Promise.reject(ex);
 }
 
 var bapi;
