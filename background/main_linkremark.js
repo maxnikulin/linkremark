@@ -51,8 +51,7 @@ function lrMainSync() {
 	try {
 		lr_action.createMenu();
 	} catch (ex) {
-		++gLrLoadErrorCount;
-		console.log("lrMainSync: createMenu: %o", ex);
+		Promise.reject(ex);
 	}
 	gLrRpcStore = new LrRpcStore();
 	gLrAddonRpc = new LrAddonRpc();
@@ -81,8 +80,7 @@ async function lrMainAsync() {
 	try {
 		lr_actionlock.register(gLrAddonRpc);
 	} catch (ex) {
-		console.error("lr_actionlock: %o", ex);
-		++gLrLoadErrorCount;
+		Promise.reject(ex);
 	}
 	lrResetLoadingState();
 	console.debug("LR: async init completed");
