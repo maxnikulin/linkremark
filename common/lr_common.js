@@ -122,39 +122,29 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 	},
 });
 
-let LrError = Error;
-if (!(new Error(undefined, { cause: true }).cause)) {
-	LrError = class LrError extends Error {
-		constructor(message, options) {
-			super(message);
-			if (options && options.cause) {
-				this.cause = options.cause;
-			}
-		}
-	}
+class LrError extends Error {
+	get name() {
+		// Minified class names would cause an issue.
+		return this.constructor.name || "Error";
+	};
+	set name(value) {
+		Object.defineProperty(this, "name", {
+			value,
+			configurable: true,
+			writable: true,
+			enumerable: true,
+		});
+		return value;
+	};
 }
 
 class LrWarning extends LrError {
-	constructor(message, options) {
-		// TODO at least in Firefox-78 it leads to `fileName` and first `stack` entry
-		// associated with common.
-		super(message, options);
-		if (options != null && options.cause && !this.cause) {
-			this.cause = options.cause;
-		}
-	}
-	get name() { return Object.getPrototypeOf(this).constructor.name; };
 }
 
-class LrAggregateError extends Error {
-	constructor(errors, message) {
-		super(message);
-		this.errors = errors;
-	}
+class LrAggregateError extends AggregateError {
 	toWarning() {
 		Object.setPrototypeOf(this, LrAggregateWarning.prototype);
 	}
-	get name() { return Object.getPrototypeOf(this).constructor.name; };
 }
 
 class LrAggregateWarning extends LrWarning {
