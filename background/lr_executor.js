@@ -592,7 +592,7 @@ var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 				if (executor.lock) {
 					if (status == null && ex != null) {
 						if (_isCancelledError(ex)) {
-							status = "cancelled";
+							status = ex.status || "terminated";
 						} else {
 							status = lr_common.isWarning(ex) ? "warning" : "error";
 						}

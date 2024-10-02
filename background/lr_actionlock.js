@@ -25,7 +25,25 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			const proto = Object.getPrototypeOf(this);
 			return (proto && proto.constructor && proto.constructor.name) ||
 				"LrActionLockCancelledError";
-		}
+		};
+		get reason() {
+			return "aborted";
+		};
+		set reason(value) {
+			Object.defineProperty(this, "reason", {
+				value,
+				enumerable: true,
+				writable: true,
+				configurable: true,
+			});
+			return value;
+		};
+		/// Firefox uses constructor definition in console messages
+		/// and stack traces, so use setter.
+		setReason(value) {
+			this.reason = value;
+			return this;
+		};
 	}
 
 	this._bounceTime = Date.now();
@@ -152,7 +170,8 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				if (this._pending !== undefined && this._running === undefined) {
 					console.error("LrActionLockQueue.acquire: pending task with no running one");
 					try {
-						this._rejectPending();
+						this._rejectPending(
+							new LrActionLockCancelledError("Discarded").setReason("discarded"));
 					} catch (ex) {
 						console.error("LrActionLockQueue.acquire: rejecting pending: %o", ex);
 					}
@@ -167,7 +186,9 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 
 				let status = "unknown";
 				if (this._running) {
-					this._rejectPending("Another action requested");
+					this._rejectPending(
+						new LrActionLockCancelledError("Another action requested")
+						.setReason("replaced"));
 					this._pending = lock;
 					status = "pending";
 					try {
@@ -247,9 +268,11 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 
 		async unlock(ids) {
 			let cancelRunning = false;
+			let error;
 			for (const id of ids) {
 				if (this._pending != null && id === this._pending.id) {
-					this._rejectPending();
+					error = error ?? new LrActionLockCancelledError("Cancelled").setReason("cancelled");
+					this._rejectPending(error);
 				} else if (this._running != null && id === this._running.id) {
 					cancelRunning = true;
 				} else {
@@ -257,7 +280,8 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				}
 			}
 			if (cancelRunning) {
-				this._abortRunning();
+				error = error ?? new LrActionLockCancelledError("Interrupted").setReason("interrupted");
+				this._abortRunning(error);
 			}
 		}
 
@@ -265,6 +289,7 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 		/* starting a new capture. */
 		reset() {
 			console.warn("lr_actionlock.queue.reset");
+			const error = new LrActionLockCancelledError("Reset").setReason("reset");
 			let retval = "";
 			try {
 				/* await */ bapi.browserAction.setPopup({ popup: "" });
@@ -273,14 +298,14 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 				console.error("LrActionLockQueue.reset: disable popup: %o", ex);
 			}
 			try {
-				this._rejectPending();
+				this._rejectPending(error);
 			} catch (ex) {
 				retval = "Failed to cancel pending capture";
 				console.error("LrActionLockQueue.reset: cancel pending: %o", ex);
 			}
 			this._pending = undefined;
 			try {
-				this._abortRunning();
+				this._abortRunning(error);
 			} catch (ex) {
 				retval = "Failed to abort active capture";
 				console.error("LrActionLockQueue.reset: abort running: %o", ex);
@@ -302,25 +327,31 @@ var lr_actionlock = lr_util.namespace(lr_actionlock, function lr_actionlock() {
 			return result;
 		}
 
-		_rejectPending(message = undefined) {
+		_rejectPending(error) {
 			const pending = this._pending;
 			if (pending === undefined) {
 				return;
 			}
-			pending.abort(new LrActionLockCancelledError(String(message || "Cancelled")));
+			error = error ?? new LrActionLockCancelledError("Cancelled");
+			pending.abort(error);
 			if (this._subscription != null) {
-				this._subscription.notify({ id: pending.id, status: "cancelled" });
+				this._subscription.notify({
+					id: pending.id,
+					status: error.reason ?? "aborted"
+				});
 			}
 		}
 
-		_abortRunning() {
+		_abortRunning(error) {
 			const running = this._running;
 			if (running === undefined) {
 				return;
 			}
-			running.abort();
+			running.abort(error);
 			if (this._subscription != null) {
-				this._subscription.notify({ id: running.id, status: "aborted" });
+				this._subscription.notify({
+					id: running.id, status: error?.reason || "aborted"
+				});
 			}
 		}
 	}
