@@ -24,12 +24,9 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 	async function _run(func, clickData, tab, params) {
 		const tabPromise = lr_action.getActiveTab(tab);
 		async function lr_action_run_onError(error, executor) {
-			if (
-				typeof lr_actionlock !== undefined
-				&& error instanceof lr_actionlock.LrActionLockCancelledError
-			) {
-				return;
-			}
+			// Test for `lr_actionlock.LrActionLockCancelledError`
+			// should not be necessary since `onerror` is not invoked
+			// for aborted context.
 			try {
 				gLrRpcStore.putExecInfo(executor.execInfo);
 			} catch (ex) {
