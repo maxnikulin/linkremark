@@ -664,19 +664,19 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		//     Type error for parameter createProperties (Error processing openerTabId:
 		//     Integer -1 is too small (must be at least 0)) for tabs.create
 		try {
-			return (await bapi.tabs.create({
-				url: url.toString(),
-				openerTabId: tab && tab.id >= 0 ? tab.id : undefined,
-				windowId: tab && tab.windowId >= 0 ? tab.windowId : undefined,
-				// Not necessary in Firefox-95 but Chromium-95 adds the tab at the end otherwise.
-				index: tab && tab.index >= 0 ? tab.index + 1 : undefined,
-			})) && PREVIEW;
+			if (!tab?.incognito) {
+				return (await bapi.tabs.create({
+					url: url.toString(),
+					openerTabId: tab && tab.id >= 0 ? tab.id : undefined,
+					windowId: tab && tab.windowId >= 0 ? tab.windowId : undefined,
+					// Not necessary in Firefox-95 but Chromium-95 adds the tab at the end otherwise.
+					index: tab && tab.index >= 0 ? tab.index + 1 : undefined,
+				})) && PREVIEW;
+			}
 		} catch(ex) {
 			console.warn("lr_action.openPreview: %o", ex);
-			return await bapi.tabs.create({
-				url: url.toString(),
-			});
 		}
+		return await bapi.tabs.create({ url: url.toString() });
 	};
 
 	async function openHelp(openerTab) {
