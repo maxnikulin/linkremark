@@ -573,8 +573,12 @@ Related Firefox bugs:
 - [[https://bugzilla.mozilla.org/show_bug.cgi?id=1661935][Bug 1661935: Snap: cannot install/manage extensions from extensions.gnome.org]],
 - [[https://bugzilla.mozilla.org/show_bug.cgi?id=1621763][Bug 1621763: (flatpak) native messaging support missing]].
 
-[fn:5] See also
+[fn:5] In Chrome actual path to the profile directories is specified
+on the =chrome://version/= and =chrome://profile-internals/= pages.
+See also
 [[https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md][User Data Directory]]
 in Chromium docs for location of profile directory.
+Mozilla applications load descriptions of native applications
+from directories shared by all profiles.
 
 # LocalWords: LinkRemark bURL backend JSON
