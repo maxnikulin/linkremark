@@ -549,6 +549,8 @@ for the add-on's action in the browser toolbar
 or through generic browser menu,
 e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, =[Ctrl+Shift+A]=.
+In Chrome choose "Extensions" from the menu opened from
+the 3 dots toolbar button.
 
 [fn:2] Prior to Org-9.6 (Emacs-29) there was a bug
 preventing clipboard content recognized as a valid subtree.
