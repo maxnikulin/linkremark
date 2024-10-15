@@ -191,11 +191,30 @@ in add-on settings[fn:3].
 There is an option to avoid preview page for successful captures:
 disable "Open preview tab with capture result for clipboard".
 
-Usually, to minimize keyboard and mouse interaction,
-it is recommended to setup desktop-wide [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol:]] handler
-(currently readme for
+# - org-ruby does not recognize markers at the borders of link description.
+# - It does not allow to disable smart quotes,
+# - There is no entity for apostrophe.
+To minimize keyboard and mouse interaction,
+capture may be initiated using
+[[https://orgmode.org/manual/Protocols.html][org-protocol (web)]] ([[info:org#Protocols][info \quot(org) Protocols\quot]]).
+Since Emacs-29.2 desktop-wide handler is enabled by default on GNU/Linux
+(see the =emacsclient.desktop= file).
+You still need to ensure that Emacs server is running
+[[elisp:(server-start)][M-x server-start]]
+and the library is loaded
+[[elisp:(require 'org-protocol)][M-: (=require 'org-protocol=)]]
+or [[elisp:(customize-variable 'org-modules))][M-x customize-variable RET org-modules]].
+Set =org-protocol= as "Communication channel" in add-on options[fn:3].
+Keep capture type in Emacs consistent with
+"Template type configured in org-capture-templates"
+add-on setting. Another option you may find useful
+is "Template name". They are in the "Org Protocol" section,
+but applied for native app export as well.
+For troubleshooting the readme file for
 [[https://github.com/sprig/org-capture-extension/][Org Capture Extension]]
-may be more useful than Worg page).
+may be more useful than the
+[[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol: Worg page]].
+
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
@@ -226,16 +245,11 @@ Emacs init file should have something like the following:
        :empty-lines 1)
   ))))
 #+end_example
-# - org-ruby does not recognize markers at the borders of link description.
-# - It does not allow to disable smart quotes,
-# - There is no entity for apostrophe.
-Certainly Emacs server should be running: [[elisp:(server-start)][M-x server-start]]
-and org-protocol should be loaded: [[elisp:(require 'org-protocol)][M-: (=require 'org-protocol=)]].
-Keep capture type in Emacs consistent with
-"Template type configured in org-capture-templates"
-add-on setting. Another option you may find useful
-is "Template name". They are in the "Org Protocol" section,
-but applied for native app export as well.
+Certainly Emacs server still should be running,
+org-protocol should be loaded, capture templates
+should have consistent configuration within the add-on
+and Emacs.  The advantage is that desktop-wide =org-protocol:=
+handler is not used.
 
 If you wish to experiment with metadata formatting, have a look at
 [[file:examples/backend-python/lr_example.py][examples/backend-python/lr_example.py]] for inspiration.

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 08:06 -->
+<!-- 2024-10-26 Sat 08:07 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -241,11 +241,29 @@ disable "Open preview tab with capture result for clipboard".
 </p>
 
 <p>
-Usually, to minimize keyboard and mouse interaction,
-it is recommended to setup desktop-wide <a href="https://orgmode.org/worg/org-contrib/org-protocol.html">org-protocol:</a> handler
-(currently readme for
+To minimize keyboard and mouse interaction,
+capture may be initiated using
+<a href="https://orgmode.org/manual/Protocols.html">org-protocol (web)</a> (<code>info "(org) Protocols"</code>).
+Since Emacs-29.2 desktop-wide handler is enabled by default on GNU/Linux
+(see the <code>emacsclient.desktop</code> file).
+You still need to ensure that Emacs server is running
+<code>M-x server-start</code>
+and the library is loaded
+<code>M-: (<code>require 'org-protocol</code>)</code>
+or <code>M-x customize-variable RET org-modules</code>.
+Set <code>org-protocol</code> as "Communication channel" in add-on options<sup><a id="fnr.3.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>.
+Keep capture type in Emacs consistent with
+"Template type configured in org-capture-templates"
+add-on setting. Another option you may find useful
+is "Template name". They are in the "Org Protocol" section,
+but applied for native app export as well.
+For troubleshooting the readme file for
 <a href="https://github.com/sprig/org-capture-extension/">Org Capture Extension</a>
-may be more useful than Worg page).
+may be more useful than the
+<a href="https://orgmode.org/worg/org-contrib/org-protocol.html">org-protocol: Worg page</a>.
+</p>
+
+<p>
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
@@ -277,15 +295,12 @@ Emacs init file should have something like the following:
      :empty-lines 1)
 ))))
 </pre>
-
 <p>
-Certainly Emacs server should be running: <code>M-x server-start</code>
-and org-protocol should be loaded: <code>M-: (<code>require 'org-protocol</code>)</code>.
-Keep capture type in Emacs consistent with
-"Template type configured in org-capture-templates"
-add-on setting. Another option you may find useful
-is "Template name". They are in the "Org Protocol" section,
-but applied for native app export as well.
+Certainly Emacs server still should be running,
+org-protocol should be loaded, capture templates
+should have consistent configuration within the add-on
+and Emacs.  The advantage is that desktop-wide <code>org-protocol:</code>
+handler is not used.
 </p>
 
 <p>
@@ -690,7 +705,7 @@ from directories shared by all profiles.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 08:06</p>
+<p class="date">Created: 2024-10-26 Sat 08:07</p>
 </div>
 </body>
 </html>
