@@ -501,6 +501,25 @@ with granting
 [[#exchange-messages-with-other-programs-nativemessaging][nativeMessaging]]
 permission or desktop-wide handler for the =org-protocol:= URI scheme.
 
+*** Execute content scripts (=scripting=)
+:PROPERTIES:
+:CUSTOM_ID: execute-content-scripts-scripting
+:END:
+
+The extension uses content scripts to extract metadata from web pages.
+This permission does not require to be explicitly confirmed.
+Currently it is used in Chrome only since it is a related
+to the =scripting= API introduced in Manifest V3.
+In Firefox older Manifest V2 API is used due to peculiarities
+of mv3 implementation in Firefox.
+
+Actually this permission is not enough and the =activeTab= permission
+enables capture for single tab top level page.
+In the case of multiple tabs or cross-origin frames
+metadata are inaccessible unless
+[[#access-your-data-for-all-websites-allurls][<all_urls>]]
+is granted.
+
 *** Offscreen documents (=offscreen=, Chrome)
 :PROPERTIES:
 :CUSTOM_ID: offscreen-documents-offscreen-chrome
