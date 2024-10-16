@@ -137,14 +137,14 @@ var lr_common = Object.assign(lr_common || new function lr_common() {}, {
 				console.log("lr_common.copyUsingEvent: error: %o", ex);
 			}
 		}
-		document.addEventListener("copy", lr_oncopy, true);
+		window.addEventListener("copy", lr_oncopy, true);
 		try {
 			if (!document.execCommand("copy") || !status) {
 				throw new LrError("Copy using command and event failed", { cause });
 			}
 			return true;
 		} finally {
-			document.removeEventListener("copy", lr_oncopy, true);
+			window.removeEventListener("copy", lr_oncopy, true);
 		}
 	},
 	getId: function(init) { return () => init++; } (Date.now()),
