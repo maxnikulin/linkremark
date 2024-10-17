@@ -223,28 +223,8 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 
 		this.registerGroup({
 			name: "misc",
-			title: "General permissions",
-			priority: 80,
-		});
-		this.registerOption({
-			name: "misc.permissionsOnDemand",
-			defaultValue: true,
-			title: 'Request permissions on demand',
-			version: "0.4",
-			parent: "misc",
-			description: [
-				"Allow to request permissions in response to user actions.",
-				"Additional privileges may be necessary in specific cases:",
-				"\"tabs\" to capture multiple pages, \"clipboardWrite\"",
-				"or \"nativeMessaging\" for specific export method.",
-				"",
-				"You may find permission popups annoying since",
-				"in some cases the add-on may still work",
-				"even when the request is declined,",
-				"perhaps with some degradation of result quality.",
-				"Alternatively permissions may be granted on this page",
-				"or in the extension manager in Firefox.",
-			],
+			title: "Miscellaneous",
+			priority: 4,
 		});
 		this.registerOption({
 			name: "permissions.tabs",

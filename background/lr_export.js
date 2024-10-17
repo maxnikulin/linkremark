@@ -131,10 +131,6 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 			 */
 			await lr_settings.wait();
 		}
-		if (!lr_settings.getOption("misc.permissionsOnDemand")) {
-			// TODO Interactive warning on failure that requests options
-			return;
-		}
 		const method = lr_settings.getOption("export.method");
 		const descriptor = this.methodMap.get(method);
 		if (descriptor == null) {
