@@ -107,6 +107,11 @@ html.expandable > body {
 	}
 }
 
+img.logo {
+	float: left;
+	margin-inline-start: calc(max(-50vw + 50% + 1ex,-128px - 3ex));
+}
+
 /* Center textareas if user shrinks it even on narrow screen.
  * On resize chromium adds element margin 0 property, override it.
  * It is less convenient to resize centered textarea,

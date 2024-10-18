@@ -57,19 +57,16 @@ div.footdef > sup {
 }
 img.logo {
 	float: left;
-	margin-inline: 1ex;
+	margin-inline-start: calc(max(-50vw + 50% + 2ex,-128px - 2ex));
 }
 pre.example {
 	white-space: pre-wrap;
-}
-div#preamble {
-	margin-inline-start: calc(max(-50vw + 50%,-128px - 2ex));
 }
 </style>"
 		 :html-validation-link nil
 		 :html-preamble "<img src=\"/icons/lr-128.png\" alt=\"LinkRemark logo\" class=\"logo\">
 <div><p>Find more information on the project page
-<a href=\"https://github.com/maxnikulin/linkremark\">https://github.com/maxnikulin/linkremark</a>,
+<a href=\"https://github.com/maxnikulin/linkremark\">https://<wbr>github.<wbr>com/<wbr>maxnikulin/<wbr>linkremark</a>.
 e.g. how to setup <a href=\"https://github.com/maxnikulin/burl\">bURL</a>
 native application helper for checking your notes for known URLs.</p>
 <p>Open <a href=\"lrp_settings.html\" id=\"settings\" target=\"_blank\">settings</a> page.</p>
