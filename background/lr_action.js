@@ -660,6 +660,7 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 			query.set("action", action);
 			url.search = query.toString();
 		}
+		const active = !action
 		// Firefox-88 for `openerTabId: -1`:
 		//     Type error for parameter createProperties (Error processing openerTabId:
 		//     Integer -1 is too small (must be at least 0)) for tabs.create
@@ -671,12 +672,13 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 					windowId: tab && tab.windowId >= 0 ? tab.windowId : undefined,
 					// Not necessary in Firefox-95 but Chromium-95 adds the tab at the end otherwise.
 					index: tab && tab.index >= 0 ? tab.index + 1 : undefined,
+					active,
 				})) && PREVIEW;
 			}
 		} catch(ex) {
 			console.warn("lr_action.openPreview: %o", ex);
 		}
-		return await bapi.tabs.create({ url: url.toString() });
+		return await bapi.tabs.create({ url: url.toString(), active });
 	};
 
 	async function openHelp(openerTab) {

@@ -336,6 +336,12 @@ function lrMakeTransportAction({ method, close, launch }) {
 				await lr_common.sendMessage(
 					"store.putPreviewError",
 					lr_common.errorToObject(ex || new Error("Unknown error")));
+				try {
+					const tab = await chrome.tabs.getCurrent();
+					await chrome.tabs.update(tab.id, { active: true });
+				} catch (ex) {
+					Promise.reject(ex);
+				}
 				// Delay before reload
 				await lrPromiseTimeout(delayTime - Date.now());
 			}
