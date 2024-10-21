@@ -144,7 +144,11 @@ var lr_export = lr_util.namespace(lr_export, function lr_export() {
 			// For logging purposes only
 			let result;
 			try {
-				result = await bapi.permissions.request({ permissions });
+				const permissionsOnDemand = !globalThis.gLrSuppressPermissionsOnDemand;
+				result = await (
+					permissionsOnDemand
+					? bapi.permissions.request({ permissions })
+					: bapi.permissions.contains({ permissions }));
 			} catch (ex) {
 				// Avoid Firefox error due to lack of user action context
 				// while settings are loaded.

@@ -55,6 +55,17 @@ function lrMainSync(initAsync) {
 	// allow "Uncaught (in promise) Error" reporting
 	const initAsyncResult = Promise.resolve().then(initAsync);
 	lrAsyncInitPromise = initAsyncResult.then(() => true, e => e);
+	(async function _lrGlobalConstants() {
+		// There was some issue with global `const` unavailable in debugger
+		// in Firefox. Chromium-129 is not affected.
+		// Enable permissions on demand by default.
+		Object.defineProperty(globalThis, "gLrSuppressPermissionsOnDemand", {
+			value: globalThis.gLrSuppressPermissionsOnDemand ?? false,
+			writable: false,
+			configurable: true,
+			enumerable: true,
+		});
+	})();
 	lr_settings.initSync();
 	lr_export.initSync();
 	lr_native_export.initSync();

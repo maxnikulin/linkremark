@@ -491,7 +491,10 @@ var lr_action = lr_util.namespace(lr_action, function lr_action() {
 		}
 
 		const permissionObject = { permissions: [ "tabs"] };
-		const hasTabPermissionPromise = bapi.permissions.request(permissionObject);
+		const permissionsOnDemand = !globalThis.gLrSuppressPermissionsOnDemand;
+		const hasTabPermissionPromise = permissionsOnDemand
+			? bapi.permissions.request(permissionObject)
+			: bapi.permissions.contains(permissionObject);
 
 		// User actions in response to permissions request or switching tab
 		// may affect selection, so store current list of tabs to be captured.
