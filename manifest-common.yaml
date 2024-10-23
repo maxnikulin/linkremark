@@ -41,7 +41,6 @@ permissions:
 - storage
 - activeTab
 - contextMenus
-- webNavigation
 optional_permissions:
 # `clipboardWrite` allows to copy to clipboard any time.
 # Added to reliably copy capture when preview page is disabled
@@ -63,3 +62,4 @@ optional_permissions:
 - clipboardWrite
 - nativeMessaging
 - tabs
+- webNavigation

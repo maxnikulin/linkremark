@@ -23,13 +23,13 @@
 		"storage",
 		"activeTab",
 		"contextMenus",
-		"webNavigation",
 		"menus"
 	],
 	"optional_permissions": [
 		"clipboardWrite",
 		"nativeMessaging",
 		"tabs",
+		"webNavigation",
 		"<all_urls>"
 	],
 	"manifest_version": 2,

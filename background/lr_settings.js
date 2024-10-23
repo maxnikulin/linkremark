@@ -276,6 +276,23 @@ var lr_settings = lr_util.namespace(lr_settings, function lr_settings() {
 			host: true,
 			parent: "misc",
 		});
+		this.registerOption({
+			name: "permissions.webNavigation",
+			title: 'Access browser activity during navigation ("webNavigation")',
+			version: "0.4",
+			description: [
+				"Relevant to frames and embedded objects.",
+				"Without this permission the extension may be unable",
+				"to find active frame when invoked using",
+				"the toolbar button or the shortcut.",
+				"",
+				"Context menu is affected in less degree,",
+				"but capture info may still be incomplete",
+				"in the case of multiple level of nested frames."
+			],
+			type: "permission",
+			parent: "misc",
+		});
 	};
 
 	this.load = async function() {

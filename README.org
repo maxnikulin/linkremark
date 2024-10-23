@@ -426,8 +426,9 @@ Chrome: "Read your browsing history".
 It is necessary to reliably restore tree of nested frames.
 Consider the case when some element is focused in a subframe
 and capture is invoked using keyboard shortcut.
-Maybe I will add a less reliable fallback in future
-to make this permission optional.
+Another case is context menu invoked in a deeply nested frame.
+
+You may grant this permission on the extension options page.[fn:3]
 
 *** Access browser tabs (=tabs=)
 :PROPERTIES:

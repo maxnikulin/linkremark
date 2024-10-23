@@ -40,6 +40,25 @@ var lr_tabframe = lr_util.namespace(lr_tabframe, function lr_tabframe() {
 		};
 	}
 
+	lr_tabframe._hasWebNavigationPermission = async function _hasWebNavigationPermission() {
+		if (chrome.webNavigation?.getAllFrames === undefined) {
+			return false;
+		}
+		// Chromium-130 throws synchronously after `permissions.remove`
+		//     chrome.webNavigation.getAllFrames({tabId: -1})
+		//     Error: 'webNavigation.getAllFrames' is not available in this context.
+		//
+		// If the permission is not available
+		//
+		//     TypeError: Error in invocation of webNavigation.getAllFrames(object details, function callback): Error at parameter 'details': Error at property 'tabId': Value must be at least 0.
+		try {
+			return await bapi.permissions.contains({ permissions: [ "webNavigation" ] });
+		} catch (ex) {
+			Promise.reject(ex);
+		}
+		return false;
+	}
+
 	Object.assign(this, {
 		FORMAT, VERSION,
 		makeCapture,
@@ -147,7 +166,7 @@ function focusedFrameChain(frameMap) {
 async function lrGetAllFrames(tab) {
 	// Likely redundant protection, tab should be valid here
 	const tabId = tab != null ? tab.id : -1;
-	if (!(tabId >= 0)) {
+	if (!(tabId >= 0) || ! await lr_tabframe._hasWebNavigationPermission()) {
 		// May happen in Chromium-87 when context menu is invoked for a PDF file
 		// but should be handled by caller since <embed> element
 		// in Chrome created for PDF file has its own "tab".
@@ -515,12 +534,12 @@ async function lrGatherTabInfo(tab, clickData, activeTab, executor) {
 	// allows to avoid noise due to e.g. empty `<iframe>` somewhere on the page.
 	executor.step(
 		{ errorAction: lr_executor.ERROR_IS_WARNING },
-		function lrCheckFramePermissionsErrors(chain) {
+		async function lrCheckFramePermissionsErrors(chain) {
 			let count = 0;
-			let first = true;
+			let checkForActiveElement = await lr_tabframe._hasWebNavigationPermission();
 			for (const wrappedFrame of chain) {
-				if (first) {
-					first = false;
+				if (checkForActiveElement) {
+					checkForActiveElement = false;
 					const node = wrappedFrame?.summary?.activeElementNode?.toUpperCase?.();
 					if (node && ["IFRAME", "FRAME", "OBJECT", "EMBED"].indexOf(node) >= 0) {
 						// In the case of navigation `frame.src` does not match

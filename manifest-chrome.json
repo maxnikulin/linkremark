@@ -22,13 +22,13 @@
 		"scripting",
 		"storage",
 		"activeTab",
-		"contextMenus",
-		"webNavigation"
+		"contextMenus"
 	],
 	"optional_permissions": [
 		"clipboardWrite",
 		"nativeMessaging",
 		"tabs",
+		"webNavigation",
 		"offscreen",
 		"tabGroups"
 	],
