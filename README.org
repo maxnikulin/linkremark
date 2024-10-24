@@ -7,6 +7,7 @@
 # - Suppress subsections of Permissions.
 #+OPTIONS: ^:nil f:t toc:1
 #+PROPERTY: header-args :eval never-export :exports code :results silent
+#+language: en
 
 #+begin_comment
 Due to limitation of GitHub Org renderer
