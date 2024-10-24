@@ -16,13 +16,15 @@ Alternatively
   -d, --desktop  print content of .desktop file to install this script
                  as the scheme handler. Should be saved to "applications"
                  subdir of $XDG_DATA_HOME or $XDG_DATA_DIRS, e.g.
-                 ~/.local/share/applications/org-protocol-debug.desktop
+                 ~/.local/share/applications/x-org-protocol-debug.desktop
                  Do not forget to register it:
+                     update-desktop-database ~/.local/share/applications/
+                 or
                      xdg-settings set default-url-scheme-handler \
 org-protocol org-protocol-debug.desktop"""
 
 DESKTOP = """[Desktop Entry]
-Name=org-protocol debug
+Name=Debug org-protocol
 Comment=Troubleshooting of org-protocol desktop integration
 Icon=emacs
 # Do not add quotes around %u, reason: undefined behavior by spec
