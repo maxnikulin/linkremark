@@ -25,7 +25,9 @@
 
 "use strict";
 
-(async function lrc_clipboard() {
+var lr_content_scripts = lr_content_scripts || {};
+
+lr_content_scripts.lrcClipboard = async function lrcClipboard(capture) {
 	const CLIPBOARD_TIMEOUT = 330;
 	// In Firefox-115 ESR `document.execCommand("copy")` may propagate
 	// to other documents. Chromium-127 is not affected.
@@ -206,21 +208,6 @@
 
 	const retval = { warnings };
 	try {
-		async function lrSendMessage(method, params) {
-			const msg = {method, params};
-			const response = typeof browser !== "undefined" ?
-				await browser.runtime.sendMessage(msg) // Firefox
-				: await chrome.runtime.sendMessage(msg); // Chrome mv3
-			const { result, error } = response || {};
-			if (result !== undefined) {
-				return result;
-			} else if (error) {
-				throw error;
-			}
-			console.warn("Invalid message respones", response, msg);
-			throw new Error ("Invalid response object");
-		}
-
 		async function lrLaunchProtocolHandlerFromContentScript(url, detectUnconfigured) {
 			if (!url) {
 				throw new Error("No URL to launch external protocol handler");
@@ -312,8 +299,8 @@
 				(async () => lrCopyUsingEvent(text))(), CLIPBOARD_TIMEOUT);
 		}
 
-		async function lrGetCaptureCopyLaunch() {
-			const { transport, formats } = await lrSendMessage("store.getCapture");
+		async function lrGetCaptureCopyLaunch(capture) {
+			const { transport, formats } = capture;
 			const content = formats[transport.captureId];
 			if (transport.method === "clipboard") {
 				const text = content.format === "org-protocol" ? content.url : content.body;
@@ -330,7 +317,7 @@
 			throw new Error(`Unsupported method ${method}`);
 		}
 
-		retval.result = await lrGetCaptureCopyLaunch();
+		retval.result = await lrGetCaptureCopyLaunch(capture);
 		return retval;
 	} catch (ex) {
 		retval.error = lrToObject(ex);
@@ -341,4 +328,4 @@
 		}
 	}
 	return { error: "LR internal error: lrc_clipboard.js: should not reach end of the function" };
-})();
+};

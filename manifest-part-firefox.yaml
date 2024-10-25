@@ -46,6 +46,7 @@ background:
   - background/lr_notify.js
   - background/lr_action.js
   - background/lr_schema_org_product.js
+  - content_scripts/lrc_clipboard.js
   - background/main_linkremark.js
 applications:
   gecko:

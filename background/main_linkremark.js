@@ -71,7 +71,6 @@ function lrMainSync(initAsync) {
 	bapi.runtime.onConnect.addListener(gLrAddonRpc.onConnect);
 
 	gLrAddonRpc.register("store.getResult", gLrRpcStore.handleResult);
-	gLrAddonRpc.register("store.getCapture", gLrRpcStore.handleCapture);
 	gLrAddonRpc.register("store.getTargetElement", gLrRpcStore.handleTargetElement);
 	gLrAddonRpc.register("store.putPreviewError", gLrRpcStore.handlePutPreviewError);
 	gLrAddonRpc.register("nativeMessaging.hello", lr_native_export.hello);

@@ -171,6 +171,11 @@ try {
 } catch (ex) {
 	Promise.reject(ex);
 }
+try {
+	importScripts("content_scripts/lrc_clipboard.js");
+} catch (ex) {
+	Promise.reject(ex);
+}
 importScripts(
 	"background/main_linkremark.js",
 )

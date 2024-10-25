@@ -24,7 +24,6 @@ class LrRpcStore {
 	//     (Parsing as script error: Unexpected token = at line: 21 and column: 20)
 	// static NO_CAPTURE = "NO_CAPTURE";
 	constructor() {
-		this.handleCapture = this.getCapture.bind(this);
 		this.handleTargetElement = this.getTargetElement.bind(this);
 		this.handleResult = this.getResult.bind(this);
 		this.handlePutPreviewError = this.putPreviewError.bind(this);
@@ -33,17 +32,6 @@ class LrRpcStore {
 	putExecInfo(execInfo) {
 		this.execInfo = execInfo;
 		delete this._previewError;
-	};
-	getCapture() {
-		if (this.execInfo === LrRpcStore.NO_CAPTURE) {
-			throw new Error("Nothing has captured yet");
-		}
-		const result = this.execInfo && this.execInfo && this.execInfo.result;
-		const capture = result && result.capture;
-		if (capture == null) {
-			throw new Error("Capture was unsuccessful");
-		}
-		return capture;
 	};
 	getResult(_args, _port) {
 		if (this.execInfo == null) {

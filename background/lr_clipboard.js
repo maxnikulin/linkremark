@@ -92,7 +92,9 @@ var lr_clipboard = lr_util.namespace(lr_clipboard, function lr_clipboard() {
 			throw new Error("_lrClipboardContentScript: invalid tabId");
 		}
 		const scriptResult = await lr_scripting.executeScript(
-			{ tabId, frameId: 0 }, "/content_scripts/lrc_clipboard.js");
+			{ tabId, frameId: 0 },
+			lr_content_scripts.lrcClipboard,
+			[ capture ]);
 		const { result, error, warnings } = scriptResult || {};
 		if (result) {
 			if (error) {

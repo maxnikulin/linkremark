@@ -44,7 +44,8 @@ SW_SRC += \
 	background/lr_tabframe.js \
 	background/lr_notify.js \
 	background/lr_action.js \
-	background/lr_schema_org_product.js
+	background/lr_schema_org_product.js \
+	content_scripts/lrc_clipboard.js
 
 SW_TEST_JS = lr_sw_test.js
 SW_TEST_SRC += \
@@ -71,7 +72,7 @@ PAGES_SRC += pages/lr.css pages/lrp_preview.html
 PAGES_SRC += pages/lr_browseraction.html pages/lr_browseraction.css pages/lr_browseraction.js
 PAGES_SRC += $(HELP_PAGE)
 
-CONTENT_SRC += content_scripts/lrc_selection.js content_scripts/lrc_clipboard.js
+CONTENT_SRC += content_scripts/lrc_selection.js
 CONTENT_SRC += content_scripts/lrc_image.js content_scripts/lrc_link.js
 CONTENT_SRC += content_scripts/lrc_meta.js content_scripts/lrc_microdata.js 
 CONTENT_SRC += content_scripts/lrc_relations.js
