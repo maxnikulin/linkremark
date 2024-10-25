@@ -57,6 +57,7 @@ def main():
         json.dump(
             result_dict, file_obj,
             ensure_ascii=False, indent='\t')
+        print("", file=file_obj)
 
     for part in args.input:
         if part != '-' and part == args.output:
