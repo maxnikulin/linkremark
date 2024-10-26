@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2021-12-07 Tue 02:38 -->
+<!-- 2024-10-26 Sat 03:09 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark Help</title>
@@ -63,14 +63,14 @@ Optionally select some text and choose an option from context menu (right click,
 <code>[Menu]</code> or <code>[Shift+F10]</code> keys).
 Unless you are going to capture a particular link,
 you can click on the extension icon in browser toolbar ("browser action")
-or may configure a shortcut on the add-ons page.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
+or may configure a shortcut on the add-ons page.<sup><a id="fnr.addons" class="footref" href="#fn.addons" role="doc-backlink">1</a></sup>
 </p>
 
 <p>
 By default the extension just shows preview for the note
 and offers to copy it to clipboard,
 so you just can paste it to a text editor.
-Emacs Org mode has a convenient command C-c C-x C-y, org-paste-subtree.<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup>
+Emacs Org mode has a convenient command C-c C-x C-y, org-paste-subtree.<sup><a id="fnr.pastesubtree" class="footref" href="#fn.pastesubtree" role="doc-backlink">2</a></sup>
 A hint: to navigate to the parent heading before pasting
 you can use C-u C-c C-w, org-refile
 or C-c C-j, org-goto (maybe with prefix argument as well).
@@ -106,7 +106,7 @@ in Emacs configuration and to change template to
 <p>
 Please, update "Template type configured in org-capture-templates"
 in add-on settings as well (may be opened from preview page,
-or from browser add-ons page<sup><a id="fnr.1.100" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>.
+or from browser add-ons page<sup><a id="fnr.addons.1" class="footref" href="#fn.addons" role="doc-backlink">1</a></sup>.
 </p>
 
 <p>
@@ -123,7 +123,7 @@ may be more useful than Worg page).
 I am a bit afraid that some web page may try to inject
 some malicious content into my notes when I click on an innocent link,
 so I suggest to consider exporting
-through a native messaging application as a safer option.<sup><a id="fnr.3" class="footref" href="#fn.3" role="doc-backlink">3</a></sup>
+through a native messaging application as a safer option.<sup><a id="fnr.snap" class="footref" href="#fn.snap" role="doc-backlink">3</a></sup>
 LinkRemark repository contains a simple variant in
 <a rel="nofollow noreferrer" href="https://github.com/maxnikulin/linkremark/blob/master/examples/backend-python/lr_emacsclient.py">examples/backend-python/lr_emacsclient.py</a>
 Run it with <code>-h</code> option for a brief guide. To enable it,
@@ -177,7 +177,7 @@ by Sacha Chua.
 <h2 class="footnotes">Footnotes: </h2>
 <div id="text-footnotes">
 
-<div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+<div class="footdef"><sup><a id="fn.addons" class="footnum" href="#fnr.addons" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 "Manage extension" or "Preferences" in context menu (right click)
 for the add-on's browser action
 button or through generic browser menu,
@@ -185,13 +185,13 @@ e.g. Firefox: "Add-ons and Themes" from hamburger menu
 or from "Tools" in menu bar, <code>[Ctrl+Shift+A]</code>.
 </p></div></div>
 
-<div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+<div class="footdef"><sup><a id="fn.pastesubtree" class="footnum" href="#fnr.pastesubtree" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 There is some bug and subtree is not recognized
 first time in X clipboard. Workaround is yank <code>C-y</code>, undo <code>C-/</code>
 (required once per Emacs session), and <code>C-c C-x C-y</code> to paste subtree.
 </p></div></div>
 
-<div class="footdef"><sup><a id="fn.3" class="footnum" href="#fnr.3" role="doc-backlink">3</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+<div class="footdef"><sup><a id="fn.snap" class="footnum" href="#fnr.snap" role="doc-backlink">3</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
 There is a problem with browsers distributed
 as snap or flatpack. Such applications works with
 additional level of isolation in respect to system files,
@@ -211,7 +211,7 @@ Related Firefox bugs:
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2021-12-07 Tue 02:38</p>
+<p class="date">Created: 2024-10-26 Sat 03:09</p>
 </div>
 </body>
 </html>
