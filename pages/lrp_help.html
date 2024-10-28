@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-10-26 Sat 08:08 -->
+<!-- 2024-10-28 Mon 03:17 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LinkRemark — notes for web pages augmented by metadata</title>
@@ -75,6 +75,37 @@ for up to date version.</p>
 </ul>
 </div>
 </nav>
+<p>
+Changes in LinkRemark-0.4 release are almost entirely related
+to forced transition to another API version for Chrome extensions.
+Minor fixes:
+</p>
+<ul class="org-ul">
+<li><p>
+Earlier zero-width space characters U+200B were added after timestamps.
+You may want to remove them from your notes, use search and replace for
+</p>
+<pre class="example">
+:LAST_MODIFIED: [2021-09-18 Tue 01:23]&lt;200b&gt; 09/18/2021 01:23:46
+</pre></li>
+<li>Only first <code>&lt;script&gt;</code> element with JSON-LD metadata was taken into account.</li>
+</ul>
+
+<p>
+As to Manifest V3 API, it required significant amount of work.
+New bugs may appear due to more complex initialization.
+I have no idea if smaller RAM footprint of browser is noticeable.
+Despite some permissions are optional now,
+I do not think the add-on has become more safe.
+Multiple tabs and cross-origin frames scenarios still require most dangerous
+<a href="#access-your-data-for-all-websites-allurls">&lt;all_urls&gt;</a>.
+From my point of view, security model for browser extensions
+is still far from being consistent.
+Firefox version still uses Manifest V2 API due to bugs
+in mv3 implementation.
+I agree with the opinion that primary goal of forcing Manifest V3 API
+is to restrict ad blockers, not user safety.
+</p>
 <div id="outline-container-introduction" class="outline-2">
 <h2 id="introduction"><span class="section-number-2">1.</span> Introduction</h2>
 <div class="outline-text-2" id="text-introduction">
@@ -730,7 +761,7 @@ from directories shared by all profiles.
 </div>
 </div></div>
 <div id="postamble" class="status">
-<p class="date">Created: 2024-10-26 Sat 08:08</p>
+<p class="date">Created: 2024-10-28 Mon 03:17</p>
 </div>
 </body>
 </html>
