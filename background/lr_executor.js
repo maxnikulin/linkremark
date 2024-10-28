@@ -17,7 +17,7 @@
 
 "use strict";
 
-var lr_executor = lr_util.namespace(lr_executor, function lr_format_org() {
+var lr_executor = lr_util.namespace(lr_executor, function lr_executor() {
 	var lr_executor = this;
 
 	for (const name of ["IGNORE_ERROR", "ERROR_IS_WARNING"]) {
