@@ -26,7 +26,7 @@ Due to limitation of GitHub Org renderer
 :skiphelp:
 Install [[file:icons/lr-32.png]] LinkRemark:
 - [[https://addons.mozilla.org/firefox/addon/linkremark/][Firefox add-on at addons.mozilla.org]],
-- [[https://chrome.google.com/webstore/detail/mgmcoaemjnaehlliifkgljdnbpedihoe][Extension in Chrome Web Store]].
+- [[https://chromewebstore.google.com/detail/linkremark/mgmcoaemjnaehlliifkgljdnbpedihoe][Extension in Chrome Web Store]].
 :end:
 
 ** Introduction
@@ -95,7 +95,7 @@ and to remove some redundant entries.
 
 You can install LinkRemark from browser extension catalogues, see
 [[https://addons.mozilla.org/firefox/addon/linkremark/][addons.mozilla.org for Firefox]]
-or [[https://chrome.google.com/webstore/detail/mgmcoaemjnaehlliifkgljdnbpedihoe][Chrome Web Store]].
+or [[https://chromewebstore.google.com/detail/linkremark/mgmcoaemjnaehlliifkgljdnbpedihoe][Chrome Web Store]].
 Packages are mirrored in the releases section on GitHub
 <https://github.com/maxnikulin/linkremark/releases>
 
