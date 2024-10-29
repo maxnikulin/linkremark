@@ -19,7 +19,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
+lr_content_scripts.lrcImage = function lrcImage(target, limits) {
 	function lrNormalize(value, sizeLimit) {
 		sizeLimit = sizeLimit || limits.STRING;
 		const t = typeof value;
@@ -94,6 +94,42 @@ lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
 		return document.activeElement;
 	}
 
+	function guessTargetElementByHref(target, errorCb) {
+		if (errorCb == null) {
+			errorCb = console.error;
+		}
+		let image;
+		const href = target?.href;
+		if (href == null) {
+			errorCb(new Error(`guessTargetElementByHref: href ${href}`));
+			return image;
+		}
+		for (const img of document.querySelectorAll("img[src]")) {
+			//      document.querySelectorAll(`img[src=CSS.escape(href)]`)
+			// does not match relative URL
+			//      <img src="relative.jpg">
+			// since `onClickData.srcUrl` is absolute URL.
+			if (href !== img.src && href !== img.getAttribute("src")) {
+				continue;
+			}
+			if (image == null) {
+				image = img;
+				continue;
+			}
+			for (const attr of ["title", "alt"]) {
+				const savedAttr = image.getAttribute(attr);
+				const currentAttr = img.getAttribute(attr);
+				if (savedAttr !== currentAttr) {
+					// TODO use errorCb and add warnings to error in background
+					throw new Error(`Ambiguous images having distinct ${attr}: ${savedAttr} != ${currentAttr}`);
+					image = null;
+					break;
+				}
+			}
+		}
+		return image;
+	}
+
 	function getUrl(node, attr) {
 		const hrefAttr = node.getAttribute(attr);
 		if (!hrefAttr || hrefAttr === "#" || hrefAttr.startsWith("javascript:")) {
@@ -111,7 +147,7 @@ lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
 		}
 	}
 
-	function lrcImageProperties(elementId) {
+	function lrcImageProperties(target) {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -121,9 +157,12 @@ lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
 			});
 		}
 
-		const img = getTargetElement(
-			elementId,
+		let img = getTargetElement(
+			target?.targetElementId,
 			error => pushWarning(error, 'lr.image.getTargetElement'));
+		if (img == null || img.nodeName != 'IMG' || img.src !== target.href) {
+			img = guessTargetElementByHref(target);
+		}
 		if (img == null || img.nodeName != 'IMG') {
 			// Maybe it is worth checking CSS background-url property
 			throw new Error(`target element is not an image: ${img && img.nodeName}`);
@@ -145,7 +184,7 @@ lr_content_scripts.lrcImage = function lrcImage(elementId, limits) {
 	}
 
 	try {
-		return { result: lrcImageProperties(elementId) };
+		return { result: lrcImageProperties(target) };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}

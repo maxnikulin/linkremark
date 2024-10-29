@@ -19,7 +19,7 @@
 
 var lr_content_scripts = lr_content_scripts || {};
 
-lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
+lr_content_scripts.lrcLink = function lrcLink(target, limits) {
 	/** Make Error instances fields available for backend scripts */
 	function lrToObject(obj) {
 		if (obj instanceof Error) {
@@ -101,6 +101,48 @@ lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
 		return document.activeElement;
 	}
 
+	function guessTargetElementByHref(target, errorCb) {
+		if (errorCb == null) {
+			errorCb = console.error;
+		}
+		let link;
+		const href = target?.href;
+		if (href == null) {
+			errorCb(new Error(`guessTargetElementByHref: href ${href}`));
+			return link;
+		}
+		for (const a of document.querySelectorAll("a[href]")) {
+			//      document.querySelectorAll(`a[href=CSS.escape(href)]`)
+			// does not match relative URL
+			//      <a href="relative.html">
+			// since `onClickData.linkUrl` is absolute URL.
+			if (href !== a.href && href !== a.getAttribute("href")) {
+				continue;
+			}
+			if (link == null) {
+				link = a;
+				continue;
+			}
+			for (const attr of ["title", "download", "hreflang", "type"]) {
+				const savedAttr = link.getAttribute(attr);
+				const currentAttr = a.getAttribute(attr);
+				if (savedAttr !== currentAttr) {
+					// TODO use errorCb and add warnings to error in background
+					throw new Error(`Ambiguous links having distinct ${attr}: ${savedAttr} != ${currentAttr}`);
+					link = null;
+					break;
+				}
+			}
+			if (link.innerText !== a.innerText) {
+				// TODO use errorCb and add warnings to error in background
+				throw new Error("Ambiguous links having distinct text");
+				link = null;
+				break;
+			}
+		}
+		return link;
+	}
+
 	function getUrl(node, attr) {
 		const hrefAttr = node.getAttribute(attr);
 		if (!hrefAttr || hrefAttr === "#") {
@@ -145,7 +187,7 @@ lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
 		return result && lrNormalize(result, limits.TEXT);
 	}
 
-	function lrcLinkProperties(elementId) {
+	function lrcLinkProperties(target) {
 		const result = [];
 		function pushWarning(error, key) {
 			result.push({
@@ -155,10 +197,15 @@ lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
 			});
 		}
 
-		let link = getTargetElement(elementId, error => pushWarning(error, 'lr.link.getTargetElement'));
+		let link = getTargetElement(
+			target?.targetElementId,
+			error => pushWarning(error, 'lr.link.getTargetElement'));
 		// Original click target could be suitable if link text is too long
 		for (; link != null && link.nodeName != 'A' && link != document.body; link = link.parentNode)
 			;
+		if (link == null || link.nodeName != 'A' || link.href !== target.href) {
+			link = guessTargetElementByHref(target);
+		}
 		if (link == null || link.nodeName != 'A') {
 			throw new Error(`target element is not a link: ${link && link.nodeName}`);
 		}
@@ -184,7 +231,7 @@ lr_content_scripts.lrcLink = function lrcLink(elementId, limits) {
 	}
 
 	try {
-		return { result: lrcLinkProperties(elementId) };
+		return { result: lrcLinkProperties(target) };
 	} catch (ex) {
 		return { error: lrToObject(ex) };
 	}

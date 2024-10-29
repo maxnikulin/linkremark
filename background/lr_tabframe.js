@@ -576,16 +576,18 @@ async function lrGetClickObject(tab, clickData, chain, executor) {
 	if (tab && tab.id >= 0) {
 		if (clickData != null && !wrappedFrame?.summary?.scripts_forbidden) {
 			const { captureObject, targetElementId } = clickData;
-			let func, target;
+			let func, target, href;
 			if (captureObject === 'image') {
 				func = lr_content_scripts.lrcImage;
 				target = 'image';
+				href = clickData.srcUrl;
 			} else if (captureObject === 'link') {
 				func = lr_content_scripts.lrcLink;
 				target = "link";
+				href = clickData.linkUrl;
 			}
 			if (target != null) {
-				const args = [ targetElementId ?? null, lr_meta.limits ];
+				const args = [ { targetElementId, href }, lr_meta.limits ];
 				await executor.step(
 					lrExecuteFrameScript, tab, wrappedFrame, func, args, target);
 			}
