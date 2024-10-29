@@ -33,7 +33,7 @@ EMACS_FLAGS = --batch --no-init-file
 
 # E.g. to redefine directory to load Org
 #     EMACS_FLAGS += --directory ~/src/org-mode/lisp
-include local.mk
+-include local.mk
 
 # For development with almost no build step.
 firefox: manifest-firefox.json $(HELP_PAGE)
