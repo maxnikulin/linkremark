@@ -1,4 +1,7 @@
 
+ENV_CLEAN = LC_ALL=en_US.UTF-8 TZ=Z LANGUAGE=en
+GIT_RESTORE_MTIME_FLAGS = restore-mtime --commit-time
+GIT_DIFF_FLAGS = --no-pager diff --exit-code --name-only
 MAKE_MANIFEST = tools/make_manifest.py
 MAKE_SW = tools/make_sw.py
 MANIFEST_FIREFOX_src = manifest-common.yaml manifest-part-firefox.yaml
@@ -84,7 +87,7 @@ ICONS_SRC += icons/lr-64.png icons/lr-128.png
 
 OFFSCREEN_SRC += offscreen/lro_clipboard.html offscreen/lro_clipboard.js
 
-EMACS = LC_ALL=en_US.UTF-8 TZ=Z LANGUAGE=en emacs
+EMACS = $(ENV_CLEAN) emacs
 EMACS_FLAGS = --batch --no-init-file
 
 ORG_RUBY = org-ruby
@@ -142,25 +145,31 @@ clean:
 	$(RM) manifest.json
 	$(RM) README.html
 
-firefox-dist: firefox
+firefox-dist: manifest-firefox.json
+	git $(GIT_DIFF_FLAGS)
+	git $(GIT_RESTORE_MTIME_FLAGS)
+	ln -sf manifest-firefox.json manifest.json
 	set -e ; \
 	out="`cat manifest-firefox.json | \
 		python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"`" ; \
 	background="`python3 -c 'import sys,json; print(" ".join(json.load(sys.stdin)["background"]["scripts"]))' < manifest.json`" ; \
 	file="linkremark-$${out}-unsigned.xpi" ; \
 	$(RM) "$$file" ; \
-	zip --must-match "$$file" manifest.json $$background \
+	$(ENV_CLEAN) zip --must-match "$$file" manifest.json $$background \
 		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) \
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
-chrome-dist: chrome manifest-chrome-dist.json $(HELP_PAGE)
+chrome-dist: manifest-chrome-dist.json $(SW_DIST_JS)
+	git $(GIT_DIFF_FLAGS)
+	git $(GIT_RESTORE_MTIME_FLAGS)
 	ln -sf manifest-chrome-dist.json manifest.json
+	ln -sf $(SW_DIST_JS) $(SW_JS)
 	set -e ; \
 	version="`python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])' <manifest-chrome.json`" ; \
 	file="linkremark-$${version}.zip" ; \
 	$(RM) "$$file" ; \
-	zip --must-match "$$file" manifest.json \
+	$(ENV_CLEAN) zip --must-match "$$file" manifest.json \
 		$(SW_JS) $(SW_INIT) $(SW_SRC) $(SW_MAIN) \
 		$(PAGES_SRC) $(CONTENT_SRC) $(ICONS_SRC) $(OFFSCREEN_SRC) \
 		"_locales/en/messages.json" ; \
