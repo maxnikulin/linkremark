@@ -160,10 +160,13 @@ firefox-dist: manifest-firefox.json
 		"_locales/en/messages.json" ; \
 	echo "Created $$file"
 
+# manifest-chrome-dist.json is not committed to git,
+# so use manifest-chrome.json timestamp
 chrome-dist: manifest-chrome-dist.json $(SW_DIST_JS)
 	git $(GIT_DIFF_FLAGS)
 	git $(GIT_RESTORE_MTIME_FLAGS)
 	ln -sf manifest-chrome-dist.json manifest.json
+	touch -r manifest-chrome.json manifest-chrome-dist.json
 	ln -sf $(SW_DIST_JS) $(SW_JS)
 	set -e ; \
 	version="`python3 -c 'import json, sys; print(json.load(sys.stdin)["version"])' <manifest-chrome.json`" ; \
