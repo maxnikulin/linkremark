@@ -181,16 +181,56 @@ def dialog_gxmessage(title, text):
     return True
 
 
-def show_dialog(title, text):
-    backends = [dialog_zenity]
-    if os.getenv("KDE_FULL_SESSION"):
-        backends.insert(0, dialog_kdialog)
-    else:
-        backends.append(dialog_kdialog)
-    backends.append(dialog_gxmessage)
-    backends.append(dialog_yad)
+def dialog_order(xdg_current_desktop=None):
+    """
+    >>> def list_names(l): return list(map(lambda x: x.__name__, l))
+    >>> list_names(dialog_order(b""))
+    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_kdialog']
+    >>> list_names(dialog_order(b"KDE"))
+    ['dialog_kdialog', 'dialog_zenity', 'dialog_gxmessage', 'dialog_yad']
+    >>> list_names(dialog_order(b"SOMETHING:KDE"))
+    ['dialog_zenity', 'dialog_kdialog', 'dialog_gxmessage', 'dialog_yad']
+    >>> from contextlib import contextmanager
+    >>> @contextmanager
+    ... def xdg_c_d(desktop):
+    ...     v = b"XDG_CURRENT_DESKTOP"
+    ...     c_d = os.environb.get(v, None)
+    ...     try:
+    ...         if desktop is not None:
+    ...             os.environb[v] = desktop
+    ...         elif c_d is not None:
+    ...             del os.environb[v]
+    ...         yield
+    ...     finally:
+    ...         if c_d is not None:
+    ...             os.environb[v] = c_d
+    ...         elif desktop is not None:
+    ...             del os.environb[v]
+    >>> with xdg_c_d(None):
+    ...     list_names(dialog_order())
+    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_kdialog']
+    >>> with xdg_c_d(b"KDE:SOMETHING"):
+    ...     list_names(dialog_order())
+    ['dialog_kdialog', 'dialog_zenity', 'dialog_gxmessage', 'dialog_yad']
+    >>> with xdg_c_d(b"SOMETHING:KDE:ANOTHER"):
+    ...     list_names(dialog_order())
+    ['dialog_zenity', 'dialog_kdialog', 'dialog_gxmessage', 'dialog_yad']
+    """
+    if xdg_current_desktop is None:
+        xdg_current_desktop = os.environb.get(b"XDG_CURRENT_DESKTOP", b"")
+    xdg_current_desktop = xdg_current_desktop.split(b":")
+    order = [dialog_zenity, dialog_gxmessage, dialog_yad]
+    pos = len(order)
+    if xdg_current_desktop[0] == b"KDE":
+        pos = 0
+    elif b"KDE" in xdg_current_desktop:
+        pos = 1
+    order.insert(pos, dialog_kdialog)
+    return order
 
-    for b in backends:
+
+def show_dialog(title, text):
+    for b in dialog_order():
         if b(title, text):
             return
 
