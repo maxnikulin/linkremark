@@ -32,7 +32,8 @@ Icon=emacs
 Exec={0} %u
 Type=Application
 Terminal=false
-Categories=Utility;TextEditor;Debugger
+# Do not show in menu
+NoDisplay=true
 Keywords=Emacs, Org mode
 # Trailing semicolon is required due to
 # <https://gitlab.freedesktop.org/xdg/xdg-utils/-/issues/222>
