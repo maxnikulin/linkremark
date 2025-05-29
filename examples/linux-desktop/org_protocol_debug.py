@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-from subprocess import run
+from subprocess import run, PIPE
 from urllib import parse
 
 HELP = """Usage: {0} org-protocol:/SUBPROTOCOL/?DATA
@@ -174,14 +174,18 @@ def dialog_gxmessage(title, text):
     command = [
         executable,
         "-center", "-wrap", "-default", "okay", "-file", "-", "-title", title]
-    res = run(command, check=False, text=True, input=text)
-    # Cancel is 1, escape is 252, invalid options are shown literary
-    if res.returncode not in (0, 1):
-        print("{0}: command returned {1}: {2}".format(
-            sys.argv[0], res.returncode,
-            " ".join(["{!r}".format(a) for a in command])))
-        return
-    return True
+    res = run(command, check=False, stderr=PIPE, text=True, input=text)
+    if res.returncode == 0:
+        return True
+    elif res.returncode == 1 and res.stderr == '':
+        # The window is closed using the button in the title bar.
+        return True
+
+    cmd = " ".join((f"{a!r}" for a in command))
+    print(
+        f"{sys.argv[0]}: exit code {res.returncode}\n{cmd}\n{res.stderr}",
+        file=sys.stderr)
+    return
 
 
 def dialog_xmessage(title, text):
@@ -195,13 +199,18 @@ def dialog_xmessage(title, text):
         "-center", "-xrm", "*international: true", "-default", "okay",
         "-file", "-"]
     text = f"{title}\n\n{text}"
-    res = run(command, check=False, text=True, input=text)
-    if res.returncode not in (0, 1):
-        print("{0}: command returned {1}: {2}".format(
-            sys.argv[0], res.returncode,
-            " ".join(["{!r}".format(a) for a in command])))
-        return
-    return True
+    res = run(command, check=False, stderr=PIPE, text=True, input=text)
+    if res.returncode == 0:
+        return True
+    elif res.returncode == 1 and res.stderr == '':
+        # The window is closed using the button in the title bar.
+        return True
+
+    cmd = " ".join((f"{a!r}" for a in command))
+    print(
+        f"{sys.argv[0]}: exit code {res.returncode}\n{cmd}\n{res.stderr}",
+        file=sys.stderr)
+    return
 
 
 def dialog_order(xdg_current_desktop=None):
