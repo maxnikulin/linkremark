@@ -170,9 +170,27 @@ def dialog_gxmessage(title, text):
         return
     # Without --selectable-labels text could not be selected,
     # with it all text is selected that is even worse.
-    command = [executable, "-center", "-wrap", "-title", title, text]
-    res = run(command, check=False)
+    command = [
+        executable,
+        "-center", "-wrap", "-default", "okay", "-file", "-", "-title", title]
+    res = run(command, check=False, text=True, input=text)
     # Cancel is 1, escape is 252, invalid options are shown literary
+    if res.returncode not in (0, 1):
+        print("{0}: command returned {1}: {2}".format(
+            sys.argv[0], res.returncode,
+            " ".join(["{!r}".format(a) for a in command])))
+        return
+    return True
+
+
+def dialog_xmessage(title, text):
+    """Simple xmessage X11 tool"""
+    executable = find_in_path("xmessage")
+    if not executable:
+        return
+    command = [executable, "-center", "-default", "okay", "-file", "-"]
+    text = f"{title}\n\n{text}"
+    res = run(command, check=False, text=True, input=text)
     if res.returncode not in (0, 1):
         print("{0}: command returned {1}: {2}".format(
             sys.argv[0], res.returncode,
@@ -184,12 +202,16 @@ def dialog_gxmessage(title, text):
 def dialog_order(xdg_current_desktop=None):
     """
     >>> def list_names(l): return list(map(lambda x: x.__name__, l))
-    >>> list_names(dialog_order(b""))
-    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_kdialog']
-    >>> list_names(dialog_order(b"KDE"))
-    ['dialog_kdialog', 'dialog_zenity', 'dialog_gxmessage', 'dialog_yad']
+    >>> list_names(dialog_order(b""))  # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage',
+    'dialog_kdialog']
+    >>> list_names(dialog_order(b"KDE"))  # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_kdialog', 'dialog_zenity',
+    'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage']
     >>> list_names(dialog_order(b"SOMETHING:KDE"))
-    ['dialog_zenity', 'dialog_kdialog', 'dialog_gxmessage', 'dialog_yad']
+    ... # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_zenity', 'dialog_kdialog',
+    'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage']
     >>> from contextlib import contextmanager
     >>> @contextmanager
     ... def xdg_c_d(desktop):
@@ -208,18 +230,24 @@ def dialog_order(xdg_current_desktop=None):
     ...             del os.environb[v]
     >>> with xdg_c_d(None):
     ...     list_names(dialog_order())
-    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_kdialog']
+    ...     # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage',
+    'dialog_kdialog']
     >>> with xdg_c_d(b"KDE:SOMETHING"):
     ...     list_names(dialog_order())
-    ['dialog_kdialog', 'dialog_zenity', 'dialog_gxmessage', 'dialog_yad']
+    ...     # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_kdialog', 'dialog_zenity',
+    'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage']
     >>> with xdg_c_d(b"SOMETHING:KDE:ANOTHER"):
     ...     list_names(dialog_order())
-    ['dialog_zenity', 'dialog_kdialog', 'dialog_gxmessage', 'dialog_yad']
+    ...     # doctest: +NORMALIZE_WHITESPACE
+    ['dialog_zenity', 'dialog_kdialog',
+    'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage']
     """
     if xdg_current_desktop is None:
         xdg_current_desktop = os.environb.get(b"XDG_CURRENT_DESKTOP", b"")
     xdg_current_desktop = xdg_current_desktop.split(b":")
-    order = [dialog_zenity, dialog_gxmessage, dialog_yad]
+    order = [dialog_zenity, dialog_gxmessage, dialog_yad, dialog_xmessage]
     pos = len(order)
     if xdg_current_desktop[0] == b"KDE":
         pos = 0
@@ -235,7 +263,7 @@ def show_dialog(title, text):
             return
 
     raise RuntimeError(
-            "Neither zenity nor kdialog. gxmessage, yad are installed")
+        "Neither zenity nor kdialog, gxmessage, yad, xmessage are installed")
 
 
 def wrap(text, size):
