@@ -189,7 +189,11 @@ def dialog_xmessage(title, text):
     executable = find_in_path("xmessage")
     if not executable:
         return
-    command = [executable, "-center", "-default", "okay", "-file", "-"]
+    # TODO: `-xrm` translations to handle Escape
+    command = [
+        executable,
+        "-center", "-xrm", "*international: true", "-default", "okay",
+        "-file", "-"]
     text = f"{title}\n\n{text}"
     res = run(command, check=False, text=True, input=text)
     if res.returncode not in (0, 1):
