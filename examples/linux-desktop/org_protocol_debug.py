@@ -207,19 +207,23 @@ def dialog_kdialog(title, text):
         return
 
     def kdialog_escape(txt):
-        """Prevent "Unrecognized escape sequence \\x"
+        """Prevent "Unrecognized escape sequence \\x" and formatting
 
         It may happen for non-breaking space %C2%A0
         converted to \\xa0 by ``str.__repr__()``.
         I have not found a kdialog option disabling interpretation
-        of escape characters."""
-        return txt and txt.replace('\\', '\\\\')
+        of escape characters.
+
+        Force HTML by wrapping into ``<pre>`` to not depend on message text."""
+        if not txt:
+            return ""
+
+        return "<pre style='white-space: pre-wrap;'>{0}</pre>".format(
+            txt.translate(str.maketrans({
+                '\\': '\\\\', '&': '&amp;', '<': '&lt;', '>': '&gt;'})))
 
     # --textbox requires file name
-    command = [
-        "kdialog", "--title", kdialog_escape(title),
-        "--msgbox", kdialog_escape(text)
-    ]
+    command = ["kdialog", "--title", title, "--msgbox", kdialog_escape(text)]
     res = run(command)
     # Cancel is 2, invalid option is 1
     if res.returncode not in (0, 2):
