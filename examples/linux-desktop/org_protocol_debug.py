@@ -2,7 +2,8 @@
 
 import os
 import sys
-from subprocess import run, PIPE
+import signal
+from subprocess import CompletedProcess, PIPE, Popen
 from urllib import parse
 
 HELP = """Usage: {0} org-protocol:/SUBPROTOCOL/?DATA
@@ -53,6 +54,18 @@ WARNING_QUERY = '''WARNING: Query part is missed. Likely you are using
 old syntax, see capture protocol section in the manual
 and 9.0 changes in https://orgmode.org/Changes_old.html'''
 
+KILL_CHILD_SIGNALS = [
+    signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGKILL,
+    signal.SIGTERM]
+"""Treat these signals as intention to kill dialog
+
+If a dialog tool receives one of these signals kill the script.
+Other signals are treated as the tool failure with fallback to
+next one.  A command to test behavior:
+
+    kill -IO "$(ps --ppid "$!" -o pid=)"
+"""
+
 
 def help():
     print(HELP.format(sys.argv[0]))
@@ -88,6 +101,80 @@ def parse_args(args):
         return True
 
 
+def run(cmd, input=None, **kwargs):
+    """Run subprocess and kill it or the script if it counterpart is killed
+
+    Similar to ``subprocess.run()``, but consider SIGTERM, SIGINT, etc.
+    as intention to terminate both the script and the subprocess.
+
+    Unsure if it would be better to call ``os.setpgid`` and to rely
+    on SIGHUP sent to other members of the process group when
+    the script is died. It may be better to handle SIGKILL,
+    but I am unsure if it may interfere with shell job control."""
+    child = None
+    handlers = []
+    # See signal(7)
+    signals_keep = {
+        signal.SIGSTOP, signal.SIGKILL,  # OSError: [Errno 22] Invalid argument
+        signal.SIGCHLD,  # handled by ``subprocess.Popen``
+        signal.SIGCONT, signal.SIGTSTP,  # regular job control
+        # Ignored by default, do not die e.g. on terminal resize.
+        signal.SIGURG, signal.SIGWINCH}
+
+    def kill_self(sig):
+        signal.signal(sig, signal.SIG_DFL)
+        # TODO Can xdg-open try next handler in the case of killed handler?
+        os.kill(0, sig)
+        # Should not happen.
+        try:
+            name = signal.Signals(sig).name
+        except:  # noqa: E722
+            name = signal.strsignal(sig) or sig
+        print(f"Not killed by {name!r}, trying SIGKILL", file=sys.stderr)
+        os.kill(0, signal.SIGKILL)
+        assert False, "Internal error, the process should be dead already"
+
+    def handler(sig, _frame):
+        if child is not None:
+            child.kill()
+        kill_self(sig)
+
+    def restore_handler():
+        while handlers:
+            sig, h = handlers.pop()
+            signal.signal(sig, h)
+
+    def set_handler(signals, h):
+        for sig in signals:
+            signal.signal(sig, h)
+
+    if input is not None:
+        if kwargs.get("stdin") is not None:
+            raise ValueError(
+                'stdin and input arguments are mutualy incompatible')
+        kwargs['stdin'] = PIPE
+
+    try:
+        set_handler(signal.valid_signals() - signals_keep, handler)
+        # similar to `subprocess.run()`
+        with Popen(cmd, **kwargs) as child:
+            try:
+                stdout, stderr = child.communicate(input)
+            except:  # noqa: E722
+                child.kill()
+                raise
+            retcode = child.poll()
+            args = child.args
+            child = None
+    finally:
+        restore_handler()
+
+    if retcode < 0 and -retcode in KILL_CHILD_SIGNALS:
+        kill_self(-retcode)
+
+    return CompletedProcess(args, retcode, stdout, stderr)
+
+
 def find_in_path(binary):
     for p in os.getenv("PATH").split(os.pathsep):
         full = os.path.join(p, binary)
@@ -104,7 +191,7 @@ def dialog_zenity(title, text):
     command = [
         executable, "--info", "--no-markup",
         "--title", title, "--text", text]
-    res = run(command, check=False)
+    res = run(command)
     # Cancel is 1, invalid option is 255
     if res.returncode not in (0, 1):
         print("{0}: command returned {1}: {2}".format(
@@ -133,7 +220,7 @@ def dialog_kdialog(title, text):
         "kdialog", "--title", kdialog_escape(title),
         "--msgbox", kdialog_escape(text)
     ]
-    res = run(command, check=False)
+    res = run(command)
     # Cancel is 2, invalid option is 1
     if res.returncode not in (0, 2):
         print("{0}: command returned {1}: {2}".format(
@@ -154,7 +241,7 @@ def dialog_yad(title, text):
         executable,
         "--center", "--wrap", "--no-markup",
         "--title", title, "--text", text]
-    res = run(command, check=False)
+    res = run(command)
     # Cancel is 1, escape is 252, unable to get invalid option error
     if res.returncode not in (0, 1, 252):
         print("{0}: command returned {1}: {2}".format(
@@ -174,7 +261,7 @@ def dialog_gxmessage(title, text):
     command = [
         executable,
         "-center", "-wrap", "-default", "okay", "-file", "-", "-title", title]
-    res = run(command, check=False, stderr=PIPE, text=True, input=text)
+    res = run(command, stderr=PIPE, text=True, input=text)
     if res.returncode == 0:
         return True
     elif res.returncode == 1 and res.stderr == '':
@@ -199,7 +286,7 @@ def dialog_xmessage(title, text):
         "-center", "-xrm", "*international: true", "-default", "okay",
         "-file", "-"]
     text = f"{title}\n\n{text}"
-    res = run(command, check=False, stderr=PIPE, text=True, input=text)
+    res = run(command, stderr=PIPE, text=True, input=text)
     if res.returncode == 0:
         return True
     elif res.returncode == 1 and res.stderr == '':
