@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os.path
+import os
 import sys
 from subprocess import run, PIPE
 from urllib import parse
