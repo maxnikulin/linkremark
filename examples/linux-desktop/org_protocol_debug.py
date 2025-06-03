@@ -6,23 +6,23 @@ import signal
 from subprocess import CompletedProcess, PIPE, Popen
 from urllib import parse
 
-HELP = """Usage: {0} org-protocol:/SUBPROTOCOL/?DATA
+HELP = """Usage: {0} -- org-protocol:/SUBPROTOCOL/?DATA
   or:  {0} {{ -h | --help }}
   or:  {0} {{ -d | --desktop }}
 Decode org-protocol and display in a dialog to debug desktop integration.
 One of the following dialog tool is required: zenity, kdialog, gxmessage, yad.
 
 Alternatively
-  -h, --help     display this message.
+  -h, --help     display this message and exit.
   -d, --desktop  print content of .desktop file to install this script
-                 as the scheme handler. Should be saved to "applications"
-                 subdir of $XDG_DATA_HOME or $XDG_DATA_DIRS, e.g.
-                 ~/.local/share/applications/x-org-protocol-debug.desktop
                  Do not forget to register it:
                      update-desktop-database ~/.local/share/applications/
                  or
                      xdg-settings set default-url-scheme-handler \
 org-protocol org-protocol-debug.desktop"""
+                 as the URL scheme handler and exit. Output should be saved
+                 to "applications" subdir of $XDG_DATA_HOME or $XDG_DATA_DIRS,
+                 e.g. to ~/.local/share/applications/org-protocol-debug.desktop
 
 DESKTOP = """[Desktop Entry]
 Name=Debug org-protocol
@@ -67,8 +67,8 @@ next one.  A command to test behavior:
 """
 
 
-def help():
-    print(HELP.format(sys.argv[0]))
+def help_message():
+    return HELP.format(sys.argv[0])
 
 
 def desktop():
@@ -77,28 +77,29 @@ def desktop():
 
 # I am afraid, argparse could do something unexpectedly clever.
 def parse_args(args):
+    if not (len(args) > 0):
+        return args
+    arg = args[0]
+    if arg == '--':
+        return args
+    if arg == "-d" or (len(arg) > 2 and arg == "--desktop"[:len(arg)]):
+        desktop()
+        sys.exit(0)
+
     do_help = False
-    do_desktop = False
-    i = 0
     for arg in args:
-        i += 1
+        if len(arg) < 2 or arg[0] != "-":
+            continue
         if arg == "--":
             break
-        if arg == "" or arg[0] != "-":
-            continue
         if arg == "-h" or (len(arg) > 2 and arg == "--help"[:len(arg)]):
             do_help = True
-        elif i == 1 and (
-                arg == "-d" or
-                (len(arg) > 2 and arg == "--desktop"[:len(arg)])):
-            do_desktop = True
 
     if do_help:
-        help()
-        return True
-    elif do_desktop:
-        desktop()
-        return True
+        print(help_message())
+        sys.exit(0)
+
+    return args
 
 
 def run(cmd, input=None, **kwargs):
@@ -394,19 +395,16 @@ def wrap(text, size):
 
 
 def main():
-    args = sys.argv[1:]
-    if len(args) > 0 and parse_args(args):
-        return
+    args = parse_args(sys.argv[1:])
 
     title = "Org-protocol Debug Handler"
     details = [
         "org-protocol: handler called with the following arguments",
     ]
     details.append("Number of arguments: {0}".format(len(args)))
-    i = 0
-    for arg in args:
-        i += 1
-        details.append("[{0}]".format(i).center(80, '='))
+    for i, arg in enumerate(args):
+        if i > 0 or arg != '--' or len(args) == 1:
+            details.append("[{0}]".format(i + 1).center(80, '='))
         details.append(arg)
         try:
             if arg.startswith("org-protocol:"):
@@ -436,6 +434,8 @@ def main():
         except Exception as ex:
             details.append(str(ex))
 
+    if len(args) == 0:
+        details.append(help_message())
     wrapped = (w for line in details for w in wrap(line, 80))
     show_dialog(title, "\n".join(wrapped))
 
