@@ -9,20 +9,19 @@ from urllib import parse
 HELP = """Usage: {0} -- org-protocol:/SUBPROTOCOL/?DATA
   or:  {0} {{ -h | --help }}
   or:  {0} {{ -d | --desktop }}
-Decode org-protocol and display in a dialog to debug desktop integration.
-One of the following dialog tool is required: zenity, kdialog, gxmessage, yad.
+
+Decode org-protocol URL and display query fields in a dialog to debug
+desktop integration. One of the following dialog tool is required:
+zenity, kdialog, gxmessage, xmessage, yad.
 
 Alternatively
   -h, --help     display this message and exit.
   -d, --desktop  print content of .desktop file to install this script
-                 Do not forget to register it:
-                     update-desktop-database ~/.local/share/applications/
-                 or
-                     xdg-settings set default-url-scheme-handler \
-org-protocol org-protocol-debug.desktop"""
                  as the URL scheme handler and exit. Output should be saved
                  to "applications" subdir of $XDG_DATA_HOME or $XDG_DATA_DIRS,
                  e.g. to ~/.local/share/applications/org-protocol-debug.desktop
+                 Do not forget to refresh mimeinfo.cache:
+                     update-desktop-database ~/.local/share/applications/"""
 
 DESKTOP = """[Desktop Entry]
 Name=Debug org-protocol
@@ -30,7 +29,7 @@ Comment=Troubleshooting of org-protocol desktop integration
 Icon=emacs
 # Do not add quotes around %u, reason: undefined behavior by spec
 # <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>
-Exec={0} %u
+Exec={0} -- %u
 Type=Application
 Terminal=false
 # Do not show in menu
