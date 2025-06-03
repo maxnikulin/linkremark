@@ -170,6 +170,9 @@ def run(cmd, input=None, **kwargs):
         restore_handler()
 
     if retcode < 0 and -retcode in KILL_CHILD_SIGNALS:
+        # "wait and cooperative exit"
+        # <https://www.cons.org/cracauer/sigint.html>
+        # Martin Cracauer. Proper handling of SIGINT/SIGQUIT. 2013
         kill_self(-retcode)
 
     return CompletedProcess(args, retcode, stdout, stderr)
@@ -306,6 +309,18 @@ def dialog_xmessage(title, text):
 
 def dialog_order(xdg_current_desktop=None):
     """
+    Sort dialog tools by priority depending on XDG desktop environment
+
+    Unsupported tools:
+    - gtkdialog
+      Removed from Debian in 2009, as unmaintained see
+      <https://tracker.debian.org/pkg/gtkdialog>
+      <https://bugs.debian.org/543945>
+    - xdialog (gtk1.2)
+      Removed from Debian in 2009, see
+      <https://tracker.debian.org/pkg/xdialog>
+      <https://bugs.debian.org/517390>
+
     >>> def list_names(l): return list(map(lambda x: x.__name__, l))
     >>> list_names(dialog_order(b""))  # doctest: +NORMALIZE_WHITESPACE
     ['dialog_zenity', 'dialog_gxmessage', 'dialog_yad', 'dialog_xmessage',
