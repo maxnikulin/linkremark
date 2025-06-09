@@ -410,7 +410,7 @@ def main():
                 parsed = parse.urlsplit(arg)
                 for par in [
                         "scheme", "username", "password", "netloc",
-                        "path", "params", "fragment"]:
+                        "path", "fragment"]:
                     val = getattr(parsed, par, None)
                     if par == "path" and not (val and val.startswith('/')):
                         details.append(WARNING_PATH)
