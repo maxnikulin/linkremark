@@ -6,6 +6,9 @@ import signal
 from subprocess import CompletedProcess, PIPE, Popen
 from urllib import parse
 
+TEXT_WIDTH = 80
+"""Wrap lines longer than this value"""
+
 HELP = """Usage: {0} -- org-protocol:/SUBPROTOCOL/?DATA
   or:  {0} {{ -h | --help }}
   or:  {0} {{ -d | --desktop }}
@@ -400,10 +403,10 @@ def main():
     details = [
         "org-protocol: handler called with the following arguments",
     ]
-    details.append("Number of arguments: {0}".format(len(args)))
+    details.append(f"Number of arguments: {len(args)}")
     for i, arg in enumerate(args):
         if i > 0 or arg != '--' or len(args) == 1:
-            details.append("[{0}]".format(i + 1).center(80, '='))
+            details.append(f"[{i+1}]".center(TEXT_WIDTH, '='))
         details.append(arg)
         try:
             parsed = parse.urlsplit(arg)
@@ -422,9 +425,9 @@ def main():
                     for par, val in parse.parse_qsl(parsed.query):
                         lines = val.split("\n")
                         if len(lines) > 1:
-                            details.append("{0} ".format(par).ljust(80, '-'))
+                            details.append(f"{par} ".ljust(TEXT_WIDTH, '-'))
                             details.extend(lines)
-                            details.append("-".ljust(80, '-'))
+                            details.append("-"*TEXT_WIDTH)
                         else:
                             details.append(f'{par} = {val!r}')
                 else:
@@ -435,7 +438,7 @@ def main():
 
     if len(args) == 0:
         details.append(help_message())
-    wrapped = (w for line in details for w in wrap(line, 80))
+    wrapped = (w for line in details for w in wrap(line, TEXT_WIDTH))
     show_dialog(title, "\n".join(wrapped))
 
 
