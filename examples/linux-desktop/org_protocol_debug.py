@@ -406,8 +406,8 @@ def main():
             details.append("[{0}]".format(i + 1).center(80, '='))
         details.append(arg)
         try:
-            if arg.startswith("org-protocol:"):
-                parsed = parse.urlsplit(arg)
+            parsed = parse.urlsplit(arg)
+            if parsed.scheme:
                 for par in [
                         "scheme", "username", "password", "netloc",
                         "path", "fragment"]:
