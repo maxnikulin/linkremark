@@ -8,6 +8,12 @@ from urllib import parse
 
 TEXT_WIDTH = 80
 """Wrap lines longer than this value"""
+XMESSAGE_EXTRA_ARGS = [
+    # handle Unicode characters
+    "-xrm", "*international: true",
+    # close on [Escape]
+    '-xrm', '*translations: #override <Key>Escape: exit(1)'
+]
 
 HELP = """Usage: {0} -- org-protocol:/SUBPROTOCOL/?DATA
   or:  {0} {{ -h | --help }}
@@ -290,11 +296,10 @@ def dialog_xmessage(title, text):
     executable = find_in_path("xmessage")
     if not executable:
         return
-    # TODO: `-xrm` translations to handle Escape
     command = [
         executable,
-        "-center", "-xrm", "*international: true", "-default", "okay",
-        "-file", "-"]
+        "-center", "-default", "okay",
+        "-file", "-"] + XMESSAGE_EXTRA_ARGS
     text = f"{title}\n\n{text}"
     res = run(command, stderr=PIPE, text=True, input=text)
     if res.returncode == 0:
