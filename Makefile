@@ -138,11 +138,16 @@ manifest-chrome.json manifest-chrome-test.json manifest-chrome-dist.json: $(MAKE
 $(HELP_PAGE): README.org tools/help.el
 	$(EMACS) $(EMACS_FLAGS) --load tools/help.el
 
-test: test-json
+test: test-json test-python-doctest
 test-json: examples/backend-python/chrome/lr_example.json
 test-json: examples/backend-python/firefox/lr_example.json
 test-json: _locales/en/messages.json
 	tools/json_validate.py -v $^
+
+test-python-doctest: examples/backend-python/lr_emacsclient.py
+test-python-doctest: examples/backend-python/lr_example.py
+test-python-doctest: examples/linux-desktop/org_protocol_debug.py
+	python3 -m doctest $^
 
 clean:
 	$(RM) manifest.json
@@ -198,4 +203,4 @@ test-readme:
 	$(ORG_RUBY) $(ORG_RUBY_FLAGS) README.org >>README.html
 
 .PHONY: clean chrome firefox firefox-dist firefox-test chrome-test chrome-dist test-readme
-.PHONY: test test-json
+.PHONY: test test-json test-python-doctest
