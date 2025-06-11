@@ -100,7 +100,7 @@ EMACSCLIENT_ARGS = [
     f'--display={os.environ["DISPLAY"]}',
 ]
 EMACSCLIENT_CHECK_ORG_PROTOCOL = [
-        "--eval", "(and (memq 'org-protocol features) 'org-protocol)"]
+        "--eval", "(and (featurep 'org-protocol) 'org-protocol)"]
 EMACSCLIENT_ENSURE_FRAME = [
         "--eval", """\
 (if (and (symbolp 'linkremark-ensure-frame) (fboundp 'linkremark-ensure-frame))
@@ -173,7 +173,7 @@ def check_emacs_org_protocol():
         res = run(
             *EMACSCLIENT_CHECK_ORG_PROTOCOL,
             error_message="Failed check if org-protocol is available")
-        if not getattr(res, "stdout", None) or not res.stdout.startswith(b"org-protocol"):
+        if not getattr(res, "stdout", b'').startswith(b"org-protocol"):
             logging.error(
                 "org-protocol is not loaded: %s stdout: %s stderr: %s",
                 EMACSCLIENT, res.stdout, res.stderr)
