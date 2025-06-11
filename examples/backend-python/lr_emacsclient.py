@@ -1,6 +1,6 @@
 #!/usr/bin/python3 -u
 
-# Copyright (C) 2020-2021 Max Nikulin
+# Copyright (C) 2020-2025 Max Nikulin
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -82,6 +82,22 @@ EMACSCLIENT_ARGS = [
     #     emacsclient: can't find socket; have you started the server?
     #     To start the server in Emacs, type "M-x server-start".
     '--alternate-editor=sh -c "exit 9',
+    # Forcing display is necessary when Emacs is started as a daemon
+    # and no GUI frames have been created before.
+    # See `emacsclient.desktop` shipped with Emacs.
+    # Emacs `lib-src/emacsclient.c`:
+    #
+    #     Without the -c option, we used to set 'display' to $DISPLAY by
+    #     default, but this changed the default behavior and is sometimes
+    #     inconvenient.  So we force users to use "--display $DISPLAY" if
+    #     they want Emacs to connect to their current display.
+    #
+    # See also the emacs-devel thread
+    # <https://lists.gnu.org/archive/html/emacs-devel/2022-11/msg01589.html>
+    # How to get DISPLAY of emacsclient? Fri, 25 Nov 2022 22:17:54 +0700.
+    #
+    # May it cause issues with Wayland? `--eval window-system`?
+    f'--display={os.environ["DISPLAY"]}',
 ]
 EMACSCLIENT_CHECK_ORG_PROTOCOL = [
         "--eval", "(and (memq 'org-protocol features) 'org-protocol)"]
