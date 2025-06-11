@@ -134,11 +134,11 @@ def run(*args, error_message="", **kwargs):
 
         if getattr(ex, "returncode", 1) == 9:
             logging.error(
-                "emacsclient not running: %s stdout %s, stderr: %s",
+                "Emacs server not running: %s stdout %s, stderr: %s",
                 " ".join(cmd_args),
                 decoded_attr(ex, "stdout"),
                 decoded_attr(ex, "stderr"))
-            message = "Emacs server is not running, please, start it"
+            message = "Emacs server is not running, use M-x server-start."
             code = HTTPStatus.BAD_GATEWAY
             raise JsonRpcError(message, code)
 
