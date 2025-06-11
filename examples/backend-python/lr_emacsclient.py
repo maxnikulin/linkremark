@@ -105,9 +105,10 @@ EMACSCLIENT_ENSURE_FRAME = [
         "--eval", """\
 (if (and (symbolp 'linkremark-ensure-frame) (fboundp 'linkremark-ensure-frame))
     (linkremark-ensure-frame)
-  (or (memq 'x (mapcar #'framep (frame-list)))
+  (or (memq window-system (mapcar #'framep (frame-list)))
       (select-frame
-       (make-frame '((name . "LinkRemark") (window-system . x))))))"""]
+       (make-frame
+        `((name . "LinkRemark") (window-system . ,window-system))))))"""]
 
 USAGE = """\
 Usage: {0} IGNORED_ARGS_PASSED_BY_BROWSER...
