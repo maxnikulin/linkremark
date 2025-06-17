@@ -36,9 +36,9 @@ DESKTOP = """[Desktop Entry]
 Name=Debug org-protocol
 Comment=Troubleshooting of org-protocol desktop integration
 Icon=emacs
-# Do not add quotes around %u, reason: undefined behavior by spec
+# Do not add quotes around %U, reason: undefined behavior by spec
 # <https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables>
-Exec={0} -- %u
+Exec={0} -- %U
 Type=Application
 Terminal=false
 # Do not show in menu
